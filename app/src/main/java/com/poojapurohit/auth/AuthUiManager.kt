@@ -131,19 +131,19 @@ class AuthUiManager(
         val set = ConstraintSet()
         set.clone(parent)
 
-        set.clear(etExperience.id, ConstraintSet.TOP)
-        set.connect(etExperience.id, ConstraintSet.TOP, rvServices.id, ConstraintSet.BOTTOM, 8)
+        // line2 to bottom of tvExperience
+        set.clear(line2.id, ConstraintSet.TOP)
+        set.connect(line2.id, ConstraintSet.TOP, tvExperienceLabel.id, ConstraintSet.BOTTOM, 8)
 
         set.clear(btnRegister.id, ConstraintSet.TOP)
         set.connect(btnRegister.id, ConstraintSet.TOP, etExperience.id, ConstraintSet.BOTTOM, 16)
-
         set.applyTo(parent)
 
         tvWelcome.visibility = View.VISIBLE
         tvSpec.visibility = View.VISIBLE
-        line1.visibility = View.VISIBLE
         rvServices.visibility = View.VISIBLE
         tvExperienceLabel.visibility = View.VISIBLE
+        line2.visibility = View.VISIBLE
         etExperience.visibility = View.VISIBLE
         etExperience.inputType = InputType.TYPE_CLASS_NUMBER
         btnRegister.visibility = View.VISIBLE
