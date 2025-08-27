@@ -145,7 +145,7 @@ class AuthUiManager(
         rvServices.visibility = View.VISIBLE
         tvExperienceLabel.visibility = View.VISIBLE
         etExperience.visibility = View.VISIBLE
-        etExperience.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_WORDS
+        etExperience.inputType = InputType.TYPE_CLASS_NUMBER
         btnRegister.visibility = View.VISIBLE
     }
 

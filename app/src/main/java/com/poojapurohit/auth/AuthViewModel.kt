@@ -59,7 +59,7 @@ class AuthViewModel(
 
     /** Check if user already signed in */
     fun checkIfUserSignedIn() {
-        _uiState.value = AuthUiState.Loading
+        // Don't show loading animation at startup - check silently in background
         viewModelScope.launch {
             try {
                 val registered = repository.isUserRegistered()

@@ -9,9 +9,13 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.poojapurohit.auth.AuthRepository
+import com.poojapurohit.dashboard.DashActivity
 
 @SuppressLint("CustomSplashScreen")
 class SplashActivity : AppCompatActivity() {
+
+    private val authRepository = AuthRepository()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
@@ -20,16 +24,25 @@ class SplashActivity : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_splash)
 
-        // Delay 1 second then navigate to AuthActivity
+        // Check login session during 2-second splash delay
         lifecycleScope.launch {
-            delay(2000)
-            startActivity(
-                Intent(
-                    this@SplashActivity,
+            delay(2000) // Keep the 2-second splash delay
+
+            try {
+                val isUserRegistered = authRepository.isUserRegistered()
+                val targetActivity = if (isUserRegistered) {
+                    DashActivity::class.java
+                } else {
                     com.poojapurohit.auth.AuthActivity::class.java
-                )
-            )
-            finish()
+                }
+
+                startActivity(Intent(this@SplashActivity, targetActivity))
+                finish()
+            } catch (_: Exception) {
+                // If auth check fails, go to AuthActivity
+                startActivity(Intent(this@SplashActivity, com.poojapurohit.auth.AuthActivity::class.java))
+                finish()
+            }
         }
     }
 }
