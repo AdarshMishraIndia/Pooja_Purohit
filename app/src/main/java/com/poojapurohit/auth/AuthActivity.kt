@@ -16,8 +16,8 @@ import com.poojapurohit.R
 import com.poojapurohit.dashboard.DashActivity
 import com.poojapurohit.auth.adapter.ServicesAdapter
 import kotlinx.coroutines.launch
-import android.graphics.Color
-import androidx.core.graphics.drawable.toDrawable
+import android.view.WindowManager
+import com.airbnb.lottie.LottieAnimationView
 
 class AuthActivity : AppCompatActivity() {
 
@@ -154,6 +154,9 @@ class AuthActivity : AppCompatActivity() {
                 services = viewModel.formData.services
             )
         } else {
+            // Update form data with current EditText values for customer registration
+            viewModel.formData.name = etName.text.toString().trim()
+            viewModel.formData.phone = etPhone.text.toString().trim()
             viewModel.registerUser()
         }
     }
@@ -195,19 +198,39 @@ class AuthActivity : AppCompatActivity() {
     }
 
     private fun showLoading() {
+        // Prevent multiple dialogs
         if (loadingDialog?.isShowing == true) return
-        val view = layoutInflater.inflate(R.layout.layout_loading, null)
+
+        // Inflate custom loading layout
+        val dialogView = layoutInflater.inflate(R.layout.layout_loading, null)
+
+        // Start Lottie animation if present
+        val animationView = dialogView.findViewById<LottieAnimationView>(R.id.loading_animation)
+        animationView?.playAnimation()
+
+        // Build AlertDialog
         loadingDialog = AlertDialog.Builder(this)
-            .setView(view)
+            .setView(dialogView)
             .setCancelable(false)
             .create()
-        loadingDialog?.window?.setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
+
+        // Transparent background
+        loadingDialog?.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        // Show dialog
         loadingDialog?.show()
+
+        // Set fixed width from dimens
+        loadingDialog?.window?.setLayout(WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT)
     }
 
     private fun hideLoading() {
-        loadingDialog?.dismiss()
+        loadingDialog?.let { dialog ->
+            // Stop the Lottie animation before dismissing
+            val animationView = dialog.findViewById<LottieAnimationView>(R.id.loading_animation)
+            animationView?.cancelAnimation()
+            dialog.dismiss()
+        }
         loadingDialog = null
     }
-
 }

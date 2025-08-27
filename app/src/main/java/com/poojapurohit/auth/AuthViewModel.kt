@@ -73,6 +73,11 @@ class AuthViewModel(
     /** Proceed to next step in registration */
     fun nextStep(name: String? = null, phone: String? = null, location: String? = null) {
         when (currentStep) {
+            0 -> {
+                // Handle case where ViewModel step is 0 but UI is at step 1
+                currentStep = 1
+                nextStep(name, phone, location)
+            }
             1 -> {
                 formData.name = name.orEmpty()
                 formData.phone = phone.orEmpty()
