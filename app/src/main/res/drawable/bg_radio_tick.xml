@@ -1,0 +1,29 @@
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Light green filled circle with dark green outline -->
+    <item>
+        <shape android:shape="oval">
+            <size
+                android:width="25dp"
+                android:height="25dp" />
+            <solid android:color="#31832A"/>
+            <stroke
+                android:width="2dp"
+                android:color="#3A5B3A"/>
+        </shape>
+    </item>
+
+    <!-- White tick, centered, slightly up and right, improved joints -->
+    <item android:gravity="center">
+        <vector
+            android:width="25dp"
+            android:height="25dp"
+            android:viewportWidth="24"
+            android:viewportHeight="24">
+            <path
+                android:fillColor="#FFFFFF"
+                android:pathData="M10 15l-3.2-3.5c-0.35-0.35-1-0.35-1.4 0s-0.35 1 0 1.4l4 4c0.35 0.35 1 0.35 1.4 0l8-8c0.35-0.35 0.35-1 0-1.4s-1-0.35-1.4 0L10 15.2z"/>
+        </vector>
+    </item>
+
+</layer-list>

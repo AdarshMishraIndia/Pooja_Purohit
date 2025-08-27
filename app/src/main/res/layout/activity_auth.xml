@@ -1,0 +1,384 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_auth_activity"
+    android:padding="16dp"
+    android:fitsSystemWindows="true">
+
+    <!-- Title stays fixed -->
+    <TextView
+        android:id="@+id/tvTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_text_view"
+        android:fontFamily="serif"
+        android:gravity="center"
+        android:shadowColor="#FFB500"
+        android:shadowRadius="10"
+        android:text="POOJA PUROHIT"
+        android:textColor="#811C01"
+        android:textSize="40sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:ignore="HardcodedText" />
+
+    <!-- Scrollable content below title -->
+    <ScrollView
+        android:id="@+id/scrollView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:fillViewport="true"
+        android:overScrollMode="never"
+        app:layout_constraintTop_toBottomOf="@id/tvTitle"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <!-- Welcome Text -->
+            <TextView
+                android:id="@+id/tvWelcome"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="220dp"
+                android:fontFamily="serif"
+                android:shadowColor="#620C0C"
+                android:shadowDx="1"
+                android:shadowDy="1"
+                android:shadowRadius="10"
+                android:text="Welcome!"
+                android:textColor="#FFB500"
+                android:textSize="30sp"
+                android:textStyle="bold"
+                android:visibility="gone"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                tools:ignore="HardcodedText,TextContrastCheck" />
+
+            <!-- Name Label -->
+            <TextView
+                android:id="@+id/tvNameLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="serif"
+                android:shadowColor="#000000"
+                android:shadowRadius="8"
+                android:text="Name"
+                android:textColor="#FFFFFF"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:layout_marginTop="10dp"
+                android:visibility="gone"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/tvWelcome"
+                tools:ignore="HardcodedText" />
+
+            <!-- White line under Name Label -->
+            <View
+                android:id="@+id/line1"
+                android:layout_width="0dp"
+                android:layout_height="2dp"
+                android:background="#FFFFFF"
+                android:visibility="gone"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/tvNameLabel" />
+
+            <!-- Name Input -->
+            <EditText
+                android:id="@+id/etName"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_edit_text"
+                android:hint="Enter your name"
+                android:importantForAutofill="no"
+                android:inputType="textPersonName"
+                android:padding="12dp"
+                android:textAlignment="center"
+                android:textColor="#000000"
+                android:textColorHint="#C3C2C2"
+                android:textSize="15sp"
+                android:visibility="gone"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/tvNameLabel"
+                tools:ignore="HardcodedText,VisualLintTextFieldSize,TouchTargetSizeCheck" />
+
+            <!-- Phone Label -->
+            <TextView
+                android:id="@+id/tvPhoneLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:fontFamily="serif"
+                android:shadowColor="#000000"
+                android:shadowRadius="8"
+                android:text="Phone"
+                android:textColor="#FFFFFF"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:visibility="gone"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/etName"
+                tools:ignore="HardcodedText" />
+
+            <!-- White line under Phone Label -->
+            <View
+                android:id="@+id/line2"
+                android:layout_width="0dp"
+                android:layout_height="2dp"
+                android:background="#FFFFFF"
+                android:visibility="gone"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/tvPhoneLabel" />
+
+            <!-- Phone Input -->
+            <EditText
+                android:id="@+id/etPhone"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_edit_text"
+                android:hint="Enter your Phone Number"
+                android:importantForAutofill="no"
+                android:inputType="phone"
+                android:maxLength="10"
+                android:padding="12dp"
+                android:textAlignment="center"
+                android:textColor="#000000"
+                android:textColorHint="#C3C2C2"
+                android:textSize="15sp"
+                android:visibility="gone"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/tvPhoneLabel"
+                tools:ignore="HardcodedText,VisualLintTextFieldSize,TouchTargetSizeCheck,TextContrastCheck" />
+
+            <!-- Register Button -->
+            <android.widget.Button
+                android:id="@+id/btnRegister"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="24dp"
+                android:background="@drawable/bg_button_register"
+                android:fontFamily="serif"
+                android:padding="16dp"
+                android:shadowColor="#000000"
+                android:shadowRadius="5"
+                android:text="REGISTER"
+                android:textColor="#FFFFFF"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:visibility="gone"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/etPhone"
+                tools:ignore="HardcodedText" />
+
+            <!-- Location Label -->
+            <TextView
+                android:id="@+id/tvLoc"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:fontFamily="serif"
+                android:shadowColor="#000000"
+                android:shadowRadius="8"
+                android:text="Location"
+                android:textColor="#FFFFFF"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:visibility="gone"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/tvWelcome"
+                tools:ignore="HardcodedText" />
+
+            <!-- Location Input -->
+            <EditText
+                android:id="@+id/etLoc"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_edit_text"
+                android:hint="Enter your location"
+                android:importantForAutofill="no"
+                android:inputType="text"
+                android:padding="12dp"
+                android:textAlignment="center"
+                android:textColor="#000000"
+                android:textColorHint="#C3C2C2"
+                android:textSize="15sp"
+                android:visibility="gone"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/tvLoc"
+                tools:ignore="HardcodedText,VisualLintTextFieldSize,TouchTargetSizeCheck" />
+
+            <!-- Next Button -->
+            <android.widget.Button
+                android:id="@+id/btnNext"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:background="@drawable/bg_button_register"
+                android:fontFamily="serif"
+                android:padding="16dp"
+                android:shadowColor="#000000"
+                android:shadowRadius="5"
+                android:text="Next"
+                android:textColor="#FFFFFF"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:visibility="gone"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/etLoc"
+                tools:ignore="HardcodedText" />
+
+            <TextView
+                android:id="@+id/tvSpec"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:fontFamily="serif"
+                android:shadowColor="#000000"
+                android:shadowRadius="8"
+                android:text="Specialization"
+                android:textColor="#FFFFFF"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:visibility="gone"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/tvWelcome"
+                tools:ignore="HardcodedText" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recyclerSpecialization"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:paddingEnd="10dp"
+                android:paddingStart="10dp"
+                android:background="@drawable/bg_recycler_auth"
+                android:visibility="gone"
+                tools:layout_editor_absoluteX="145dp"
+                tools:layout_editor_absoluteY="59dp"
+                app:layout_constraintTop_toBottomOf="@+id/tvSpec"
+                app:layout_constraintLeft_toLeftOf="parent"
+                app:layout_constraintRight_toRightOf="parent" />
+
+            <!-- Experience Label -->
+            <TextView
+                android:id="@+id/tvExperience"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:fontFamily="serif"
+                android:shadowColor="#000000"
+                android:shadowRadius="8"
+                android:text="Experience"
+                android:textColor="#FFFFFF"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:visibility="gone"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/recyclerSpecialization"
+                tools:ignore="HardcodedText" />
+
+            <!-- Experience Input -->
+            <EditText
+                android:id="@+id/etExperience"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_edit_text"
+                android:hint="Enter your experience (in years)"
+                android:importantForAutofill="no"
+                android:inputType="number"
+                android:padding="12dp"
+                android:textAlignment="center"
+                android:textColor="#000000"
+                android:textColorHint="#C3C2C2"
+                android:textSize="15sp"
+                android:visibility="gone"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/tvExperience"
+                tools:ignore="HardcodedText,VisualLintTextFieldSize,TouchTargetSizeCheck,TextContrastCheck" />
+
+            <!-- Google Sign-In Button -->
+            <include
+                android:id="@+id/google_auth_button"
+                layout="@layout/google_auth_button_layout"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:visibility="visible"
+                android:layout_marginTop="300dp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/btnRegister" />
+
+            <TextView
+                android:id="@+id/tvAreYouPurohit"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingStart="5dp"
+                android:paddingEnd="1dp"
+                android:textAlignment="center"
+                android:fontFamily="serif"
+                android:shadowColor="#000000"
+                android:shadowDx="1"
+                android:shadowDy="1"
+                android:shadowRadius="10"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:text="Are you a Purohit?"
+                android:visibility="visible"
+                android:layout_marginTop="5dp"
+                app:layout_constraintTop_toBottomOf="@id/google_auth_button"
+                app:layout_constraintBottom_toBottomOf="@id/tvRegisterHere"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/tvRegisterHere"
+                app:layout_constraintHorizontal_chainStyle="packed"
+                tools:ignore="HardcodedText" />
+
+            <TextView
+                android:id="@+id/tvRegisterHere"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:fontFamily="serif"
+                android:paddingStart="1dp"
+                android:paddingEnd="5dp"
+                android:shadowColor="#000000"
+                android:shadowDx="1"
+                android:shadowDy="1"
+                android:shadowRadius="10"
+                android:text="Register Here"
+                android:textAlignment="center"
+                android:textColor="#37B1E6"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:visibility="visible"
+                app:layout_constraintBottom_toBottomOf="@id/tvAreYouPurohit"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@id/tvAreYouPurohit"
+                app:layout_constraintTop_toBottomOf="@id/google_auth_button"
+                tools:ignore="HardcodedText,TextContrastCheck" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </ScrollView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
