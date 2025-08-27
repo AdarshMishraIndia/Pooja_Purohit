@@ -1,14 +1,14 @@
 package com.poojapurohit.auth
 
-import android.content.Context
+import android.app.Activity
 import androidx.credentials.CredentialManager
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
 
 class AuthViewModel(
     private val repository: AuthRepository = AuthRepository()
@@ -23,30 +23,39 @@ class AuthViewModel(
     private val _uiState = MutableLiveData<AuthUiState>(AuthUiState.Idle)
     val uiState: LiveData<AuthUiState> = _uiState
 
-    /** Google Sign-In flow */
+    /** Google Sign-In flow that fetches credentials via CredentialManager (matches Activity usage) */
     fun signInWithGoogle(
-        context: Context,
+        activity: Activity,
         credentialManager: CredentialManager,
         clientId: String,
         isServicePartner: Boolean = false
     ) {
         isServicePartnerFlow = isServicePartner
         _uiState.value = AuthUiState.Loading
+
+        // viewModelScope.launch defaults to Main dispatcher, which is required for CredentialManager UI
         viewModelScope.launch {
-            val result = repository.signInWithGoogle(context, credentialManager, clientId)
-            _uiState.value = result.fold(
-                onSuccess = { isNewUser ->
-                    if (isNewUser) {
-                        if (isServicePartner) AuthUiState.ShowServicePartnerStep1
-                        else AuthUiState.ShowCustomerFields
-                    } else {
-                        AuthUiState.Success
-                    }
-                },
-                onFailure = { AuthUiState.Error(it.message ?: "Sign-in failed") }
-            )
+            try {
+                val result = repository.signInWithGoogle(activity, credentialManager, clientId)
+                _uiState.value = result.fold(
+                    onSuccess = { isNewUser ->
+                        if (isNewUser) {
+                            if (isServicePartner) AuthUiState.ShowServicePartnerStep1
+                            else AuthUiState.ShowCustomerFields
+                        } else {
+                            AuthUiState.Success
+                        }
+                    },
+                    onFailure = { AuthUiState.Error(it.message ?: "Sign-in failed") }
+                )
+            } catch (_: SecurityException) {
+                _uiState.value = AuthUiState.Error("Google Sign-In unavailable")
+            } catch (e: Exception) {
+                _uiState.value = AuthUiState.Error(e.message ?: "Sign-in failed")
+            }
         }
     }
+
 
     /** Check if user already signed in */
     fun checkIfUserSignedIn() {
@@ -78,28 +87,23 @@ class AuthViewModel(
                 formData.location = location.orEmpty()
                 val error = AuthFormValidator().validateLocation(formData.location)
                 if (error != null) _uiState.value = AuthUiState.Error(error)
-                else loadServices()
+                else loadServicesForStep3()
             }
         }
     }
 
-    /** Load services for step 3 */
-    private fun loadServices() {
+    /** Load services for step 3 via repository */
+    fun loadServicesForStep3() {
         _uiState.value = AuthUiState.Loading
         viewModelScope.launch {
-            val docRef = FirebaseFirestore.getInstance()
-                .collection("services")
-                .document("BookAPurohit")
-            docRef.get()
-                .addOnSuccessListener { doc ->
-                    val services = (doc.get("name") as? List<*>)?.filterIsInstance<String>()?.sorted() ?: emptyList()
-                    currentStep = 3
-                    _uiState.value = AuthUiState.ShowServicePartnerStep3(services)
-                }
-                .addOnFailureListener {
-                    currentStep = 3
-                    _uiState.value = AuthUiState.ShowServicePartnerStep3(emptyList())
-                }
+            // Let the UI show the loader before the Firestore fetch
+            yield()
+            val result = repository.loadServices()
+            currentStep = 3
+            _uiState.value = result.fold(
+                onSuccess = { services -> AuthUiState.ShowServicePartnerStep3(services) },
+                onFailure = { AuthUiState.ShowServicePartnerStep3(emptyList()) }
+            )
         }
     }
 
@@ -168,15 +172,6 @@ class AuthViewModel(
                 onSuccess = { AuthUiState.Success },
                 onFailure = { AuthUiState.Error(it.message ?: "Service partner registration failed") }
             )
-        }
-    }
-
-    /** Navigate back a step */
-    fun goBack() {
-        when (currentStep) {
-            3 -> _uiState.value = AuthUiState.ShowServicePartnerStep2.also { currentStep = 2 }
-            2 -> _uiState.value = AuthUiState.ShowServicePartnerStep1.also { currentStep = 1 }
-            1 -> _uiState.value = AuthUiState.ShowInitialState.also { currentStep = 0 }
         }
     }
 }

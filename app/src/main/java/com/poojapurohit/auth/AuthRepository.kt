@@ -1,6 +1,6 @@
 package com.poojapurohit.auth
 
-import android.content.Context
+import android.app.Activity
 import android.util.Log
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
@@ -19,7 +19,7 @@ class AuthRepository(
 ) {
 
     suspend fun signInWithGoogle(
-        context: Context,
+        activity: Activity,
         credentialManager: CredentialManager,
         clientId: String
     ): Result<Boolean> {
@@ -31,7 +31,8 @@ class AuthRepository(
             val request = GetCredentialRequest.Builder()
                 .addCredentialOption(googleIdOption)
                 .build()
-            val result = credentialManager.getCredential(context, request)
+            // Important: call on the main thread with an Activity context so the provider UI can launch
+            val result = credentialManager.getCredential(activity, request)
             val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(result.credential.data)
             val idToken = googleIdTokenCredential.idToken
             if (idToken.isEmpty()) Result.failure(Exception("Missing ID token"))
@@ -45,7 +46,7 @@ class AuthRepository(
         }
     }
 
-    private suspend fun firebaseAuthWithGoogle(idToken: String): Result<Boolean> {
+    suspend fun firebaseAuthWithGoogle(idToken: String): Result<Boolean> {
         return try {
             val credential = GoogleAuthProvider.getCredential(idToken, null)
             val authResult = auth.signInWithCredential(credential).await()
@@ -112,6 +113,22 @@ class AuthRepository(
         } catch (_: Exception) {
             auth.signOut()
             false
+        }
+    }
+
+    suspend fun loadServices(): Result<List<String>> {
+        return try {
+            val doc = firestore
+                .collection("services")
+                .document("BookAPurohit")
+                .get()
+                .await()
+            val services = (doc.get("name") as? List<*>)?.filterIsInstance<String>()?.sorted()
+                ?: emptyList()
+            Result.success(services)
+        } catch (e: Exception) {
+            Log.e("AuthRepository", "Failed to load services", e)
+            Result.success(emptyList())
         }
     }
 }

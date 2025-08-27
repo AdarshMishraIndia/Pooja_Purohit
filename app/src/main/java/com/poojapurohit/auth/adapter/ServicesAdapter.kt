@@ -57,17 +57,6 @@ class ServicesAdapter(
     override fun onBindViewHolder(holder: ServiceViewHolder, position: Int) {
         holder.bind(getItem(position))
     }
-
-    fun getSelectedServices(): List<String> = selectedServices.toList()
-
-    fun clearSelection() {
-        val previouslySelected = selectedServices.toList()
-        selectedServices.clear()
-        previouslySelected.forEach { service ->
-            val pos = currentList.indexOf(service)
-            if (pos != -1) notifyItemChanged(pos)
-        }
-    }
 }
 
 private class ServiceDiffCallback : DiffUtil.ItemCallback<String>() {
