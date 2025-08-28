@@ -1,5 +1,6 @@
 package com.poojapurohit.dashboard
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
 import android.view.MenuItem
@@ -91,11 +92,21 @@ class DashActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             ServiceItem("Religious Counsel", "Seek spiritual guidance, religious advice, and answers to your faith-related questions from learned scholars", R.drawable.ic_service_placeholder)
         )
         
-        servicesAdapter = DashboardAdapter(dummyServices)
-        recyclerServices.layoutManager = GridLayoutManager(this, 2)
-        recyclerServices.adapter = servicesAdapter
+        servicesAdapter = DashboardAdapter(dummyServices) { service ->
+            // Handle item click here
+            Toast.makeText(this, "Selected: ${service.name}", Toast.LENGTH_SHORT).show()
+        }
+        
+        recyclerServices.apply {
+            layoutManager = GridLayoutManager(this@DashActivity, 2)
+            adapter = servicesAdapter
+            setHasFixedSize(true)
+            // Add item decoration for spacing if needed
+            // addItemDecoration(GridSpacingItemDecoration(2, 16, true))
+        }
     }
 
+    @SuppressLint("SetTextI18n")
     private fun loadUserProfile() {
         val uid = auth.currentUser?.uid
         if (uid != null) {

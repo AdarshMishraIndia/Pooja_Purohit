@@ -7,8 +7,10 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.poojapurohit.R
 
-class DashboardAdapter(private val services: List<ServiceItem>) : 
-    RecyclerView.Adapter<DashboardAdapter.ServiceViewHolder>() {
+class DashboardAdapter(
+    private val services: List<ServiceItem>,
+    private val onItemClick: (ServiceItem) -> Unit = {}
+) : RecyclerView.Adapter<DashboardAdapter.ServiceViewHolder>() {
 
     class ServiceViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val tvServiceName: TextView = itemView.findViewById(R.id.tvServiceName)
@@ -23,8 +25,11 @@ class DashboardAdapter(private val services: List<ServiceItem>) :
 
     override fun onBindViewHolder(holder: ServiceViewHolder, position: Int) {
         val service = services[position]
-        holder.tvServiceName.text = service.name
-        holder.tvServiceDescription.text = service.description
+        holder.apply {
+            tvServiceName.text = service.name
+            tvServiceDescription.text = service.description
+            itemView.setOnClickListener { onItemClick(service) }
+        }
     }
 
     override fun getItemCount(): Int = services.size
