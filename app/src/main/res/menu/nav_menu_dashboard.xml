@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/nav_edit_account"
+        android:icon="@drawable/ic_edit_account"
+        android:title="Edit Account" />
+
+    <item
+        android:id="@+id/nav_about_us"
+        android:icon="@drawable/ic_about"
+        android:title="About Us" />
+
+    <item
+        android:id="@+id/nav_terms_conditions"
+        android:icon="@drawable/ic_terms"
+        android:title="Terms &amp; Conditions" />
+
+    <item
+        android:id="@+id/nav_sign_out"
+        android:icon="@drawable/ic_sign_out"
+        android:title="Sign Out" />
+
+    <item
+        android:id="@+id/nav_delete_account"
+        android:icon="@drawable/ic_delete"
+        android:title="Delete Account" />
+
+</menu>

@@ -42,6 +42,12 @@
             android:theme="@style/Theme.PoojaPurohit">
         </activity>
 
+        <activity
+            android:name="com.poojapurohit.dashboard.InfoActivity"
+            android:exported="false"
+            android:theme="@style/Theme.PoojaPurohit">
+        </activity>
+
     </application>
 
 </manifest>
