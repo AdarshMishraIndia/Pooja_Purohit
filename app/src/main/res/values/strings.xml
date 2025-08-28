@@ -1,5 +1,9 @@
 <resources>
     <string name="app_name">Pooja Purohit</string>
     <string name="google_client_id">349985710498-t70id4i8ohder9i5j9qdentqc13sdvsa.apps.googleusercontent.com</string>
+    
+    <!-- Navigation drawer strings -->
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
 
 </resources>

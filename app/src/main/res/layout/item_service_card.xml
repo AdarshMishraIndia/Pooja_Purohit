@@ -15,36 +15,22 @@
         android:layout_height="match_parent"
         android:padding="16dp">
 
-        <!-- Service Icon -->
-        <ImageView
-            android:id="@+id/ivServiceIcon"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_marginTop="8dp"
-            android:contentDescription="Service Icon"
-            android:tint="#FFB500"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            tools:src="@drawable/ic_service_placeholder"
-            tools:ignore="HardcodedText,UseAppTint" />
-
         <!-- Service Name -->
         <TextView
             android:id="@+id/tvServiceName"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="16dp"
             android:fontFamily="serif"
             android:gravity="center"
             android:shadowColor="#000000"
             android:shadowRadius="5"
             android:textColor="#FFFFFF"
-            android:textSize="16sp"
+            android:textSize="18sp"
             android:textStyle="bold"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/ivServiceIcon"
+            app:layout_constraintTop_toTopOf="parent"
             tools:text="Puja Service" />
 
         <!-- Service Description -->

@@ -2,19 +2,18 @@ package com.poojapurohit.dashboard
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.View
-import android.widget.AdapterView
-import android.widget.ArrayAdapter
-import android.widget.ImageButton
-import android.widget.ListView
+import android.view.MenuItem
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
+import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.navigation.NavigationView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.poojapurohit.R
@@ -25,22 +24,24 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 
-class DashActivity : AppCompatActivity() {
+class DashActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
 
     private val firestore = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
     
     private lateinit var drawerLayout: DrawerLayout
-    private lateinit var navigationDrawer: ListView
+    private lateinit var navigationView: NavigationView
+    private lateinit var toolbar: Toolbar
     private lateinit var tvWelcome: TextView
     private lateinit var recyclerServices: RecyclerView
-    private lateinit var servicesAdapter: ServicesAdapter
+    private lateinit var servicesAdapter: DashboardAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_dashboard)
 
         initViews()
+        setupToolbar()
         setupNavigationDrawer()
         setupServicesRecycler()
         loadUserProfile()
@@ -49,51 +50,48 @@ class DashActivity : AppCompatActivity() {
 
     private fun initViews() {
         drawerLayout = findViewById(R.id.drawerLayout)
-        navigationDrawer = findViewById(R.id.navigationDrawer)
+        navigationView = findViewById(R.id.navigationView)
+        toolbar = findViewById(R.id.toolbar)
         tvWelcome = findViewById(R.id.tvWelcome)
         recyclerServices = findViewById(R.id.recyclerServices)
+    }
+
+    private fun setupToolbar() {
+        setSupportActionBar(toolbar)
+        supportActionBar?.setDisplayShowTitleEnabled(false)
         
-        val btnHamburger = findViewById<ImageButton>(R.id.btnHamburger)
-        btnHamburger.setOnClickListener {
-            drawerLayout.openDrawer(GravityCompat.START)
-        }
+        val toggle = ActionBarDrawerToggle(
+            this, drawerLayout, toolbar,
+            R.string.navigation_drawer_open, R.string.navigation_drawer_close
+        )
+        drawerLayout.addDrawerListener(toggle)
+        toggle.syncState()
     }
 
     private fun setupNavigationDrawer() {
-        val navItems = arrayOf(
-            "Edit Account",
-            "About Us", 
-            "Terms & Conditions",
-            "Sign Out",
-            "Delete Account"
-        )
-        
-        val adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, navItems)
-        navigationDrawer.adapter = adapter
-        
-        navigationDrawer.onItemClickListener = AdapterView.OnItemClickListener { _, _, position, _ ->
-            when (position) {
-                0 -> handleEditAccount()
-                1 -> handleAboutUs()
-                2 -> handleTermsConditions()
-                3 -> handleSignOut()
-                4 -> handleDeleteAccount()
-            }
-            drawerLayout.closeDrawer(GravityCompat.START)
+        navigationView.setNavigationItemSelectedListener(this)
+    }
+
+    override fun onNavigationItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            R.id.nav_edit_account -> handleEditAccount()
+            R.id.nav_about_us -> handleAboutUs()
+            R.id.nav_terms_conditions -> handleTermsConditions()
+            R.id.nav_sign_out -> handleSignOut()
+            R.id.nav_delete_account -> handleDeleteAccount()
         }
+        drawerLayout.closeDrawer(GravityCompat.START)
+        return true
     }
 
     private fun setupServicesRecycler() {
         val dummyServices = listOf(
-            ServiceItem("Puja Services", "Traditional puja ceremonies", R.drawable.ic_service_placeholder),
-            ServiceItem("Wedding Rituals", "Complete wedding ceremonies", R.drawable.ic_service_placeholder),
-            ServiceItem("Housewarming", "Griha pravesh ceremonies", R.drawable.ic_service_placeholder),
-            ServiceItem("Festival Pujas", "Special festival rituals", R.drawable.ic_service_placeholder),
-            ServiceItem("Astrology", "Horoscope consultation", R.drawable.ic_service_placeholder),
-            ServiceItem("Spiritual Guidance", "Personal spiritual advice", R.drawable.ic_service_placeholder)
+            ServiceItem("Book a Purohit", "Connect with experienced Purohits for weddings, pujas, and sacred ceremonies in your area", R.drawable.ic_service_placeholder),
+            ServiceItem("Horoscope", "Get personalized Vedic astrology readings, birth chart analysis, and future predictions from expert astrologers", R.drawable.ic_service_placeholder),
+            ServiceItem("Religious Counsel", "Seek spiritual guidance, religious advice, and answers to your faith-related questions from learned scholars", R.drawable.ic_service_placeholder)
         )
         
-        servicesAdapter = ServicesAdapter(dummyServices)
+        servicesAdapter = DashboardAdapter(dummyServices)
         recyclerServices.layoutManager = GridLayoutManager(this, 2)
         recyclerServices.adapter = servicesAdapter
     }
