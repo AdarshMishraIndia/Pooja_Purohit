@@ -114,8 +114,17 @@ class DashActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 try {
                     val document = firestore.collection("users").document(uid).get().await()
                     val userName = document.getString("name") ?: "User"
+                    val userEmail = document.getString("email") ?: auth.currentUser?.email ?: ""
                     
                     withContext(Dispatchers.Main) {
+                        // Get header views
+                        val headerView = navigationView.getHeaderView(0)
+                        val tvUserName = headerView.findViewById<TextView>(R.id.tvUserName)
+                        val tvUserEmail = headerView.findViewById<TextView>(R.id.tvUserEmail)
+                        
+                        // Update UI
+                        tvUserName.text = userName
+                        tvUserEmail.text = userEmail
                         tvWelcome.text = "Welcome, $userName!"
                     }
                 } catch (e: Exception) {

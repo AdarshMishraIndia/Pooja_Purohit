@@ -6,7 +6,8 @@
     android:id="@+id/drawerLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_auth_activity">
+    android:background="@drawable/bg_dashboard"
+    android:fitsSystemWindows="true">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -60,7 +61,7 @@
                 android:id="@+id/tvWelcome"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@drawable/bg_nav_header"
+                android:background="@drawable/bg_nav_sub_header"
                 android:fontFamily="serif"
                 android:gravity="center"
                 android:padding="12dp"
@@ -70,10 +71,10 @@
                 android:textColor="#FFB500"
                 android:textSize="18sp"
                 android:textStyle="bold"
-                app:layout_constraintTop_toBottomOf="@id/toolbar"
-                app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
-                tools:ignore="HardcodedText" />
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/toolbar"
+                tools:ignore="HardcodedText,TextContrastCheck" />
 
             <!-- Services Grid -->
             <androidx.recyclerview.widget.RecyclerView
@@ -106,6 +107,7 @@
         app:menu="@menu/nav_menu_dashboard"
         app:headerLayout="@layout/nav_header_dashboard"
         app:itemTextColor="#811C01"
-        app:itemIconTint="#FFB500" />
+        app:itemIconTint="#FFB500"
+        tools:ignore="VisualLintBounds" />
 
 </androidx.drawerlayout.widget.DrawerLayout>

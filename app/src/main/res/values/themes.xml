@@ -1,13 +1,13 @@
 <resources>
 
     <!-- Base application theme -->
-    <style name="Base.Theme.PoojaPurohit" parent="Theme.Material3.Light.NoActionBar" >
-    <item name="android:statusBarColor">@android:color/transparent</item>
+    <style name="Base.Theme.PoojaPurohit" parent="Theme.Material3.Light.NoActionBar">
     </style>
 
     <!-- Main app theme -->
-    <style name="Theme.PoojaPurohit" parent="Base.Theme.PoojaPurohit" >
-        <item name="android:statusBarColor">@android:color/transparent</item>
+    <style name="Theme.PoojaPurohit" parent="Base.Theme.PoojaPurohit">
+        <item name="android:statusBarColor">#811C01</item>
+        <item name="android:windowLightStatusBar">false</item>
         <item name="android:fontFamily">serif</item>
     </style>
 
