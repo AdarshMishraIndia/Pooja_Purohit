@@ -3,21 +3,24 @@ package com.poojapurohit.auth
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
-import android.widget.*
+import android.view.WindowManager
+import android.widget.Button
+import android.widget.EditText
+import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.addCallback
 import androidx.activity.viewModels
-import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
 import androidx.credentials.CredentialManager
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.poojapurohit.R
-import com.poojapurohit.dashboard.DashActivity
-import com.poojapurohit.auth.adapter.ServicesAdapter
-import kotlinx.coroutines.launch
-import android.view.WindowManager
 import com.airbnb.lottie.LottieAnimationView
+import com.poojapurohit.R
+import com.poojapurohit.auth.adapter.ServicesAdapter
+import com.poojapurohit.dashboard.DashActivity
+import kotlinx.coroutines.launch
 
 class AuthActivity : AppCompatActivity() {
 
@@ -36,8 +39,6 @@ class AuthActivity : AppCompatActivity() {
     private lateinit var googleAuthButton: View
     private lateinit var rvServices: RecyclerView
     private lateinit var servicesAdapter: ServicesAdapter
-
-    private var isServicePartnerRegistration = false
     private var loadingDialog: AlertDialog? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,7 +53,7 @@ class AuthActivity : AppCompatActivity() {
         lifecycleScope.launch { viewModel.checkIfUserSignedIn() }
 
         googleAuthButton.setOnClickListener {
-            isServicePartnerRegistration = false
+            uiManager.isServicePartnerFlow = false
             viewModel.signInWithGoogle(
                 activity = this,
                 credentialManager = credentialManager,
@@ -62,7 +63,7 @@ class AuthActivity : AppCompatActivity() {
         }
 
         tvRegisterHere.setOnClickListener {
-            isServicePartnerRegistration = true
+            uiManager.isServicePartnerFlow = true
             viewModel.signInWithGoogle(
                 activity = this,
                 credentialManager = credentialManager,
@@ -73,8 +74,12 @@ class AuthActivity : AppCompatActivity() {
 
         // Back handling
         onBackPressedDispatcher.addCallback(this) {
-            val handled = uiManager.goBackToPreviousStep()
-            if (!handled) finish()
+            val handled = uiManager.goBackToPreviousStep(viewModel.currentStep)
+            if (handled) {
+                viewModel.currentStep--
+            } else {
+                finish()
+            }
         }
     }
 
@@ -129,18 +134,41 @@ class AuthActivity : AppCompatActivity() {
     }
 
     private fun handleNextClick() {
-        when (uiManager.currentStep) {
+        // If step is 0, it means we're just starting the flow
+        val currentStep = if (viewModel.currentStep == 0) 1 else viewModel.currentStep
+        
+        when (currentStep) {
             1 -> {
                 val name = etName.text.toString().trim()
                 val phone = etPhone.text.toString().trim()
+                
+                // Use AuthFormValidator for validation
+                val error = AuthFormValidator().validateNameAndPhone(name, phone)
+                if (error != null) {
+                    Toast.makeText(this@AuthActivity, error, Toast.LENGTH_SHORT).show()
+                    return
+                }
+                
                 viewModel.formData.name = name
                 viewModel.formData.phone = phone
                 viewModel.nextStep(name = name, phone = phone)
             }
             2 -> {
                 val location = etLoc.text.toString().trim()
+                
+                // Use AuthFormValidator for location validation
+                val error = AuthFormValidator().validateLocation(location)
+                if (error != null) {
+                    Toast.makeText(this@AuthActivity, error, Toast.LENGTH_SHORT).show()
+                    return
+                }
+                
                 viewModel.formData.location = location
                 viewModel.nextStep(location = location)
+            }
+            else -> {
+                // If we hit an unexpected step, try to recover by moving to step 1
+                viewModel.currentStep = 1
             }
         }
     }
@@ -164,17 +192,21 @@ class AuthActivity : AppCompatActivity() {
     private fun observeViewModel() {
         viewModel.uiState.observe(this) { state ->
             when (state) {
-                is AuthUiState.Loading -> showLoading()
+                is AuthUiState.Error -> {
+                    hideLoading()
+                    Toast.makeText(this@AuthActivity, state.message, Toast.LENGTH_LONG).show()
+                }
+                is AuthUiState.Loading -> {
+                    showLoading()
+                }
                 is AuthUiState.Success -> {
                     hideLoading()
                     startActivity(Intent(this, DashActivity::class.java))
                     finish()
                 }
-                is AuthUiState.Error -> {
-                    hideLoading()
-                    Toast.makeText(this, state.message, Toast.LENGTH_LONG).show()
+                is AuthUiState.ShowInitialState -> {
+                    uiManager.showInitialState()
                 }
-                is AuthUiState.ShowInitialState -> uiManager.showInitialState()
                 is AuthUiState.ShowCustomerFields -> {
                     hideLoading()
                     uiManager.showCustomerFields()
@@ -189,10 +221,12 @@ class AuthActivity : AppCompatActivity() {
                 }
                 is AuthUiState.ShowServicePartnerStep3 -> {
                     hideLoading()
-                    servicesAdapter.submitList(state.services.sorted())
+                    servicesAdapter.submitList(state.services)
                     uiManager.showServicePartnerStep3()
                 }
-                AuthUiState.Idle -> { hideLoading() }
+                AuthUiState.Idle -> {
+                    hideLoading()
+                }
             }
         }
     }

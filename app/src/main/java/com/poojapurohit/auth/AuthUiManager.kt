@@ -32,7 +32,6 @@ class AuthUiManager(
     private val onNextClickListener: () -> Unit,
     private val onRegisterClickListener: () -> Unit
 ) {
-    var currentStep = 0
     var isServicePartnerFlow = false
 
     init {
@@ -42,7 +41,6 @@ class AuthUiManager(
 
     fun showInitialState() {
         isServicePartnerFlow = false
-        currentStep = 0
         hideAllFields()
         googleAuthButton.visibility = View.VISIBLE
         tvAreYouPurohit.visibility = View.VISIBLE
@@ -51,7 +49,6 @@ class AuthUiManager(
 
     fun showCustomerFields() {
         isServicePartnerFlow = false
-        currentStep = 1
         hideAllFields()
         tvWelcome.visibility = View.VISIBLE
         tvNameLabel.visibility = View.VISIBLE
@@ -65,7 +62,6 @@ class AuthUiManager(
 
     fun showServicePartnerStep1() {
         isServicePartnerFlow = true
-        currentStep = 1
         hideAllFields()
 
         tvWelcome.visibility = View.VISIBLE
@@ -91,7 +87,6 @@ class AuthUiManager(
 
     fun showServicePartnerStep2() {
         isServicePartnerFlow = true
-        currentStep = 2
         hideAllFields()
 
         tvWelcome.visibility = View.VISIBLE
@@ -124,7 +119,6 @@ class AuthUiManager(
 
     fun showServicePartnerStep3() {
         isServicePartnerFlow = true
-        currentStep = 3
         hideAllFields()
 
         val parent = btnRegister.parent as ConstraintLayout
@@ -170,12 +164,8 @@ class AuthUiManager(
         line2.visibility = View.GONE
     }
 
-    /**
-     * Handle back navigation between steps.
-     * Returns true if handled (did navigate to previous UI step), false if not handled.
-     */
-    fun goBackToPreviousStep(): Boolean {
-        return when (currentStep) {
+    fun goBackToPreviousStep(step: Int): Boolean {
+        return when (step) {
             3 -> {
                 showServicePartnerStep2()
                 true

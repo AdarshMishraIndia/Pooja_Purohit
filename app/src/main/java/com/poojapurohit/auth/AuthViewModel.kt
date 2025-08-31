@@ -1,6 +1,7 @@
 package com.poojapurohit.auth
 
 import android.app.Activity
+import android.util.Log
 import androidx.credentials.CredentialManager
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -19,6 +20,7 @@ class AuthViewModel(
 
     var currentStep = 0
     var isServicePartnerFlow = false
+    private set
 
     private val _uiState = MutableLiveData<AuthUiState>(AuthUiState.Idle)
     val uiState: LiveData<AuthUiState> = _uiState
@@ -72,27 +74,69 @@ class AuthViewModel(
 
     /** Proceed to next step in registration */
     fun nextStep(name: String? = null, phone: String? = null, location: String? = null) {
+        Log.d("AuthFlow", "nextStep - currentStep: $currentStep, isServicePartnerFlow: $isServicePartnerFlow")
+        Log.d("AuthFlow", "nextStep - name: $name, phone: $phone, location: $location")
+        
+        // If we're at step 0, move to step 1 and process with the same parameters
+        if (currentStep == 0) {
+            Log.d("AuthFlow", "Handling step 0 - moving to step 1")
+            currentStep = 1
+            // Call nextStep again with the same parameters to process step 1
+            return nextStep(name, phone, location)
+        }
+        
         when (currentStep) {
-            0 -> {
-                // Handle case where ViewModel step is 0 but UI is at step 1
-                currentStep = 1
-                nextStep(name, phone, location)
-            }
             1 -> {
+                Log.d("AuthFlow", "Processing step 1 - Name and Phone")
                 formData.name = name.orEmpty()
                 formData.phone = phone.orEmpty()
+                
+                // Validate the input
                 val error = AuthFormValidator().validateNameAndPhone(formData.name, formData.phone)
-                if (error != null) _uiState.value = AuthUiState.Error(error)
-                else {
+                if (error != null) {
+                    Log.e("AuthFlow", "Validation error in step 1: $error")
+                    _uiState.value = AuthUiState.Error(error)
+                    return
+                }
+                
+                Log.d("AuthFlow", "Step 1 validation passed")
+                
+                if (isServicePartnerFlow) {
+                    // For service partner, move to step 2
+                    Log.d("AuthFlow", "Moving to step 2 (service partner flow)")
                     currentStep = 2
                     _uiState.value = AuthUiState.ShowServicePartnerStep2
+                    Log.d("AuthFlow", "UI state updated to ShowServicePartnerStep2")
+                } else {
+                    // For customer, proceed with registration
+                    Log.d("AuthFlow", "Proceeding with customer registration")
+                    registerUser()
                 }
             }
             2 -> {
+                Log.d("AuthFlow", "Processing step 2 - Location")
                 formData.location = location.orEmpty()
+                
+                // Validate the location
                 val error = AuthFormValidator().validateLocation(formData.location)
-                if (error != null) _uiState.value = AuthUiState.Error(error)
-                else loadServicesForStep3()
+                if (error != null) {
+                    Log.e("AuthFlow", "Validation error in step 2: $error")
+                    _uiState.value = AuthUiState.Error(error)
+                    return
+                }
+                
+                Log.d("AuthFlow", "Step 2 validation passed")
+                
+                if (isServicePartnerFlow) {
+                    // For service partner, load services for step 3
+                    Log.d("AuthFlow", "Loading services for step 3")
+                    loadServicesForStep3()
+                } else {
+                    // This should not happen as we don't show step 2 for customers
+                    val errorMsg = "Invalid flow - reached step 2 in non-service partner flow"
+                    Log.e("AuthFlow", errorMsg)
+                    _uiState.value = AuthUiState.Error(errorMsg)
+                }
             }
         }
     }
