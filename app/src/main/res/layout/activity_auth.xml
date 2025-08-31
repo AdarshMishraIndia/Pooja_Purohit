@@ -49,6 +49,7 @@
                 android:id="@+id/tvWelcome"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="200dp"
                 android:fontFamily="serif"
                 android:shadowColor="#620C0C"
                 android:shadowDx="1"

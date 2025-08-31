@@ -12,7 +12,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
-import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.navigation.NavigationView
 import com.google.firebase.auth.FirebaseAuth
@@ -24,6 +23,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import androidx.core.net.toUri
 
 class DashActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
 
@@ -36,6 +36,7 @@ class DashActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private lateinit var tvWelcome: TextView
     private lateinit var recyclerServices: RecyclerView
     private lateinit var servicesAdapter: DashboardAdapter
+    private lateinit var tvContactNum: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,6 +48,7 @@ class DashActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         setupServicesRecycler()
         loadUserProfile()
         setupBackPressedHandler()
+        setupContactNumberClick()
     }
 
     private fun initViews() {
@@ -55,6 +57,7 @@ class DashActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         toolbar = findViewById(R.id.toolbar)
         tvWelcome = findViewById(R.id.tvWelcome)
         recyclerServices = findViewById(R.id.recyclerServices)
+        tvContactNum = findViewById(R.id.tvContactNum)
     }
 
     private fun setupToolbar() {
@@ -87,9 +90,9 @@ class DashActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     private fun setupServicesRecycler() {
         val dummyServices = listOf(
-            ServiceItem("Book a Purohit", "Connect with experienced Purohits for weddings, pujas, and sacred ceremonies in your area", R.drawable.ic_service_placeholder),
-            ServiceItem("Horoscope", "Get personalized Vedic astrology readings, birth chart analysis, and future predictions from expert astrologers", R.drawable.ic_service_placeholder),
-            ServiceItem("Religious Counsel", "Seek spiritual guidance, religious advice, and answers to your faith-related questions from learned scholars", R.drawable.ic_service_placeholder)
+            ServiceItem("Book a Purohit", "Search and book a Purohit near your area.", R.drawable.ic_service_placeholder_book),
+            ServiceItem("Horoscope\n(ଜାତକ)", "Get your horoscope in Odia/South style.", R.drawable.ic_service_placeholder_horoscope),
+            ServiceItem("Match Making\n(ବିବାହ ମେଳକ)", "Match Horoscope before planning marriage.", R.drawable.ic_service_placeholder_matchmaking)
         )
         
         servicesAdapter = DashboardAdapter(dummyServices) { service ->
@@ -98,11 +101,9 @@ class DashActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
         
         recyclerServices.apply {
-            layoutManager = GridLayoutManager(this@DashActivity, 2)
+            layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this@DashActivity)
             adapter = servicesAdapter
             setHasFixedSize(true)
-            // Add item decoration for spacing if needed
-            // addItemDecoration(GridSpacingItemDecoration(2, 16, true))
         }
     }
 
@@ -194,7 +195,17 @@ class DashActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         finish()
     }
 
-    private fun setupBackPressedHandler() {
+    private fun setupContactNumberClick() {
+    tvContactNum.setOnClickListener {
+        val phoneNumber = 9438245904
+        val intent = Intent(Intent.ACTION_DIAL).apply {
+            data = "tel:$phoneNumber".toUri()
+        }
+        startActivity(intent)
+    }
+}
+
+private fun setupBackPressedHandler() {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 if (drawerLayout.isDrawerOpen(GravityCompat.START)) {

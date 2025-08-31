@@ -41,7 +41,7 @@
                         android:padding="10dp"
                         android:shadowColor="#620C0C"
                         android:shadowRadius="10"
-                        android:text="POOJA PUROHIT"
+                        android:text="POOJA PUROHIT (ପୂଜା ପୁରୋହିତ)"
                         android:textColor="#FFFFFF"
                         android:textSize="20sp"
                         android:textStyle="bold"
@@ -79,20 +79,54 @@
             <!-- Services Grid -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recyclerServices"
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:clipToPadding="false"
-                android:padding="8dp"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="8dp"
+                android:scrollbars="vertical"
                 app:layout_constraintTop_toBottomOf="@id/tvWelcome"
-                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintBottom_toTopOf="@+id/tvContact"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 android:layout_marginTop="8dp"
                 android:nestedScrollingEnabled="false"
                 tools:listitem="@layout/item_service_card"
-                tools:itemCount="3"
-                tools:orientation="vertical"
-                app:spanCount="2" />
+                tools:itemCount="3" />
+
+            <!-- Bottom Text View -->
+            <TextView
+                android:id="@+id/tvContact"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="Contact:\nSri Niranjan Panda"
+                android:textSize="18sp"
+                android:textStyle="italic|bold"
+                app:layout_constraintBottom_toTopOf="@+id/tvContactNum"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                android:textColor="?android:attr/textColorPrimary"
+                tools:ignore="HardcodedText" />
+
+            <!-- Clickable Text -->
+            <TextView
+                android:id="@+id/tvContactNum"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
+                android:gravity="center"
+                android:text="Call Here"
+                android:textColor="#439232"
+                android:textSize="18sp"
+                android:textStyle="italic|bold"
+                android:layout_marginBottom="10dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                tools:ignore="HardcodedText,TouchTargetSizeCheck" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 

@@ -123,7 +123,7 @@ class AuthRepository(
                 .document("BookAPurohit")
                 .get()
                 .await()
-            val services = (doc.get("name") as? List<*>)?.filterIsInstance<String>()?.sorted()
+            val services = (doc.get("name") as? List<*>)?.filterIsInstance<String>()
                 ?: emptyList()
             Result.success(services)
         } catch (e: Exception) {

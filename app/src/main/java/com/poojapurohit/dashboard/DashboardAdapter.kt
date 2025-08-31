@@ -15,6 +15,7 @@ class DashboardAdapter(
     class ServiceViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val tvServiceName: TextView = itemView.findViewById(R.id.tvServiceName)
         val tvServiceDescription: TextView = itemView.findViewById(R.id.tvServiceDescription)
+        val cardBackground: android.widget.ImageView = itemView.findViewById(R.id.ivCardBackground)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ServiceViewHolder {
@@ -28,6 +29,7 @@ class DashboardAdapter(
         holder.apply {
             tvServiceName.text = service.name
             tvServiceDescription.text = service.description
+            cardBackground.setImageResource(service.iconResId)
             itemView.setOnClickListener { onItemClick(service) }
         }
     }
