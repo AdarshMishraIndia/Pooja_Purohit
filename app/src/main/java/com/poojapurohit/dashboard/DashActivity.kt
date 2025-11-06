@@ -145,14 +145,26 @@ class DashActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private fun handleAboutUs() {
         val intent = Intent(this, InfoActivity::class.java)
         intent.putExtra("title", "About Us")
-        intent.putExtra("content", "Pooja Purohit is your trusted platform for connecting with qualified religious service providers. We help you find experienced Purohits for all your spiritual and ceremonial needs.")
+        intent.putExtra(
+            "content",
+            "About Us\n\n" +
+                    "Pooja Purohit is a trusted digital platform that connects individuals and families with qualified Purohits (priests) for performing a wide range of Hindu rituals, ceremonies, and poojas.\n\n" +
+                    "Our mission is to make spiritual and religious services more accessible, convenient, and transparent—bridging the gap between tradition and technology while empowering the Purohit community.\n\n" +
+                    "We are committed to providing an authentic, seamless, and respectful experience for every devotee seeking divine services.\n\n" +
+                    "Development Team Contact\n" +
+                    "📧 Email: gdsorissa@gmail.com\n\n" +
+                    "Note: Pooja Purohit is currently under active development. Some features are being improved, and we appreciate your patience and continued support as we enhance your experience."
+        )
         startActivity(intent)
     }
+
 
     private fun handleTermsConditions() {
         val intent = Intent(this, InfoActivity::class.java)
         intent.putExtra("title", "Terms & Conditions")
-        intent.putExtra("content", "By using Pooja Purohit, you agree to our terms of service. Please use our platform responsibly and respect all service providers and customers.")
+        intent.putExtra("content", "Coming Soon\n\n" +
+                "Our Terms and Conditions are currently being prepared.\n" +
+                "Please check back soon for the latest updates.")
         startActivity(intent)
     }
 

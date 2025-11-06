@@ -1,10 +1,10 @@
 package com.poojapurohit.dashboard
 
 import android.os.Bundle
-import android.widget.ImageButton
 import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
 import com.poojapurohit.R
 
 class InfoActivity : AppCompatActivity() {
@@ -15,7 +15,7 @@ class InfoActivity : AppCompatActivity() {
 
         val tvPageTitle = findViewById<TextView>(R.id.tvPageTitle)
         val tvContent = findViewById<TextView>(R.id.tvContent)
-        val btnBack = findViewById<ImageButton>(R.id.btnBack)
+        val toolbar = findViewById<Toolbar>(R.id.toolbarInfo)
 
         // Get data from intent
         val title = intent.getStringExtra("title") ?: "Information"
@@ -24,8 +24,8 @@ class InfoActivity : AppCompatActivity() {
         tvPageTitle.text = title
         tvContent.text = content
 
-        // Back button functionality
-        btnBack.setOnClickListener {
+        // Back button (navigation icon) functionality
+        toolbar.setNavigationOnClickListener {
             finish()
         }
 
