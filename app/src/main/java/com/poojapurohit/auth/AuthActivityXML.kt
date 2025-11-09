@@ -19,10 +19,12 @@ import androidx.recyclerview.widget.RecyclerView
 import com.airbnb.lottie.LottieAnimationView
 import com.poojapurohit.R
 import com.poojapurohit.auth.adapter.ServicesAdapter
+import com.poojapurohit.auth.compose.presentation.AuthViewModel
 import com.poojapurohit.dashboard.DashActivity
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
-class AuthActivity : AppCompatActivity() {
+class AuthActivityXML : AppCompatActivity() {  // Renamed to avoid conflict
 
     private val viewModel: AuthViewModel by viewModels()
     private lateinit var credentialManager: CredentialManager
@@ -76,7 +78,7 @@ class AuthActivity : AppCompatActivity() {
         onBackPressedDispatcher.addCallback(this) {
             val handled = uiManager.goBackToPreviousStep(viewModel.currentStep)
             if (handled) {
-                viewModel.currentStep--
+                viewModel.goBackToPreviousStep()
             } else {
                 finish()
             }
@@ -134,40 +136,36 @@ class AuthActivity : AppCompatActivity() {
     }
 
     private fun handleNextClick() {
-        // If step is 0, it means we're just starting the flow
         val currentStep = if (viewModel.currentStep == 0) 1 else viewModel.currentStep
-        
+
         when (currentStep) {
             1 -> {
                 val name = etName.text.toString().trim()
                 val phone = etPhone.text.toString().trim()
-                
-                // Use AuthFormValidator for validation
+
                 val error = AuthFormValidator().validateNameAndPhone(name, phone)
                 if (error != null) {
-                    Toast.makeText(this@AuthActivity, error, Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@AuthActivityXML, error, Toast.LENGTH_SHORT).show()
                     return
                 }
-                
+
                 viewModel.formData.name = name
                 viewModel.formData.phone = phone
                 viewModel.nextStep(name = name, phone = phone)
             }
             2 -> {
                 val location = etLoc.text.toString().trim()
-                
-                // Use AuthFormValidator for location validation
+
                 val error = AuthFormValidator().validateLocation(location)
                 if (error != null) {
-                    Toast.makeText(this@AuthActivity, error, Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@AuthActivityXML, error, Toast.LENGTH_SHORT).show()
                     return
                 }
-                
+
                 viewModel.formData.location = location
                 viewModel.nextStep(location = location)
             }
             else -> {
-                // If we hit an unexpected step, try to recover by moving to step 1
                 viewModel.currentStep = 1
             }
         }
@@ -182,7 +180,6 @@ class AuthActivity : AppCompatActivity() {
                 services = viewModel.formData.services
             )
         } else {
-            // Update form data with current EditText values for customer registration
             viewModel.formData.name = etName.text.toString().trim()
             viewModel.formData.phone = etPhone.text.toString().trim()
             viewModel.registerUser()
@@ -190,77 +187,72 @@ class AuthActivity : AppCompatActivity() {
     }
 
     private fun observeViewModel() {
-        viewModel.uiState.observe(this) { state ->
-            when (state) {
-                is AuthUiState.Error -> {
-                    hideLoading()
-                    Toast.makeText(this@AuthActivity, state.message, Toast.LENGTH_LONG).show()
-                }
-                is AuthUiState.Loading -> {
-                    showLoading()
-                }
-                is AuthUiState.Success -> {
-                    hideLoading()
-                    startActivity(Intent(this, DashActivity::class.java))
-                    finish()
-                }
-                is AuthUiState.ShowInitialState -> {
-                    uiManager.showInitialState()
-                }
-                is AuthUiState.ShowCustomerFields -> {
-                    hideLoading()
-                    uiManager.showCustomerFields()
-                }
-                is AuthUiState.ShowServicePartnerStep1 -> {
-                    hideLoading()
-                    uiManager.showServicePartnerStep1()
-                }
-                is AuthUiState.ShowServicePartnerStep2 -> {
-                    hideLoading()
-                    uiManager.showServicePartnerStep2()
-                }
-                is AuthUiState.ShowServicePartnerStep3 -> {
-                    hideLoading()
-                    servicesAdapter.submitList(state.services)
-                    uiManager.showServicePartnerStep3()
-                }
-                AuthUiState.Idle -> {
-                    hideLoading()
+        // Changed from LiveData.observe() to StateFlow.collectLatest()
+        lifecycleScope.launch {
+            viewModel.uiState.collectLatest { state ->
+                when (state) {
+                    is AuthUiState.Error -> {
+                        hideLoading()
+                        Toast.makeText(this@AuthActivityXML, state.message, Toast.LENGTH_LONG).show()
+                    }
+                    is AuthUiState.Loading -> {
+                        showLoading()
+                    }
+                    is AuthUiState.Success -> {
+                        hideLoading()
+                        startActivity(Intent(this@AuthActivityXML, DashActivity::class.java))
+                        finish()
+                    }
+                    is AuthUiState.ShowInitialState -> {
+                        uiManager.showInitialState()
+                    }
+                    is AuthUiState.ShowCustomerFields -> {
+                        hideLoading()
+                        uiManager.showCustomerFields()
+                    }
+                    is AuthUiState.ShowServicePartnerStep1 -> {
+                        hideLoading()
+                        uiManager.showServicePartnerStep1()
+                    }
+                    is AuthUiState.ShowServicePartnerStep2 -> {
+                        hideLoading()
+                        uiManager.showServicePartnerStep2()
+                    }
+                    is AuthUiState.ShowServicePartnerStep3 -> {
+                        hideLoading()
+                        servicesAdapter.submitList(state.services)
+                        uiManager.showServicePartnerStep3()
+                    }
+                    AuthUiState.Idle -> {
+                        hideLoading()
+                    }
                 }
             }
         }
     }
 
     private fun showLoading() {
-        // Prevent multiple dialogs
         if (loadingDialog?.isShowing == true) return
 
-        // Inflate custom loading layout
         val dialogView = layoutInflater.inflate(R.layout.layout_loading, null)
-
-        // Start Lottie animation if present
         val animationView = dialogView.findViewById<LottieAnimationView>(R.id.loading_animation)
         animationView?.playAnimation()
 
-        // Build AlertDialog
         loadingDialog = AlertDialog.Builder(this)
             .setView(dialogView)
             .setCancelable(false)
             .create()
 
-        // Transparent background
         loadingDialog?.window?.setBackgroundDrawableResource(android.R.color.transparent)
-
-        // Show dialog
         loadingDialog?.show()
-
-        // Set fixed width from dimens
-        loadingDialog?.window?.setLayout(WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT)
+        loadingDialog?.window?.setLayout(
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT
+        )
     }
 
     private fun hideLoading() {
         loadingDialog?.let { dialog ->
-            // Stop the Lottie animation before dismissing
             val animationView = dialog.findViewById<LottieAnimationView>(R.id.loading_animation)
             animationView?.cancelAnimation()
             dialog.dismiss()

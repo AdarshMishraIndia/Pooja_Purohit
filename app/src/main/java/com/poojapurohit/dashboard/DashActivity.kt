@@ -17,7 +17,7 @@ import com.google.android.material.navigation.NavigationView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.poojapurohit.R
-import com.poojapurohit.auth.AuthActivity
+import com.poojapurohit.auth.compose.AuthActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

@@ -10,6 +10,7 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.poojapurohit.auth.AuthRepository
+import com.poojapurohit.auth.compose.AuthActivity
 import com.poojapurohit.dashboard.DashActivity
 
 @SuppressLint("CustomSplashScreen")
@@ -33,14 +34,14 @@ class SplashActivity : AppCompatActivity() {
                 val targetActivity = if (isUserRegistered) {
                     DashActivity::class.java
                 } else {
-                    com.poojapurohit.auth.AuthActivity::class.java
+                    AuthActivity::class.java
                 }
 
                 startActivity(Intent(this@SplashActivity, targetActivity))
                 finish()
             } catch (_: Exception) {
                 // If auth check fails, go to AuthActivity
-                startActivity(Intent(this@SplashActivity, com.poojapurohit.auth.AuthActivity::class.java))
+                startActivity(Intent(this@SplashActivity, AuthActivity::class.java))
                 finish()
             }
         }

@@ -30,10 +30,10 @@
         </activity>
 
         <activity
-            android:name="com.poojapurohit.auth.AuthActivity"
-            android:windowSoftInputMode="adjustResize|stateHidden"
-            android:exported="false"
-            android:theme="@style/Theme.PoojaPurohit">
+            android:name=".auth.compose.AuthActivity"
+            android:exported="true"
+            android:theme="@style/Theme.PoojaPurohit"
+            android:windowSoftInputMode="adjustResize">
         </activity>
 
         <activity
