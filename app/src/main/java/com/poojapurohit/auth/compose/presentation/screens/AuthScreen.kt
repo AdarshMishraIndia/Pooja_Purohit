@@ -37,7 +37,7 @@ fun AuthScreen(
             contentScale = ContentScale.Crop
         )
 
-        // Main Content
+        // Main Content - Always show the current screen based on state
         when (val state = uiState) {
             is AuthUiState.ShowInitialState -> {
                 InitialAuthScreen(viewModel = viewModel)
@@ -57,9 +57,6 @@ fun AuthScreen(
                     services = state.services
                 )
             }
-            is AuthUiState.Loading -> {
-                LoadingDialog()
-            }
             is AuthUiState.Success -> {
                 LaunchedEffect(Unit) {
                     onNavigateToDashboard()
@@ -69,10 +66,34 @@ fun AuthScreen(
                 LaunchedEffect(state.message) {
                     Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
                 }
+                // Show initial screen so user can retry
+                InitialAuthScreen(viewModel = viewModel)
             }
             AuthUiState.Idle -> {
-                // Show nothing or initial state
+                // Show initial state instead of nothing
+                InitialAuthScreen(viewModel = viewModel)
             }
+            is AuthUiState.Loading -> {
+                // Show previous screen behind the loading dialog
+                // Determine which screen to show based on currentStep
+                when {
+                    viewModel.currentStep == 0 -> InitialAuthScreen(viewModel = viewModel)
+                    viewModel.currentStep == 1 && viewModel.isServicePartnerFlow ->
+                        ServicePartnerStep1Screen(viewModel = viewModel)
+                    viewModel.currentStep == 1 && !viewModel.isServicePartnerFlow ->
+                        CustomerRegistrationScreen(viewModel = viewModel)
+                    viewModel.currentStep == 2 ->
+                        ServicePartnerStep2Screen(viewModel = viewModel)
+                    viewModel.currentStep == 3 ->
+                        ServicePartnerStep3Screen(viewModel = viewModel, services = emptyList())
+                    else -> InitialAuthScreen(viewModel = viewModel)
+                }
+            }
+        }
+
+        // Loading Dialog - Show on top of content
+        if (uiState is AuthUiState.Loading) {
+            LoadingDialog()
         }
     }
 

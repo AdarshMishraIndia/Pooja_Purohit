@@ -50,10 +50,11 @@ fun InitialAuthScreen(
                     clientId = context.getString(R.string.google_client_id),
                     isServicePartner = false
                 )
-            }
+            },
+            modifier = Modifier.fillMaxWidth(0.7f)
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(25.dp))
 
         // Service Partner Registration Prompt
         ServicePartnerPrompt(
