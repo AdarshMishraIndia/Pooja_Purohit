@@ -190,17 +190,6 @@ class AuthViewModel(
         formData.experience = experience
         formData.services = services
 
-        val validator = AuthFormValidator()
-        val error = validator.validateNameAndPhone(formData.name, formData.phone)
-            ?: validator.validateLocation(formData.location)
-            ?: validator.validateServices(formData.services)
-            ?: validator.validateExperience(formData.experience)
-
-        if (error != null) {
-            _uiState.value = AuthUiState.Error(error)
-            return
-        }
-
         _uiState.value = AuthUiState.Loading
         viewModelScope.launch {
             val result = repository.registerServicePartner(
