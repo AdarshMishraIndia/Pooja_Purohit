@@ -1,11 +1,13 @@
-package com.poojapurohit.dashboard
+package com.poojapurohit.dashboard.adapter
 
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.poojapurohit.R
+import com.poojapurohit.dashboard.ServiceItem
 
 class DashboardAdapter(
     private val services: List<ServiceItem>,
@@ -15,7 +17,7 @@ class DashboardAdapter(
     class ServiceViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val tvServiceName: TextView = itemView.findViewById(R.id.tvServiceName)
         val tvServiceDescription: TextView = itemView.findViewById(R.id.tvServiceDescription)
-        val cardBackground: android.widget.ImageView = itemView.findViewById(R.id.ivCardBackground)
+        val cardBackground: ImageView = itemView.findViewById(R.id.ivCardBackground)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ServiceViewHolder {

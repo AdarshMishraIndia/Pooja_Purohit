@@ -10,25 +10,20 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.view.WindowCompat
-import com.poojapurohit.dashboard.compose.presentation.screens.InfoScreen
+import com.poojapurohit.dashboard.compose.presentation.screens.EditProfileScreen
 import com.poojapurohit.dashboard.compose.theme.PoojaPurohitTheme
 
-class InfoActivity : ComponentActivity() {
+class EditProfileActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         enableEdgeToEdge()
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
-        val title = intent.getStringExtra("title") ?: "Information"
-        val content = intent.getStringExtra("content") ?: "No content available"
-
         setContent {
             PoojaPurohitTheme {
                 SetSystemBarsColor()
-                InfoScreen(
-                    title = title,
-                    content = content,
+                EditProfileScreen(
                     onBackPressed = { finish() }
                 )
             }

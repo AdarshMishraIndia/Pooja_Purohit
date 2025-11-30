@@ -100,6 +100,9 @@ dependencies {
     // RecyclerView (keep if used elsewhere)
     implementation(libs.androidx.recyclerview)
 
+    // Flow layout for skills chips
+    implementation(libs.accompanist.flowlayout)
+
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
