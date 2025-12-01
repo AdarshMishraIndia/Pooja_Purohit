@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -33,21 +34,21 @@ fun GoogleSignInButton(
     modifier: Modifier = Modifier
 ) {
     Card(
-        onClick = onClick,  // Use Card's built-in onClick for ripple effect
-        modifier = modifier.height(56.dp),
+        onClick = onClick,
+        modifier = modifier.heightIn(min = 56.dp),  // CHANGED: heightIn instead of height
         shape = RoundedCornerShape(50.dp),
         colors = CardDefaults.cardColors(
             containerColor = Color(0xFF4285F4)
         ),
         elevation = CardDefaults.cardElevation(
             defaultElevation = 2.dp,
-            pressedElevation = 6.dp  // Elevation when pressed
+            pressedElevation = 6.dp
         )
     ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 8.dp),
+                .padding(horizontal = 8.dp, vertical = 8.dp),  // CHANGED: added vertical padding
             contentAlignment = Alignment.Center
         ) {
             // Google Icon - positioned at start
@@ -77,7 +78,10 @@ fun GoogleSignInButton(
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Medium,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    maxLines = 2,  // NEW: allow wrapping to 2 lines if needed
+                    overflow = TextOverflow.Ellipsis,  // NEW: truncate if still too long
+                    lineHeight = 22.sp  // NEW: proper line spacing
                 )
             }
         }

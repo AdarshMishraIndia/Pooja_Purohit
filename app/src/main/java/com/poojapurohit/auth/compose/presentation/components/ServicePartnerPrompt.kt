@@ -32,7 +32,7 @@ fun ServicePartnerPrompt(
         modifier = modifier
             .clickable(
                 interactionSource = interactionSource,
-                indication = null  // Remove default ripple
+                indication = null
             ) { onClick() }
             .padding(vertical = 8.dp)
     ) {
@@ -42,6 +42,7 @@ fun ServicePartnerPrompt(
             fontSize = 15.sp,
             fontWeight = FontWeight.Bold,
             fontFamily = FontFamily.Serif,
+            lineHeight = 20.sp,  // NEW: prevent clipping
             style = TextStyle(
                 shadow = Shadow(
                     color = Color.Black,
@@ -52,10 +53,11 @@ fun ServicePartnerPrompt(
         )
         Text(
             text = "Register Here",
-            color = if (isPressed) Color(0xFF2A8FBA) else Color(0xFF37B1E6),  // Darker when pressed
+            color = if (isPressed) Color(0xFF2A8FBA) else Color(0xFF37B1E6),
             fontSize = 15.sp,
             fontWeight = FontWeight.Bold,
             fontFamily = FontFamily.Serif,
+            lineHeight = 20.sp,  // NEW: prevent clipping
             style = TextStyle(
                 shadow = Shadow(
                     color = Color.Black,
@@ -64,7 +66,6 @@ fun ServicePartnerPrompt(
                 )
             ),
             modifier = Modifier.drawBehind {
-                // Underline effect when pressed
                 if (isPressed) {
                     drawLine(
                         color = Color(0xFF2A8FBA),

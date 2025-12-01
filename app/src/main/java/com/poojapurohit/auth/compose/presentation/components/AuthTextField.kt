@@ -16,12 +16,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.min
 
 @Composable
 fun AuthTextField(
@@ -33,6 +35,10 @@ fun AuthTextField(
     capitalization: KeyboardCapitalization = KeyboardCapitalization.None,
     @SuppressLint("ModifierParameter") modifier: Modifier = Modifier
 ) {
+    val fontScale = LocalDensity.current.fontScale
+    // Scale spacing proportionally but cap at reasonable max
+    val adaptiveSpacing = (8 * min(fontScale, 1.3f)).dp  // NEW: adaptive spacing
+    
     Column(modifier = modifier) {
         // Label
         Text(
@@ -40,7 +46,8 @@ fun AuthTextField(
             color = Color.White,
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
-            fontFamily = FontFamily.Serif
+            fontFamily = FontFamily.Serif,
+            lineHeight = 24.sp  // NEW: prevent clipping at large scales
         )
 
         Spacer(modifier = Modifier.height(4.dp))
@@ -52,7 +59,7 @@ fun AuthTextField(
             thickness = 2.dp
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(adaptiveSpacing))  // CHANGED: adaptive
 
         // Text Field
         OutlinedTextField(
@@ -65,7 +72,8 @@ fun AuthTextField(
                 Text(
                     text = placeholder,
                     color = Color(0xFFC3C2C2),
-                    fontSize = 15.sp
+                    fontSize = 15.sp,
+                    maxLines = 1  // NEW: prevent placeholder wrapping
                 )
             },
             colors = OutlinedTextFieldDefaults.colors(
@@ -83,7 +91,8 @@ fun AuthTextField(
             ),
             singleLine = true,
             textStyle = LocalTextStyle.current.copy(
-                fontSize = 15.sp
+                fontSize = 15.sp,
+                lineHeight = 20.sp  // NEW: prevent text clipping
             )
         )
     }

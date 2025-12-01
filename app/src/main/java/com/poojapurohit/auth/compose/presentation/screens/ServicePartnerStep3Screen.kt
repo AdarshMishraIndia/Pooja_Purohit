@@ -10,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -24,6 +25,7 @@ import com.poojapurohit.auth.compose.presentation.components.AuthTitle
 import com.poojapurohit.auth.compose.presentation.components.ServicesList
 import com.poojapurohit.auth.compose.presentation.components.WelcomeText
 import kotlinx.coroutines.delay
+import kotlin.math.min
 
 @Composable
 fun ServicePartnerStep3Screen(
@@ -38,6 +40,10 @@ fun ServicePartnerStep3Screen(
     }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
+    val fontScale = LocalDensity.current.fontScale
+    // NEW: Adaptive top spacing
+    val adaptiveTopSpacing = (200 / min(fontScale, 1.5f)).dp
+
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -46,12 +52,10 @@ fun ServicePartnerStep3Screen(
                 .padding(16.dp),
             horizontalAlignment = Alignment.Start
         ) {
-            // Title at top
             AuthTitle()
 
-            Spacer(modifier = Modifier.height(200.dp))
+            Spacer(modifier = Modifier.height(adaptiveTopSpacing))  // CHANGED: adaptive
 
-            // Welcome Text
             WelcomeText()
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -62,7 +66,8 @@ fun ServicePartnerStep3Screen(
                 color = Color.White,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                fontFamily = FontFamily.Serif
+                fontFamily = FontFamily.Serif,
+                lineHeight = 24.sp  // NEW: prevent clipping
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -78,7 +83,7 @@ fun ServicePartnerStep3Screen(
                         selectedServices - service
                     }
                     viewModel.formData.services = selectedServices.toList()
-                    errorMessage = null  // Clear error on selection change
+                    errorMessage = null
                 }
             )
 
@@ -89,11 +94,10 @@ fun ServicePartnerStep3Screen(
                 label = "Experience",
                 value = experience,
                 onValueChange = {
-                    // Only allow digits and max 3 digits (0-100 years)
                     if (it.isEmpty() || (it.all { char -> char.isDigit() } && it.length <= 3 && (it.toIntOrNull() ?: 0) <= 100)) {
                         experience = it
                         viewModel.formData.experience = it
-                        errorMessage = null  // Clear error on input
+                        errorMessage = null
                     }
                 },
                 placeholder = "Enter your experience (in years)",
@@ -106,7 +110,6 @@ fun ServicePartnerStep3Screen(
             AuthButton(
                 text = "REGISTER",
                 onClick = {
-                    // Validate locally first
                     when {
                         selectedServices.isEmpty() -> errorMessage = "Please select at least one service"
                         experience.isBlank() -> errorMessage = "Please enter your years of experience"
@@ -128,7 +131,6 @@ fun ServicePartnerStep3Screen(
             Spacer(modifier = Modifier.height(24.dp))
         }
 
-        // Error Dialog Overlay
         errorMessage?.let { error ->
             ErrorDialog(
                 message = error,
@@ -143,7 +145,6 @@ private fun ErrorDialog(
     message: String,
     onDismiss: () -> Unit
 ) {
-    // Auto-dismiss after 3 seconds
     LaunchedEffect(message) {
         delay(3000)
         onDismiss()
@@ -164,13 +165,11 @@ private fun ErrorDialog(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Error icon
                 Text(
                     text = "⚠️",
                     fontSize = 40.sp
                 )
 
-                // Error message
                 Text(
                     text = message,
                     color = Color(0xFFB71C1C),
@@ -183,7 +182,6 @@ private fun ErrorDialog(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // Dismiss button
                 AuthButton(
                     text = "OK",
                     onClick = onDismiss,

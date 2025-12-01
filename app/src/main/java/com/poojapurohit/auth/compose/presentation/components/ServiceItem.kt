@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -38,8 +39,13 @@ fun ServiceItem(
             text = service,
             fontSize = 16.sp,
             color = Color.Black,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
+            maxLines = 2,  // NEW: allow wrapping if name is long
+            overflow = TextOverflow.Ellipsis,  // NEW: truncate if still too long
+            lineHeight = 20.sp  // NEW: proper line spacing
         )
+
+        Spacer(modifier = Modifier.width(8.dp))  // NEW: spacing between text and icon
 
         // Selection indicator
         if (isSelected) {
@@ -55,8 +61,8 @@ private fun RadioTick() {
     Box(
         modifier = Modifier
             .size(25.dp)
-            .background(Color(0xFF31832A), CircleShape) // solid green fill
-            .border(2.dp, Color(0xFF3A5B3A), CircleShape), // darker green stroke
+            .background(Color(0xFF31832A), CircleShape)
+            .border(2.dp, Color(0xFF3A5B3A), CircleShape),
         contentAlignment = Alignment.Center
     ) {
         Icon(

@@ -10,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -24,6 +25,7 @@ import com.poojapurohit.auth.compose.presentation.components.AuthTextField
 import com.poojapurohit.auth.compose.presentation.components.AuthTitle
 import com.poojapurohit.auth.compose.presentation.components.WelcomeText
 import kotlinx.coroutines.delay
+import kotlin.math.min
 
 @Composable
 fun CustomerRegistrationScreen(
@@ -33,6 +35,10 @@ fun CustomerRegistrationScreen(
     var phone by remember { mutableStateOf(viewModel.formData.phone) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
+    val fontScale = LocalDensity.current.fontScale
+    // NEW: Adaptive top spacing that scales down at larger fonts
+    val adaptiveTopSpacing = (200 / min(fontScale, 1.5f)).dp
+
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -41,26 +47,22 @@ fun CustomerRegistrationScreen(
                 .padding(16.dp),
             horizontalAlignment = Alignment.Start
         ) {
-            // Title at top
             AuthTitle()
 
-            Spacer(modifier = Modifier.height(200.dp))
+            Spacer(modifier = Modifier.height(adaptiveTopSpacing))  // CHANGED: adaptive
 
-            // Welcome Text
             WelcomeText()
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Name Field
             AuthTextField(
                 label = "Name",
                 value = name,
                 onValueChange = {
-                    // Only allow letters and spaces
                     if (it.all { char -> char.isLetter() || char.isWhitespace() }) {
                         name = it
                         viewModel.formData.name = it
-                        errorMessage = null  // Clear error on input
+                        errorMessage = null
                     }
                 },
                 placeholder = "Enter your name",
@@ -70,16 +72,14 @@ fun CustomerRegistrationScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Phone Field
             AuthTextField(
                 label = "Phone",
                 value = phone,
                 onValueChange = {
-                    // Only allow digits and max 10 characters
                     if (it.length <= 10 && it.all { char -> char.isDigit() }) {
                         phone = it
                         viewModel.formData.phone = it
-                        errorMessage = null  // Clear error on input
+                        errorMessage = null
                     }
                 },
                 placeholder = "Enter your Phone Number",
@@ -88,11 +88,9 @@ fun CustomerRegistrationScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Register Button
             AuthButton(
                 text = "REGISTER",
                 onClick = {
-                    // Validate locally first
                     when {
                         name.isBlank() -> errorMessage = "Please enter your name"
                         name.length < 2 -> errorMessage = "Name must be at least 2 characters"
@@ -110,7 +108,6 @@ fun CustomerRegistrationScreen(
             Spacer(modifier = Modifier.height(24.dp))
         }
 
-        // Error Dialog Overlay
         errorMessage?.let { error ->
             ErrorDialog(
                 message = error,
@@ -125,7 +122,6 @@ private fun ErrorDialog(
     message: String,
     onDismiss: () -> Unit
 ) {
-    // Auto-dismiss after 3 seconds
     LaunchedEffect(message) {
         delay(3000)
         onDismiss()
@@ -146,13 +142,11 @@ private fun ErrorDialog(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Error icon
                 Text(
                     text = "⚠️",
                     fontSize = 40.sp
                 )
 
-                // Error message
                 Text(
                     text = message,
                     color = Color(0xFFB71C1C),
@@ -165,7 +159,6 @@ private fun ErrorDialog(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // Dismiss button
                 AuthButton(
                     text = "OK",
                     onClick = onDismiss,

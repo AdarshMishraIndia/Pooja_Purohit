@@ -10,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -24,6 +25,7 @@ import com.poojapurohit.auth.compose.presentation.components.AuthTextField
 import com.poojapurohit.auth.compose.presentation.components.AuthTitle
 import com.poojapurohit.auth.compose.presentation.components.WelcomeText
 import kotlinx.coroutines.delay
+import kotlin.math.min
 
 @Composable
 fun ServicePartnerStep2Screen(
@@ -31,6 +33,10 @@ fun ServicePartnerStep2Screen(
 ) {
     var location by remember { mutableStateOf(viewModel.formData.location) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    val fontScale = LocalDensity.current.fontScale
+    // NEW: Adaptive top spacing
+    val adaptiveTopSpacing = (200 / min(fontScale, 1.5f)).dp
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -40,24 +46,21 @@ fun ServicePartnerStep2Screen(
                 .padding(16.dp),
             horizontalAlignment = Alignment.Start
         ) {
-            // Title at top
             AuthTitle()
 
-            Spacer(modifier = Modifier.height(200.dp))
+            Spacer(modifier = Modifier.height(adaptiveTopSpacing))  // CHANGED: adaptive
 
-            // Welcome Text
             WelcomeText()
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Location Field
             AuthTextField(
                 label = "Location",
                 value = location,
                 onValueChange = {
                     location = it
                     viewModel.formData.location = it
-                    errorMessage = null  // Clear error on input
+                    errorMessage = null
                 },
                 placeholder = "Enter your location",
                 keyboardType = KeyboardType.Text,
@@ -66,11 +69,9 @@ fun ServicePartnerStep2Screen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Next Button
             AuthButton(
                 text = "Next",
                 onClick = {
-                    // Validate locally first
                     when {
                         location.isBlank() -> errorMessage = "Please enter your location"
                         location.length < 2 -> errorMessage = "Location must be at least 2 characters"
@@ -86,7 +87,6 @@ fun ServicePartnerStep2Screen(
             Spacer(modifier = Modifier.height(24.dp))
         }
 
-        // Error Dialog Overlay
         errorMessage?.let { error ->
             ErrorDialog(
                 message = error,
@@ -101,7 +101,6 @@ private fun ErrorDialog(
     message: String,
     onDismiss: () -> Unit
 ) {
-    // Auto-dismiss after 3 seconds
     LaunchedEffect(message) {
         delay(3000)
         onDismiss()
@@ -122,13 +121,11 @@ private fun ErrorDialog(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Error icon
                 Text(
                     text = "⚠️",
                     fontSize = 40.sp
                 )
 
-                // Error message
                 Text(
                     text = message,
                     color = Color(0xFFB71C1C),
@@ -141,7 +138,6 @@ private fun ErrorDialog(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // Dismiss button
                 AuthButton(
                     text = "OK",
                     onClick = onDismiss,

@@ -24,7 +24,6 @@ fun InitialAuthScreen(
     val activity = context as? ComponentActivity
 
     if (activity == null) {
-        // Handle error - should not happen in normal flow
         return
     }
 
@@ -38,7 +37,7 @@ fun InitialAuthScreen(
         // Title at top
         AuthTitle()
 
-        // Push content to center
+        // Push content to center - CHANGED: using weight instead of fixed spacer
         Spacer(modifier = Modifier.weight(1f))
 
         // Google Sign-In Button
@@ -68,7 +67,7 @@ fun InitialAuthScreen(
             }
         )
 
-        // Bottom spacing
+        // Bottom spacing - CHANGED: using weight instead of fixed spacer
         Spacer(modifier = Modifier.weight(1f))
     }
 }
