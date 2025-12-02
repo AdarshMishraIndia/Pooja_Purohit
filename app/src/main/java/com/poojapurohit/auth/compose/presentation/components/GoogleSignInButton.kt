@@ -18,8 +18,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -35,7 +38,7 @@ fun GoogleSignInButton(
 ) {
     Card(
         onClick = onClick,
-        modifier = modifier.heightIn(min = 56.dp),  // CHANGED: heightIn instead of height
+        modifier = modifier.heightIn(min = 56.dp),
         shape = RoundedCornerShape(50.dp),
         colors = CardDefaults.cardColors(
             containerColor = Color(0xFF4285F4)
@@ -48,7 +51,7 @@ fun GoogleSignInButton(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 8.dp, vertical = 8.dp),  // CHANGED: added vertical padding
+                .padding(horizontal = 8.dp, vertical = 8.dp),
             contentAlignment = Alignment.Center
         ) {
             // Google Icon - positioned at start
@@ -79,9 +82,16 @@ fun GoogleSignInButton(
                     fontWeight = FontWeight.Medium,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.weight(1f),
-                    maxLines = 2,  // NEW: allow wrapping to 2 lines if needed
-                    overflow = TextOverflow.Ellipsis,  // NEW: truncate if still too long
-                    lineHeight = 22.sp  // NEW: proper line spacing
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    lineHeight = 22.sp,
+                    style = TextStyle(
+                        shadow = Shadow(
+                            color = Color.Black.copy(alpha = 0.5f),
+                            offset = Offset(2f, 2f),
+                            blurRadius = 4f
+                        )
+                    )
                 )
             }
         }
