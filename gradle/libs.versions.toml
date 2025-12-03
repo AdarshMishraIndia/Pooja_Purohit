@@ -20,6 +20,7 @@ googleid = "1.1.1"
 firebaseFirestore = "26.0.2"
 lifecycle = "2.10.0"
 recyclerview = "1.4.0"
+coil = "2.7.0"
 
 # Compose versions
 composeBom = "2025.11.01"
@@ -48,6 +49,7 @@ lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-view
 androidx-recyclerview = { group = "androidx.recyclerview", name = "recyclerview", version.ref = "recyclerview" }
 androidx-compose-material-icons-core = { group = "androidx.compose.material", name = "material-icons-core" }
 androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
+coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 
 
 

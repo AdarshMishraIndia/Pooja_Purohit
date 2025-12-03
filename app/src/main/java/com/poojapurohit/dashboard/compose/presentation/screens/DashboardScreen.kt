@@ -5,17 +5,24 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -28,6 +35,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -46,10 +54,11 @@ import com.poojapurohit.dashboard.compose.presentation.components.ContactSection
 import com.poojapurohit.dashboard.compose.presentation.components.DashboardTopBar
 import com.poojapurohit.dashboard.compose.presentation.components.NavigationDrawerContent
 import com.poojapurohit.dashboard.compose.presentation.components.ServiceCard
-import com.poojapurohit.dashboard.compose.presentation.components.WelcomeBanner
+import com.poojapurohit.dashboard.compose.theme.BrandOrange
 import com.poojapurohit.dashboard.compose.theme.DarkBackgroundGradientCenter
 import com.poojapurohit.dashboard.compose.theme.DarkBackgroundGradientEnd
 import com.poojapurohit.dashboard.compose.theme.DarkBackgroundGradientStart
+import com.poojapurohit.dashboard.compose.theme.DarkBrandOrange
 import com.poojapurohit.dashboard.compose.theme.DeleteRed
 import com.poojapurohit.dashboard.compose.theme.LightBackgroundGradientCenter
 import com.poojapurohit.dashboard.compose.theme.LightBackgroundGradientEnd
@@ -173,8 +182,6 @@ fun DashboardScreen(
                 Column(
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    WelcomeBanner(userName = uiState.userName)
-
                     LazyColumn(
                         modifier = Modifier
                             .weight(1f)
@@ -190,6 +197,44 @@ fun DashboardScreen(
                                 onClick = { viewModel.onEvent(DashboardEvent.ServiceClicked(service)) }
                             )
                         }
+                    }
+
+                    // Elegant divider with phone icon
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp, vertical = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        HorizontalDivider(
+                            modifier = Modifier.weight(1f),
+                            thickness = 1.dp,
+                            color = if (isDark) {
+                                DarkBrandOrange.copy(alpha = 0.5f)
+                            } else {
+                                BrandOrange.copy(alpha = 0.5f)
+                            }
+                        )
+
+                        Icon(
+                            imageVector = Icons.Default.Phone,
+                            contentDescription = "Contact",
+                            modifier = Modifier
+                                .padding(horizontal = 12.dp)
+                                .size(24.dp),
+                            tint = if (isDark) DarkBrandOrange else BrandOrange
+                        )
+
+                        HorizontalDivider(
+                            modifier = Modifier.weight(1f),
+                            thickness = 1.dp,
+                            color = if (isDark) {
+                                DarkBrandOrange.copy(alpha = 0.5f)
+                            } else {
+                                BrandOrange.copy(alpha = 0.5f)
+                            }
+                        )
                     }
 
                     ContactSection(

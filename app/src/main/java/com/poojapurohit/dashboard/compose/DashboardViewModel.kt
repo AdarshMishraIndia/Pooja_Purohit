@@ -175,58 +175,56 @@ class DashboardViewModel : ViewModel() {
         _effect.value = DashboardEffect.NavigateToInfo(
             title = "Terms & Conditions",
             content = """
-            **TERMS & CONDITIONS — Puja Purohit Mobile Application**
+            TERMS & CONDITIONS — Puja Purohit Mobile Application**
 
-            **Effective Date:** 1 January 2026  
-            **Last Updated:** 1 December 2025
+            Effective Date: 1 January 2026  
+            Last Updated: 1 December 2025
 
             These Terms & Conditions (“Terms”) govern the use of the Puja Purohit mobile application (“App”), owned and operated by the App Developer (“Developer”). By installing, registering, or using the App, all users agree to abide by these Terms. Users who do not agree should discontinue use immediately.
 
-            ---
-
-            ## 1. Definitions
-
-            **1. Service Provider (Purohit):**  
+            1. Definitions
+            --------------
+            1. Service Provider (Purohit):
             A registered individual offering religious, spiritual, or ritual-related services through the App.
 
-            **2. Service Receiver (Jajman):**  
+            2. Service Receiver (Jajman):
             An individual seeking or booking services from a Service Provider through the App.
 
-            **3. Developer:**  
+            3. Developer:
             The creator and operator of the Puja Purohit App, providing the digital platform.
 
             ---
-
-            ## 2. User Categories & Eligibility
-
+            
+            2. User Categories & Eligibility
+            --------------------------------
             The App offers two types of user accounts:
 
-            **2.1 Service Providers (Purohits):**  
+            2.1 Service Providers (Purohits):**  
             Must complete registration and agree to the applicable fees, rules, and verification process.
 
-            **2.2 Service Receivers (Jajmans):**  
+            2.2 Service Receivers (Jajmans):**  
             May use the App free of charge and must provide accurate information while booking any service.
-
+            
             ---
-
-            ## 3. Registration Charges & Renewal (For Service Providers)
-
+            
+            3. Registration Charges & Renewal (For Service Providers)
+            ---------------------------------------------------------
             1. A one-time registration fee of ₹1001/- is applicable for Service Providers.  
             2. This registration is free up to **31 January 2024**.  
             3. An annual renewal fee of ₹1001/- is required to maintain unrestricted access.  
             4. Failure to pay the renewal fee may result in restricted access or reduced visibility.  
             5. All fees are **non-refundable** and **non-transferable**.
-
+            
             ---
-
-            ## 4. Charges for Service Receivers
-
+            
+            4. Charges for Service Receivers
+            --------------------------------
             Service Receivers do **not** pay any registration or usage fee for accessing or booking through the App.
 
             ---
 
-            ## 5. Role of the Developer
-
+            5. Role of the Developer
+            ------------------------
             1. The App acts solely as a digital platform enabling communication between Purohits and Jajmans.  
             2. The Developer is not a party to any agreement, communication, or transaction between users.  
             3. The Developer does **not** guarantee, control, or validate:  
@@ -235,80 +233,78 @@ class DashboardViewModel : ViewModel() {
                - Fulfillment of any booking or ritual
 
             ---
-
-            ## 6. No Financial Liability
-
+            
+            6. No Financial Liability
+            -------------------------
             1. All financial transactions between Service Providers and Service Receivers occur **outside** the App.  
             2. The Developer is not responsible for payments, cancellations, disputes, or losses.  
             3. The Developer is not liable for refunds, compensation, or damages related to services booked.
 
             ---
 
-            ## 7. Communication Between Users
-
+            7. Communication Between Users
+            ------------------------------
             1. Communication between Purohits and Jajmans occurs directly (inside or outside the App).  
             2. The Developer does not monitor or interfere with user communication.  
             3. Users must maintain respectful and lawful communication.
 
             ---
 
-            ## 8. User Obligations
-
+            8. User Obligations
+            -------------------
             1. Provide accurate and genuine information during registration and usage.  
             2. Comply with applicable laws and ethical guidelines.  
             3. Avoid misuse, including abuse, fraud, impersonation, or unauthorized commercial use.
 
             ---
-
-            ## 9. Suspension & Termination
-
+            
+            9. Suspension & Termination
+            ---------------------------
             The Developer may restrict or terminate access if a user:
-
             1. Violates these Terms,  
             2. Provides false information,  
             3. Engages in harmful or fraudulent activities,  
             4. Fails to pay applicable fees (for Purohits).
 
             ---
-
-            ## 10. Limitation of Liability
-
+            
+            10. Limitation of Liability
+            ---------------------------
             The App is provided on an **“as-is”** and **“as-available”** basis.  
             The Developer is not liable for:
-
             1. Service failures, delays, or inaccuracies  
             2. Losses arising from user interactions  
             3. Technical issues, downtime, or data loss  
             4. Indirect, incidental, or consequential damages
 
             ---
-
-            ## 11. Privacy
-
+            
+            11. Privacy
+            -----------
             User data is handled according to the App’s Privacy Policy.  
             Users should review the Privacy Policy for full details.
 
             ---
-
-            ## 12. Modifications to Terms
-
+            
+            12. Modifications to Terms
+            --------------------------
             The Developer may update or revise these Terms at any time.  
             Continued use of the App indicates acceptance of the latest Terms.
-
+            
             ---
-
-            ## 13. Governing Law
-
+            
+            13. Governing Law
+            -----------------
             These Terms are governed by the laws of India.  
             All disputes fall under the jurisdiction of courts in **Sundargarh District**.
 
             ---
-
-            ## 14. Contact Information
-
-            **Email:** gdsrourkela@gmail.com  
-            **Phone:** 9040292104  
-            **Address:** Vedvyas Mandir, Rourkela – 769004
+            
+            14. Contact Information
+            -----------------------
+            Email: gdsrourkela@gmail.com  
+            Phone: 9040292104  
+            Address: Vedvyas Mandir, Rourkela – 769004
         """.trimIndent()
         )
     }

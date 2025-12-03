@@ -2,6 +2,7 @@ package com.poojapurohit.dashboard.compose.presentation.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -16,12 +17,17 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import com.google.firebase.auth.FirebaseAuth
 import com.poojapurohit.R
 import com.poojapurohit.dashboard.compose.theme.*
 
@@ -102,6 +108,7 @@ private fun DrawerHeader(
     userEmail: String
 ) {
     val isDark = isSystemInDarkTheme()
+    val photoUrl = FirebaseAuth.getInstance().currentUser?.photoUrl?.toString()
 
     Box(
         modifier = Modifier
@@ -122,30 +129,74 @@ private fun DrawerHeader(
         contentAlignment = Alignment.BottomStart
     ) {
         Column {
-            Image(
-                painter = painterResource(id = R.drawable.ic_user_profile),
-                contentDescription = "Profile Picture",
-                modifier = Modifier
-                    .size(80.dp)
-                    .clip(CircleShape)
-                    .padding(top = 8.dp)
-            )
+            // Profile picture with placeholder and border
+            Box(
+                modifier = Modifier.size(80.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                if (photoUrl != null) {
+                    AsyncImage(
+                        model = photoUrl,
+                        contentDescription = "Profile Picture",
+                        modifier = Modifier
+                            .size(80.dp)
+                            .clip(CircleShape)
+                            .border(
+                                width = 3.dp,
+                                color = Color.White.copy(alpha = 0.8f),
+                                shape = CircleShape
+                            ),
+                        contentScale = ContentScale.Crop,
+                        error = painterResource(id = R.drawable.ic_user_profile)
+                    )
+                } else {
+                    // Fallback placeholder
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_user_profile),
+                        contentDescription = "Profile Picture",
+                        modifier = Modifier
+                            .size(80.dp)
+                            .clip(CircleShape)
+                            .border(
+                                width = 3.dp,
+                                color = Color.White.copy(alpha = 0.8f),
+                                shape = CircleShape
+                            )
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            // Name with shadow
             Text(
                 text = userName,
                 fontFamily = FontFamily.Serif,
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp,
-                color = Color.White
+                color = Color.White,
+                style = TextStyle(
+                    shadow = Shadow(
+                        color = Color.Black.copy(alpha = 0.7f),
+                        offset = Offset(2f, 2f),
+                        blurRadius = 4f
+                    )
+                )
             )
 
+            // Email with shadow
             Text(
                 text = userEmail,
                 fontFamily = FontFamily.Serif,
                 fontSize = 14.sp,
-                color = if (isDark) DarkBrandOrange else BrandOrange
+                color = if (isDark) DarkBrandOrange else BrandOrange,
+                style = TextStyle(
+                    shadow = Shadow(
+                        color = Color.Black.copy(alpha = 0.7f),
+                        offset = Offset(1.5f, 1.5f),
+                        blurRadius = 3f
+                    )
+                )
             )
         }
     }
