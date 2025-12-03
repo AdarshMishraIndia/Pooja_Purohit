@@ -5,11 +5,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -21,6 +23,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.poojapurohit.dashboard.compose.theme.*
+import com.poojapurohit.dashboard.compose.utils.MarkdownParser
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,6 +33,11 @@ fun InfoScreen(
     onBackPressed: () -> Unit
 ) {
     val isDark = isSystemInDarkTheme()
+
+    // Parse markdown content
+    val annotatedContent = remember(content) {
+        MarkdownParser.parseMarkdown(content)
+    }
 
     BackHandler(onBack = onBackPressed)
 
@@ -65,19 +73,21 @@ fun InfoScreen(
                 )
                 .padding(paddingValues)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp)
-            ) {
-                Text(
-                    text = content,
-                    fontFamily = FontFamily.Serif,
-                    fontSize = 16.sp,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    lineHeight = 20.sp
-                )
+            SelectionContainer {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp)
+                ) {
+                    Text(
+                        text = annotatedContent,
+                        fontFamily = FontFamily.Serif,
+                        fontSize = 16.sp,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        lineHeight = 24.sp
+                    )
+                }
             }
         }
     }
@@ -95,7 +105,7 @@ private fun InfoTopBar(
         TopAppBar(
             title = {
                 Text(
-                    text = "POOJA PUROHIT (ପୂଜା ପୁରୋହିତ)",
+                    text = "POOJA PUROHIT (ପୂଜା ପ୍ରୋହିତ)",
                     fontFamily = FontFamily.Serif,
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp,

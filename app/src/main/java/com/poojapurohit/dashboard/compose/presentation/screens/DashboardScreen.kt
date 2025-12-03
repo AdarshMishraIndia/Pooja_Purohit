@@ -140,7 +140,7 @@ fun DashboardScreen(
                 userEmail = uiState.userEmail,
                 onEditAccount = { viewModel.onEvent(DashboardEvent.NavigateToEditAccount) },
                 onAboutUs = { viewModel.onEvent(DashboardEvent.NavigateToAboutUs) },
-                onTermsConditions = { viewModel.onEvent(DashboardEvent.NavigateToTerms) },
+                onTermsConditions = { viewModel.onEvent(DashboardEvent.NavigateToTerms, context) }, // Add context here
                 onSignOut = { viewModel.onEvent(DashboardEvent.SignOut) },
                 onDeleteAccount = { showDeleteDialog = true },
                 onClose = { scope.launch { drawerState.close() } }
