@@ -10,8 +10,9 @@ class AuthFormValidator {
         return null
     }
 
-    fun validateLocation(location: String): String? {
-        if (location.isBlank()) return "Please enter your location"
+    fun validateCityAndLocality(city: String, locality: String): String? {
+        if (city.isBlank()) return "Please enter your city"
+        if (locality.isBlank()) return "Please enter your locality"
         return null
     }
 

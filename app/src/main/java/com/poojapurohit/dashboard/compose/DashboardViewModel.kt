@@ -35,7 +35,8 @@ sealed interface DashboardEvent {
 
 sealed interface DashboardEffect {
     data object NavigateToAuth : DashboardEffect
-    data object NavigateToEditAccount : DashboardEffect  // Added this
+    data object NavigateToEditAccount : DashboardEffect
+    data object NavigateToBookPurohit : DashboardEffect  // Added
     data class ShowToast(val message: String) : DashboardEffect
     data class NavigateToInfo(val title: String, val content: String) : DashboardEffect
     data class MakePhoneCall(val phoneNumber: String) : DashboardEffect
@@ -185,7 +186,12 @@ class DashboardViewModel : ViewModel() {
     }
 
     private fun handleServiceClick(service: ServiceItem) {
-        _effect.value = DashboardEffect.ShowToast("Selected: ${service.name}")
+        // Check if it's "Book a Purohit" service
+        if (service.name.contains("Book a Purohit", ignoreCase = true)) {
+            _effect.value = DashboardEffect.NavigateToBookPurohit
+        } else {
+            _effect.value = DashboardEffect.ShowToast("Selected: ${service.name}")
+        }
     }
 
     private fun handleCallContact() {

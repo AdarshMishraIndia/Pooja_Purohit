@@ -83,6 +83,9 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
 
+    // Navigation Compose
+    implementation(libs.androidx.navigation.compose)
+
     // Lottie (XML + Compose)
     implementation(libs.lottie)
     implementation(libs.lottie.compose)

@@ -31,11 +31,11 @@ import kotlin.math.min
 fun ServicePartnerStep2Screen(
     viewModel: AuthViewModel
 ) {
-    var location by remember { mutableStateOf(viewModel.formData.location) }
+    var city by remember { mutableStateOf(viewModel.formData.city) }
+    var locality by remember { mutableStateOf(viewModel.formData.locality) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     val fontScale = LocalDensity.current.fontScale
-    // NEW: Adaptive top spacing
     val adaptiveTopSpacing = (200 / min(fontScale, 1.5f)).dp
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -48,21 +48,36 @@ fun ServicePartnerStep2Screen(
         ) {
             AuthTitle()
 
-            Spacer(modifier = Modifier.height(adaptiveTopSpacing))  // CHANGED: adaptive
+            Spacer(modifier = Modifier.height(adaptiveTopSpacing))
 
             WelcomeText()
 
             Spacer(modifier = Modifier.height(16.dp))
 
             AuthTextField(
-                label = "Location",
-                value = location,
+                label = "City",
+                value = city,
                 onValueChange = {
-                    location = it
-                    viewModel.formData.location = it
+                    city = it
+                    viewModel.formData.city = it
                     errorMessage = null
                 },
-                placeholder = "Enter your location",
+                placeholder = "Enter your city",
+                keyboardType = KeyboardType.Text,
+                capitalization = KeyboardCapitalization.Words
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            AuthTextField(
+                label = "Locality",
+                value = locality,
+                onValueChange = {
+                    locality = it
+                    viewModel.formData.locality = it
+                    errorMessage = null
+                },
+                placeholder = "Enter your locality/area",
                 keyboardType = KeyboardType.Text,
                 capitalization = KeyboardCapitalization.Words
             )
@@ -73,11 +88,13 @@ fun ServicePartnerStep2Screen(
                 text = "Next",
                 onClick = {
                     when {
-                        location.isBlank() -> errorMessage = "Please enter your location"
-                        location.length < 2 -> errorMessage = "Location must be at least 2 characters"
+                        city.isBlank() -> errorMessage = "Please enter your city"
+                        city.length < 2 -> errorMessage = "City must be at least 2 characters"
+                        locality.isBlank() -> errorMessage = "Please enter your locality"
+                        locality.length < 2 -> errorMessage = "Locality must be at least 2 characters"
                         else -> {
                             errorMessage = null
-                            viewModel.nextStep(location = location)
+                            viewModel.nextStep(city = city, locality = locality)
                         }
                     }
                 },

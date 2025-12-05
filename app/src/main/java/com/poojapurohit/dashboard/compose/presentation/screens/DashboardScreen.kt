@@ -45,6 +45,7 @@ import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.poojapurohit.auth.compose.AuthActivity
+import com.poojapurohit.bookpurohit.BookPurohitActivity
 import com.poojapurohit.dashboard.EditProfileActivity
 import com.poojapurohit.dashboard.InfoActivity
 import com.poojapurohit.dashboard.compose.DashboardEffect
@@ -94,6 +95,10 @@ fun DashboardScreen(
                 context.startActivity(Intent(context, EditProfileActivity::class.java))
                 viewModel.clearEffect()
             }
+            is DashboardEffect.NavigateToBookPurohit -> {
+                context.startActivity(Intent(context, BookPurohitActivity::class.java))
+                viewModel.clearEffect()
+            }
             is DashboardEffect.ShowToast -> {
                 Toast.makeText(context, currentEffect.message, Toast.LENGTH_SHORT).show()
                 viewModel.clearEffect()
@@ -140,7 +145,7 @@ fun DashboardScreen(
                 userEmail = uiState.userEmail,
                 onEditAccount = { viewModel.onEvent(DashboardEvent.NavigateToEditAccount) },
                 onAboutUs = { viewModel.onEvent(DashboardEvent.NavigateToAboutUs) },
-                onTermsConditions = { viewModel.onEvent(DashboardEvent.NavigateToTerms, context) }, // Add context here
+                onTermsConditions = { viewModel.onEvent(DashboardEvent.NavigateToTerms, context) },
                 onSignOut = { viewModel.onEvent(DashboardEvent.SignOut) },
                 onDeleteAccount = { showDeleteDialog = true },
                 onClose = { scope.launch { drawerState.close() } }

@@ -77,14 +77,14 @@ class AuthViewModel(
     }
 
     /** Proceed to next step in registration */
-    fun nextStep(name: String? = null, phone: String? = null, location: String? = null) {
+    fun nextStep(name: String? = null, phone: String? = null, city: String? = null, locality: String? = null) {
         Log.d("AuthFlow", "nextStep - currentStep: $currentStep, isServicePartnerFlow: $isServicePartnerFlow")
-        Log.d("AuthFlow", "nextStep - name: $name, phone: $phone, location: $location")
+        Log.d("AuthFlow", "nextStep - name: $name, phone: $phone, city: $city, locality: $locality")
 
         if (currentStep == 0) {
             Log.d("AuthFlow", "Handling step 0 - moving to step 1")
             currentStep = 1
-            return nextStep(name, phone, location)
+            return nextStep(name, phone, city, locality)
         }
 
         when (currentStep) {
@@ -96,7 +96,6 @@ class AuthViewModel(
                 val error = AuthFormValidator().validateNameAndPhone(formData.name, formData.phone)
                 if (error != null) {
                     Log.e("AuthFlow", "Validation error in step 1: $error")
-                    // Don't set UI state to Error - let the screen handle it locally
                     return
                 }
 
@@ -113,13 +112,13 @@ class AuthViewModel(
                 }
             }
             2 -> {
-                Log.d("AuthFlow", "Processing step 2 - Location")
-                formData.location = location.orEmpty()
+                Log.d("AuthFlow", "Processing step 2 - City and Locality")
+                formData.city = city.orEmpty()
+                formData.locality = locality.orEmpty()
 
-                val error = AuthFormValidator().validateLocation(formData.location)
+                val error = AuthFormValidator().validateCityAndLocality(formData.city, formData.locality)
                 if (error != null) {
                     Log.e("AuthFlow", "Validation error in step 2: $error")
-                    // Don't set UI state to Error - let the screen handle it locally
                     return
                 }
 
@@ -130,7 +129,7 @@ class AuthViewModel(
                     loadServicesForStep3()
                 } else {
                     val errorMsg = "Invalid flow - reached step 2 in non-service partner flow"
-                    Log.e("AuthFlow", "errorMsg")
+                    Log.e("AuthFlow", errorMsg)
                     _uiState.value = AuthUiState.Error(errorMsg)
                 }
             }
@@ -141,7 +140,6 @@ class AuthViewModel(
     private fun loadServicesForStep3() {
         _uiState.value = AuthUiState.Loading
         viewModelScope.launch {
-            // Let the UI show the loader before the Firestore fetch
             yield()
             val result = repository.loadServices()
             currentStep = 3
@@ -197,7 +195,8 @@ class AuthViewModel(
                 name = formData.name,
                 phone = formData.getFormattedPhone(),
                 email = user.email.orEmpty(),
-                location = formData.location,
+                city = formData.city,
+                locality = formData.locality,
                 proficiency = formData.services,
                 experience = formData.experience
             )
@@ -214,26 +213,22 @@ class AuthViewModel(
 
         when (currentStep) {
             3 -> {
-                // From step 3 (services/experience) back to step 2 (location)
                 currentStep = 2
                 _uiState.value = AuthUiState.ShowServicePartnerStep2
                 Log.d("AuthFlow", "Navigated back to step 2")
             }
             2 -> {
-                // From step 2 (location) back to step 1 (name/phone)
                 currentStep = 1
                 _uiState.value = AuthUiState.ShowServicePartnerStep1
                 Log.d("AuthFlow", "Navigated back to step 1")
             }
             1 -> {
-                // From step 1 back to initial state (Google Sign-In)
                 currentStep = 0
                 isServicePartnerFlow = false
                 _uiState.value = AuthUiState.ShowInitialState
                 Log.d("AuthFlow", "Navigated back to initial state")
             }
             else -> {
-                // At step 0 or invalid step - do nothing
                 Log.d("AuthFlow", "Already at initial step or invalid step")
             }
         }

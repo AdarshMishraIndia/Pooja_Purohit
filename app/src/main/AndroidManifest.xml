@@ -50,7 +50,15 @@
 
         <activity
             android:name=".dashboard.EditProfileActivity"
-            android:exported="false">
+            android:exported="false"
+            android:theme="@style/Theme.PoojaPurohit">
+        </activity>
+
+
+        <activity
+            android:name=".bookpurohit.BookPurohitActivity"
+            android:exported="false"
+            android:theme="@style/Theme.PoojaPurohit">
         </activity>
 
     </application>
