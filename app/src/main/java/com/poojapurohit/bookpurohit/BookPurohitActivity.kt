@@ -18,6 +18,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.poojapurohit.bookpurohit.compose.BookPurohitViewModel
 import com.poojapurohit.bookpurohit.compose.presentation.screens.LocationSelectionScreen
+import com.poojapurohit.bookpurohit.compose.presentation.screens.PurohitSelectionScreen
 import com.poojapurohit.bookpurohit.compose.presentation.screens.SubLocationSelectionScreen
 import com.poojapurohit.dashboard.compose.theme.PoojaPurohitTheme
 
@@ -90,8 +91,27 @@ fun BookPurohitNavigation(viewModel: BookPurohitViewModel) {
                     navController.popBackStack()
                 },
                 onSubLocationClick = { locId, subLocId ->
-                    // TODO: Navigate to purohit list screen
-                    // navController.navigate("purohit_list/$locId/$subLocId")
+                    navController.navigate("purohit_selection/$locId/$subLocId")
+                }
+            )
+        }
+
+        composable(
+            route = "purohit_selection/{locationId}/{subLocationId}",
+            arguments = listOf(
+                navArgument("locationId") { type = NavType.StringType },
+                navArgument("subLocationId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val locationId = backStackEntry.arguments?.getString("locationId") ?: return@composable
+            val subLocationId = backStackEntry.arguments?.getString("subLocationId") ?: return@composable
+
+            PurohitSelectionScreen(
+                viewModel = viewModel,
+                locationId = locationId,
+                subLocationId = subLocationId,
+                onBackPressed = {
+                    navController.popBackStack()
                 }
             )
         }
