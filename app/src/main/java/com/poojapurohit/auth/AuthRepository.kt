@@ -10,7 +10,6 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.FieldValue
 import kotlinx.coroutines.tasks.await
 import com.google.firebase.Timestamp
 
@@ -62,21 +61,20 @@ class AuthRepository(
     }
 
     private suspend fun checkUserExists(uid: String): Boolean {
-        val userDocRef = firestore.collection("users").document(uid)
-        val document = userDocRef.get().await()
-        return !document.exists()
+        val doc = firestore.collection("users").document(uid).get().await()
+        return !doc.exists()
     }
 
     suspend fun registerUser(uid: String, name: String, phone: String, email: String): Result<Unit> {
         return try {
-            val userDocRef = firestore.collection("users").document(uid)
             val newUser = hashMapOf(
                 "name" to name,
                 "phone" to phone,
                 "email" to email,
+                "isServicePartner" to false,
                 "createdAt" to Timestamp.now()
             )
-            userDocRef.set(newUser).await()
+            firestore.collection("users").document(uid).set(newUser).await()
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e("AuthRepository", "Firestore registration error", e)
@@ -95,11 +93,6 @@ class AuthRepository(
         experience: String
     ): Result<Unit> {
         return try {
-            // Convert experience to number
-            val experienceNumber = experience.toIntOrNull() ?: 0
-
-            // Step 1: Register the service partner in users collection
-            val userDocRef = firestore.collection("users").document(uid)
             val newUser = hashMapOf(
                 "name" to name,
                 "phone" to phone,
@@ -107,80 +100,15 @@ class AuthRepository(
                 "city" to city,
                 "locality" to locality,
                 "proficiency" to proficiency,
-                "experience" to experienceNumber,
+                "experience" to (experience.toIntOrNull() ?: 0),
+                "isServicePartner" to true,
                 "createdAt" to Timestamp.now()
             )
-            userDocRef.set(newUser).await()
-
-            // Step 2: Add service partner to locations collection and subcollection
-            addServicePartnerToLocation(uid, city, locality)
-
+            firestore.collection("users").document(uid).set(newUser).await()
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e("AuthRepository", "Firestore service partner registration error", e)
             Result.failure(e)
-        }
-    }
-
-    private suspend fun addServicePartnerToLocation(uid: String, city: String, locality: String) {
-        try {
-            // Normalize city and locality (capitalize first letter, trim whitespace)
-            val normalizedCity = city.trim().replaceFirstChar {
-                if (it.isLowerCase()) it.titlecase() else it.toString()
-            }
-            val normalizedLocality = locality.trim().replaceFirstChar {
-                if (it.isLowerCase()) it.titlecase() else it.toString()
-            }
-
-            // Step 1: Update city-level document in locations collection
-            val cityDocRef = firestore.collection("locations").document(normalizedCity)
-            val cityDoc = cityDocRef.get().await()
-
-            if (cityDoc.exists()) {
-                // City exists - increment count only
-                cityDocRef.update(
-                    "count", FieldValue.increment(1)
-                ).await()
-            } else {
-                // City doesn't exist - create new document
-                cityDocRef.set(
-                    hashMapOf(
-                        "name" to normalizedCity,
-                        "count" to 1
-                    )
-                ).await()
-            }
-
-            // Step 2: Update subcollection for locality
-            val localityDocRef = cityDocRef
-                .collection("subLocations")
-                .document(normalizedLocality)
-
-            val localityDoc = localityDocRef.get().await()
-
-            if (localityDoc.exists()) {
-                // Locality exists - add UID to array and increment count
-                localityDocRef.update(
-                    hashMapOf(
-                        "servicePartners" to FieldValue.arrayUnion(uid),
-                        "count" to FieldValue.increment(1)
-                    ) as Map<String, Any>
-                ).await()
-            } else {
-                // Locality doesn't exist - create new document
-                localityDocRef.set(
-                    hashMapOf(
-                        "name" to normalizedLocality,
-                        "servicePartners" to listOf(uid),
-                        "count" to 1
-                    )
-                ).await()
-            }
-
-            Log.d("AuthRepository", "Successfully added service partner to $normalizedCity > $normalizedLocality")
-        } catch (e: Exception) {
-            Log.e("AuthRepository", "Failed to add service partner to location", e)
-            // Don't throw - user registration succeeded, location update is secondary
         }
     }
 

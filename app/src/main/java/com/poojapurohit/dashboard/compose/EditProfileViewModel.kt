@@ -4,7 +4,6 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -63,9 +62,6 @@ class EditProfileViewModel : ViewModel() {
     private val _effect = MutableStateFlow<EditProfileEffect?>(null)
     val effect: StateFlow<EditProfileEffect?> = _effect.asStateFlow()
 
-    private var previousCity: String = ""
-    private var previousLocality: String = ""
-
     init {
         loadAvailableSkills()
         loadUserProfile()
@@ -98,13 +94,9 @@ class EditProfileViewModel : ViewModel() {
 
                 val skillsRaw = document.get("name") as? List<*>
                 val skills = skillsRaw?.filterIsInstance<String>() ?: emptyList()
-
-                Log.d(TAG, "Available skills loaded: ${skills.size}")
                 _uiState.update { it.copy(availableSkills = skills) }
             } catch (e: Exception) {
                 Log.e(TAG, "Error loading skills", e)
-                _uiState.update { it.copy(availableSkills = emptyList()) }
-                _effect.value = EditProfileEffect.ShowToast("Failed to load skills: ${e.message}")
             }
         }
     }
@@ -128,10 +120,7 @@ class EditProfileViewModel : ViewModel() {
 
     private fun handleExperienceChanged(experience: String) {
         val filtered = experience.filter { it.isDigit() }.take(3)
-        val value = filtered.toIntOrNull()
-        val validExperience = if (value != null && value > 100) "100" else filtered
-
-        _uiState.update { it.copy(experience = validExperience, experienceError = null) }
+        _uiState.update { it.copy(experience = filtered, experienceError = null) }
     }
 
     private fun handleSkillToggled(skill: String) {
@@ -145,50 +134,31 @@ class EditProfileViewModel : ViewModel() {
     }
 
     private fun loadUserProfile() {
-        val uid = auth.currentUser?.uid
-        if (uid == null) {
-            _uiState.update { it.copy(isLoading = false, error = "User not authenticated") }
-            _effect.value = EditProfileEffect.ShowToast("User not authenticated")
-            return
-        }
+        val uid = auth.currentUser?.uid ?: return
 
         viewModelScope.launch {
             try {
                 val document = firestore.collection("users").document(uid).get().await()
+                if (document.exists()) {
+                    val city = document.getString("city") ?: ""
+                    val experience = document.getString("experience")
+                    val skills = (document.get("proficiency") as? List<*>)?.filterIsInstance<String>() ?: emptyList()
 
-                val name = document.getString("name") ?: ""
-                val rawPhone = document.getString("phone") ?: ""
-                val phone = rawPhone.removePrefix("+91").trim()
-                val city = document.getString("city") ?: ""
-                val locality = document.getString("locality") ?: ""
-                val experience = document.getString("experience")
-
-                val proficiencyRaw = document.get("proficiency") as? List<*>
-                val selectedSkills = proficiencyRaw?.filterIsInstance<String>() ?: emptyList()
-
-                val isServicePartner = city.isNotBlank() || experience != null || selectedSkills.isNotEmpty()
-
-                previousCity = city
-                previousLocality = locality
-
-                Log.d(TAG, "User profile loaded - isServicePartner: $isServicePartner")
-
-                _uiState.update {
-                    it.copy(
-                        name = name,
-                        phone = phone,
-                        city = city,
-                        locality = locality,
-                        experience = experience ?: "",
-                        selectedSkills = selectedSkills,
-                        isServicePartner = isServicePartner,
-                        isLoading = false
-                    )
+                    _uiState.update {
+                        it.copy(
+                            name = document.getString("name") ?: "",
+                            phone = (document.getString("phone") ?: "").removePrefix("+91"),
+                            city = city,
+                            locality = document.getString("locality") ?: "",
+                            experience = experience ?: "",
+                            selectedSkills = skills,
+                            isServicePartner = city.isNotBlank() || experience != null,
+                            isLoading = false
+                        )
+                    }
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error loading user profile", e)
-                _uiState.update { it.copy(isLoading = false, error = e.message) }
-                _effect.value = EditProfileEffect.ShowToast("Failed to load profile: ${e.message}")
+            } catch (_: Exception) {
+                _uiState.update { it.copy(isLoading = false) }
             }
         }
     }
@@ -197,271 +167,61 @@ class EditProfileViewModel : ViewModel() {
         val currentState = _uiState.value
         var isValid = true
 
-        when {
-            currentState.name.isBlank() -> {
-                _uiState.update { it.copy(nameError = "Name is required") }
-                isValid = false
-            }
-            currentState.name.length < 3 -> {
-                _uiState.update { it.copy(nameError = "Name must be at least 3 characters") }
-                isValid = false
-            }
-            !currentState.name.all { it.isLetter() || it.isWhitespace() } -> {
-                _uiState.update { it.copy(nameError = "Name can only contain letters and spaces") }
-                isValid = false
-            }
+        if (currentState.name.length < 3) {
+            _uiState.update { it.copy(nameError = "Name too short") }
+            isValid = false
         }
-
-        when {
-            currentState.phone.isBlank() -> {
-                _uiState.update { it.copy(phoneError = "Phone number is required") }
-                isValid = false
-            }
-            currentState.phone.length != 10 -> {
-                _uiState.update { it.copy(phoneError = "Phone number must be exactly 10 digits") }
-                isValid = false
-            }
+        if (currentState.phone.length != 10) {
+            _uiState.update { it.copy(phoneError = "Invalid phone number") }
+            isValid = false
         }
 
         if (currentState.isServicePartner) {
-            when {
-                currentState.city.isBlank() -> {
-                    _uiState.update { it.copy(cityError = "City is required") }
-                    isValid = false
-                }
-                currentState.city.length < 2 -> {
-                    _uiState.update { it.copy(cityError = "City must be at least 2 characters") }
-                    isValid = false
-                }
-            }
-
-            when {
-                currentState.locality.isBlank() -> {
-                    _uiState.update { it.copy(localityError = "Locality is required") }
-                    isValid = false
-                }
-                currentState.locality.length < 2 -> {
-                    _uiState.update { it.copy(localityError = "Locality must be at least 2 characters") }
-                    isValid = false
-                }
-            }
-
-            when {
-                currentState.experience.isBlank() -> {
-                    _uiState.update { it.copy(experienceError = "Experience is required") }
-                    isValid = false
-                }
-                else -> {
-                    val expValue = currentState.experience.toIntOrNull()
-                    when {
-                        expValue == null || expValue < 0 -> {
-                            _uiState.update { it.copy(experienceError = "Enter valid years of experience") }
-                            isValid = false
-                        }
-                        expValue > 100 -> {
-                            _uiState.update { it.copy(experienceError = "Experience cannot exceed 100 years") }
-                            isValid = false
-                        }
-                    }
-                }
-            }
-
-            if (currentState.selectedSkills.isEmpty()) {
-                _uiState.update { it.copy(skillsError = "Please select at least one skill") }
-                isValid = false
-            }
+            if (currentState.city.isBlank()) { _uiState.update { it.copy(cityError = "Required") }; isValid = false }
+            if (currentState.locality.isBlank()) { _uiState.update { it.copy(localityError = "Required") }; isValid = false }
+            if (currentState.selectedSkills.isEmpty()) { _uiState.update { it.copy(skillsError = "Select a skill") }; isValid = false }
         }
-
         return isValid
     }
 
     private fun saveProfile() {
-        val uid = auth.currentUser?.uid
-        if (uid == null) {
-            _effect.value = EditProfileEffect.ShowToast("User not authenticated")
-            return
-        }
+        val uid = auth.currentUser?.uid ?: return
+        if (!validateInputs()) return
 
-        if (!validateInputs()) {
-            return
-        }
-
-        val currentState = _uiState.value
         _uiState.update { it.copy(isSaving = true) }
 
         viewModelScope.launch {
             try {
-                val newCity = currentState.city.trim()
-                val newLocality = currentState.locality.trim()
+                val updateData = buildUpdateData(_uiState.value)
 
-                // Update user document
-                val updateData = buildUpdateData(currentState)
+                // SINGLE DATABASE CALL: Updates only the user document
                 firestore.collection("users")
                     .document(uid)
-                    .update(updateData)
+                    .set(updateData, SetOptions.merge())
                     .await()
 
-                // Handle location changes
-                if (currentState.isServicePartner) {
-                    updateLocationReferences(
-                        uid = uid,
-                        oldCity = previousCity,
-                        oldLocality = previousLocality,
-                        newCity = newCity,
-                        newLocality = newLocality
-                    )
-                }
-
-                _uiState.update { it.copy(isSaving = false) }
-                _effect.value = EditProfileEffect.ShowToast("Profile updated successfully")
-
-                kotlinx.coroutines.delay(500)
+                _effect.value = EditProfileEffect.ShowToast("Profile updated")
                 _effect.value = EditProfileEffect.NavigateBack
             } catch (e: Exception) {
-                Log.e(TAG, "Error saving profile", e)
                 _uiState.update { it.copy(isSaving = false) }
-                _effect.value = EditProfileEffect.ShowToast("Failed to update profile: ${e.message}")
+                _effect.value = EditProfileEffect.ShowToast("Error: ${e.message}")
             }
-        }
-    }
-
-    private suspend fun updateLocationReferences(
-        uid: String,
-        oldCity: String,
-        oldLocality: String,
-        newCity: String,
-        newLocality: String
-    ) {
-        val locationChanged = oldCity != newCity || oldLocality != newLocality
-
-        if (!locationChanged) {
-            Log.d(TAG, "Location unchanged, skipping location update")
-            return
-        }
-
-        try {
-            // Remove from old location
-            if (oldCity.isNotBlank() && oldLocality.isNotBlank()) {
-                removeFromLocation(uid, oldCity, oldLocality)
-            }
-
-            // Add to new location
-            if (newCity.isNotBlank() && newLocality.isNotBlank()) {
-                addToLocation(uid, newCity, newLocality)
-            }
-
-            Log.d(TAG, "Location references updated successfully")
-        } catch (e: Exception) {
-            Log.e(TAG, "Error updating location references", e)
-            // Don't throw - location sync can be eventually consistent
-        }
-    }
-
-    private suspend fun removeFromLocation(uid: String, cityId: String, localityId: String) {
-        try {
-            val subLocationRef = firestore
-                .collection("locations")
-                .document(cityId)
-                .collection("subLocations")
-                .document(localityId)
-
-            val subLocationDoc = subLocationRef.get().await()
-
-            if (!subLocationDoc.exists()) {
-                Log.w(TAG, "SubLocation not found: $cityId/$localityId")
-                return
-            }
-
-            val servicePartners = subLocationDoc.get("servicePartners") as? List<*>
-            val containsUid = servicePartners?.contains(uid) == true
-
-            if (!containsUid) {
-                Log.w(TAG, "UID not in servicePartners: $cityId/$localityId")
-                return
-            }
-
-            // Atomic removal from sublocation
-            subLocationRef.update(
-                mapOf(
-                    "servicePartners" to FieldValue.arrayRemove(uid),
-                    "count" to FieldValue.increment(-1)
-                )
-            ).await()
-
-            // Atomic decrement in parent location
-            val locationRef = firestore.collection("locations").document(cityId)
-            locationRef.update("count", FieldValue.increment(-1)).await()
-
-            Log.d(TAG, "Removed UID from: $cityId/$localityId")
-        } catch (e: Exception) {
-            Log.e(TAG, "Error removing from location: $cityId/$localityId", e)
-            throw e
-        }
-    }
-
-    private suspend fun addToLocation(uid: String, cityId: String, localityId: String) {
-        try {
-            val locationRef = firestore.collection("locations").document(cityId)
-            val subLocationRef = locationRef.collection("subLocations").document(localityId)
-
-            // Create location document if not exists (atomic)
-            locationRef.set(
-                mapOf("name" to cityId, "count" to 0),
-                SetOptions.merge()
-            ).await()
-
-            // Create sublocation document if not exists (atomic)
-            subLocationRef.set(
-                mapOf(
-                    "name" to localityId,
-                    "count" to 0,
-                    "servicePartners" to emptyList<String>()
-                ),
-                SetOptions.merge()
-            ).await()
-
-            // Check if UID already exists (prevent duplicates)
-            val subLocationDoc = subLocationRef.get().await()
-            val servicePartners = subLocationDoc.get("servicePartners") as? List<*>
-
-            if (servicePartners?.contains(uid) == true) {
-                Log.w(TAG, "UID already exists in: $cityId/$localityId")
-                return
-            }
-
-            // Atomic addition to sublocation
-            subLocationRef.update(
-                mapOf(
-                    "servicePartners" to FieldValue.arrayUnion(uid),
-                    "count" to FieldValue.increment(1)
-                )
-            ).await()
-
-            // Atomic increment in parent location
-            locationRef.update("count", FieldValue.increment(1)).await()
-
-            Log.d(TAG, "Added UID to: $cityId/$localityId")
-        } catch (e: Exception) {
-            Log.e(TAG, "Error adding to location: $cityId/$localityId", e)
-            throw e
         }
     }
 
     private fun buildUpdateData(state: EditProfileUiState): Map<String, Any> {
-        val phoneWithPrefix = "+91${state.phone}"
-
-        val updateData = mutableMapOf<String, Any>(
+        val data = mutableMapOf<String, Any>(
             "name" to state.name.trim(),
-            "phone" to phoneWithPrefix
+            "phone" to "+91${state.phone.trim()}",
+            "isServicePartner" to state.isServicePartner
         )
 
         if (state.isServicePartner) {
-            updateData["city"] = state.city.trim()
-            updateData["locality"] = state.locality.trim()
-            updateData["experience"] = state.experience
-            updateData["proficiency"] = state.selectedSkills
+            data["city"] = state.city.trim()
+            data["locality"] = state.locality.trim()
+            data["experience"] = state.experience.trim()
+            data["proficiency"] = state.selectedSkills
         }
-
-        return updateData
+        return data
     }
 }
