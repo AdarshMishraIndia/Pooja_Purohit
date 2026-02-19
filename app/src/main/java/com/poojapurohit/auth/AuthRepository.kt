@@ -70,7 +70,7 @@ class AuthRepository(
     suspend fun registerUser(uid: String, name: String, phone: String, email: String): Result<Unit> {
         return try {
             val userDocRef = firestore.collection("users").document(uid)
-            val newUser = mapOf(
+            val newUser = hashMapOf(
                 "name" to name,
                 "phone" to phone,
                 "email" to email,
@@ -95,16 +95,19 @@ class AuthRepository(
         experience: String
     ): Result<Unit> {
         return try {
+            // Convert experience to number
+            val experienceNumber = experience.toIntOrNull() ?: 0
+
             // Step 1: Register the service partner in users collection
             val userDocRef = firestore.collection("users").document(uid)
-            val newUser = mapOf(
+            val newUser = hashMapOf(
                 "name" to name,
                 "phone" to phone,
                 "email" to email,
                 "city" to city,
                 "locality" to locality,
                 "proficiency" to proficiency,
-                "experience" to experience,
+                "experience" to experienceNumber,
                 "createdAt" to Timestamp.now()
             )
             userDocRef.set(newUser).await()
@@ -121,7 +124,7 @@ class AuthRepository(
 
     private suspend fun addServicePartnerToLocation(uid: String, city: String, locality: String) {
         try {
-            // Normalize city and locality
+            // Normalize city and locality (capitalize first letter, trim whitespace)
             val normalizedCity = city.trim().replaceFirstChar {
                 if (it.isLowerCase()) it.titlecase() else it.toString()
             }
@@ -129,24 +132,20 @@ class AuthRepository(
                 if (it.isLowerCase()) it.titlecase() else it.toString()
             }
 
-            // Step 1: Update city-level document
+            // Step 1: Update city-level document in locations collection
             val cityDocRef = firestore.collection("locations").document(normalizedCity)
             val cityDoc = cityDocRef.get().await()
 
             if (cityDoc.exists()) {
-                // City exists - add UID to array and increment count
+                // City exists - increment count only
                 cityDocRef.update(
-                    mapOf(
-                        "servicePartners" to FieldValue.arrayUnion(uid),
-                        "count" to FieldValue.increment(1)
-                    )
+                    "count", FieldValue.increment(1)
                 ).await()
             } else {
                 // City doesn't exist - create new document
                 cityDocRef.set(
-                    mapOf(
+                    hashMapOf(
                         "name" to normalizedCity,
-                        "servicePartners" to listOf(uid),
                         "count" to 1
                     )
                 ).await()
@@ -162,15 +161,15 @@ class AuthRepository(
             if (localityDoc.exists()) {
                 // Locality exists - add UID to array and increment count
                 localityDocRef.update(
-                    mapOf(
+                    hashMapOf(
                         "servicePartners" to FieldValue.arrayUnion(uid),
                         "count" to FieldValue.increment(1)
-                    )
+                    ) as Map<String, Any>
                 ).await()
             } else {
                 // Locality doesn't exist - create new document
                 localityDocRef.set(
-                    mapOf(
+                    hashMapOf(
                         "name" to normalizedLocality,
                         "servicePartners" to listOf(uid),
                         "count" to 1

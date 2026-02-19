@@ -49,9 +49,9 @@ fun SubLocationSelectionScreen(
     val context = LocalContext.current
     val isDark = isSystemInDarkTheme()
 
-    // Load sublocations when screen is first displayed
+    // Attach realtime listener when screen is first displayed
     LaunchedEffect(locationId) {
-        viewModel.loadSubLocations(locationId)
+        viewModel.attachSubLocationsListener(locationId)
     }
 
     // Handle errors
@@ -70,7 +70,6 @@ fun SubLocationSelectionScreen(
     Scaffold(
         topBar = {
             SubLocationTopBar(
-                title = "Select Area",
                 onBackPressed = {
                     viewModel.resetToLocations()
                     onBackPressed()
@@ -110,7 +109,6 @@ fun SubLocationSelectionScreen(
                 SubLocationSearchBar(
                     query = uiState.searchQuery,
                     onQueryChange = { viewModel.onEvent(BookPurohitEvent.SearchQueryChanged(it)) },
-                    placeholder = "Search areas...",
                     isDark = isDark
                 )
 
@@ -132,8 +130,7 @@ fun SubLocationSelectionScreen(
                                 "No areas available in this location"
                             } else {
                                 "No areas found for \"${uiState.searchQuery}\""
-                            },
-                            isDark = isDark
+                            }
                         )
                     }
                     else -> {
@@ -162,7 +159,6 @@ fun SubLocationSelectionScreen(
 private fun SubLocationSearchBar(
     query: String,
     onQueryChange: (String) -> Unit,
-    placeholder: String,
     isDark: Boolean
 ) {
     OutlinedTextField(
@@ -173,7 +169,7 @@ private fun SubLocationSearchBar(
             .padding(16.dp),
         placeholder = {
             Text(
-                text = placeholder,
+                text = "Search areas...",
                 fontFamily = FontFamily.Serif,
                 fontSize = 16.sp
             )
@@ -285,7 +281,6 @@ private fun highlightSearchQuery(
             val index = lowercaseText.indexOf(lowercaseQuery, lastIndex)
 
             if (index == -1) {
-                // No more matches, append the rest
                 withStyle(
                     style = SpanStyle(
                         color = if (isDark) Color.White else Color.Black
@@ -296,7 +291,6 @@ private fun highlightSearchQuery(
                 break
             }
 
-            // Append text before match
             if (index > lastIndex) {
                 withStyle(
                     style = SpanStyle(
@@ -307,7 +301,6 @@ private fun highlightSearchQuery(
                 }
             }
 
-            // Append highlighted match
             withStyle(
                 style = SpanStyle(
                     color = if (isDark) DarkBrandOrange else BrandOrange,
@@ -328,10 +321,7 @@ private fun highlightSearchQuery(
 }
 
 @Composable
-private fun SubLocationEmptyState(
-    message: String,
-    isDark: Boolean
-) {
+private fun SubLocationEmptyState(message: String) {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -359,7 +349,6 @@ private fun SubLocationEmptyState(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SubLocationTopBar(
-    title: String,
     onBackPressed: () -> Unit,
     isDark: Boolean
 ) {
@@ -417,7 +406,7 @@ private fun SubLocationTopBar(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = title,
+                text = "Select Area",
                 fontFamily = FontFamily.Serif,
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp,

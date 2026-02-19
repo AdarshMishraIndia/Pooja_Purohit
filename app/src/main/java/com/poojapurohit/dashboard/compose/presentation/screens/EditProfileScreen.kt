@@ -170,22 +170,21 @@ fun EditProfileScreen(
                         )
 
                         ProfileTextField(
-                            value = uiState.location,
-                            onValueChange = { viewModel.onEvent(EditProfileEvent.LocationChanged(it)) },
-                            label = "Location *",
-                            placeholder = "City, State (e.g., Bhubaneswar, Odisha)",
-                            error = uiState.locationError,
-                            helperText = "Minimum 3 characters"
+                            value = uiState.city,
+                            onValueChange = { viewModel.onEvent(EditProfileEvent.CityChanged(it)) },
+                            label = "City *",
+                            placeholder = "e.g., Rourkela, Sundargarh",
+                            error = uiState.cityError,
+                            helperText = "Enter your city name"
                         )
 
                         ProfileTextField(
-                            value = uiState.experience,
-                            onValueChange = { viewModel.onEvent(EditProfileEvent.ExperienceChanged(it)) },
-                            label = "Years of Experience *",
-                            placeholder = "e.g., 5",
-                            keyboardType = KeyboardType.Number,
-                            error = uiState.experienceError,
-                            helperText = "Number only (0-100)"
+                            value = uiState.locality,
+                            onValueChange = { viewModel.onEvent(EditProfileEvent.LocalityChanged(it)) },
+                            label = "Locality *",
+                            placeholder = "e.g., Civil Township, Sector 8",
+                            error = uiState.localityError,
+                            helperText = "Enter your locality name"
                         )
 
                         // Skills selection (RecyclerView style)
