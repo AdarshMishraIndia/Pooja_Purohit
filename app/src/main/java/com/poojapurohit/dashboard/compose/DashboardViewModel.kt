@@ -54,7 +54,7 @@ class DashboardViewModel : ViewModel() {
 
     init {
         loadServices()
-        loadUserProfile()
+        observeUserProfile()
     }
 
     fun onEvent(event: DashboardEvent, context: Context? = null) {
@@ -97,34 +97,31 @@ class DashboardViewModel : ViewModel() {
         _uiState.update { it.copy(services = services) }
     }
 
-    private fun loadUserProfile() {
-        val uid = auth.currentUser?.uid
-        if (uid != null) {
-            viewModelScope.launch {
-                try {
-                    val document = firestore.collection("users").document(uid).get().await()
-                    val userName = document.getString("name") ?: "User"
-                    val userEmail = document.getString("email") ?: auth.currentUser?.email ?: ""
+    private fun observeUserProfile() {
+        val uid = auth.currentUser?.uid ?: return
 
+        // Use addSnapshotListener for real-time updates from Firestore
+        firestore.collection("users").document(uid)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    _uiState.update { it.copy(error = error.message) }
+                    return@addSnapshotListener
+                }
+
+                if (snapshot != null && snapshot.exists()) {
+                    val name = snapshot.getString("name") ?: "User"
+                    val email = auth.currentUser?.email ?: ""
+
+                    // Update UI state immediately when database changes
                     _uiState.update {
                         it.copy(
-                            userName = userName,
-                            userEmail = userEmail,
-                            isLoading = false
-                        )
-                    }
-                } catch (e: Exception) {
-                    _uiState.update {
-                        it.copy(
-                            error = e.message,
+                            userName = name,
+                            userEmail = email,
                             isLoading = false
                         )
                     }
                 }
             }
-        } else {
-            _uiState.update { it.copy(isLoading = false) }
-        }
     }
 
     private fun handleSignOut() {
@@ -190,7 +187,7 @@ class DashboardViewModel : ViewModel() {
         if (service.name.contains("Book a Purohit", ignoreCase = true)) {
             _effect.value = DashboardEffect.NavigateToBookPurohit
         } else {
-            _effect.value = DashboardEffect.ShowToast("Selected: ${service.name}")
+            _effect.value = DashboardEffect.ShowToast("${service.name} coming soon...")
         }
     }
 

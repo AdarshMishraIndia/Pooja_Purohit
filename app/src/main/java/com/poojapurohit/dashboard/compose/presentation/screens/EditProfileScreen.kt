@@ -560,23 +560,22 @@ private fun ProfileTextField(
     onValueChange: (String) -> Unit,
     label: String,
     placeholder: String,
+    error: String? = null,
+    helperText: String? = null,
     keyboardType: KeyboardType = KeyboardType.Text,
     minLines: Int = 1,
-    maxLines: Int = 1,
-    error: String? = null,
-    helperText: String? = null
+    maxLines: Int = 1
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
+    Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = label,
             fontFamily = FontFamily.Serif,
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.Bold,
             fontSize = 14.sp,
             color = MaterialTheme.colorScheme.onBackground
         )
+
+        Spacer(modifier = Modifier.height(4.dp))
 
         OutlinedTextField(
             value = value,
@@ -589,12 +588,13 @@ private fun ProfileTextField(
                     fontSize = 14.sp
                 )
             },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = keyboardType,
+                capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Words
+            ),
             textStyle = androidx.compose.ui.text.TextStyle(
                 fontFamily = FontFamily.Serif,
                 fontSize = 16.sp
-            ),
-            keyboardOptions = KeyboardOptions(
-                keyboardType = keyboardType
             ),
             minLines = minLines,
             maxLines = maxLines,
