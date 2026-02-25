@@ -32,7 +32,7 @@ fun AuthTextField(
     onValueChange: (String) -> Unit,
     placeholder: String,
     keyboardType: KeyboardType = KeyboardType.Text,
-    capitalization: KeyboardCapitalization = KeyboardCapitalization.None,
+    capitalization: KeyboardCapitalization = KeyboardCapitalization.Sentences,
     @SuppressLint("ModifierParameter") modifier: Modifier = Modifier
 ) {
     val fontScale = LocalDensity.current.fontScale
