@@ -1,7 +1,5 @@
 package com.poojapurohit.bookpurohit.compose.presentation.screens
 
-import android.content.Intent
-import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -13,7 +11,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -38,8 +35,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.poojapurohit.bookpurohit.compose.BookPurohitEvent
 import com.poojapurohit.bookpurohit.compose.BookPurohitViewModel
-import com.poojapurohit.dashboard.compose.theme.*
 import com.poojapurohit.bookpurohit.compose.model.PurohitItem
+import com.poojapurohit.dashboard.compose.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,20 +44,19 @@ fun PurohitSelectionScreen(
     viewModel: BookPurohitViewModel,
     locationId: String,
     subLocationId: String,
-    onBackPressed: () -> Unit
+    onBackPressed: () -> Unit,
+    onBookClick: (PurohitItem) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val isDark = isSystemInDarkTheme()
 
-    // Load purohits when screen is first displayed
     LaunchedEffect(locationId, subLocationId) {
         viewModel.onEvent(
             BookPurohitEvent.SubLocationSelected(locationId, subLocationId)
         )
     }
 
-    // Handle errors
     LaunchedEffect(uiState.error) {
         uiState.error?.let { error ->
             Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
@@ -76,7 +72,6 @@ fun PurohitSelectionScreen(
     Scaffold(
         topBar = {
             PurohitTopBar(
-                title = "Select Service Partner",
                 onBackPressed = {
                     viewModel.resetToSubLocations()
                     onBackPressed()
@@ -109,18 +104,14 @@ fun PurohitSelectionScreen(
                 )
                 .padding(paddingValues)
         ) {
-            Column(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                // Search bar
+            Column(modifier = Modifier.fillMaxSize()) {
+
                 PurohitSearchBar(
                     query = uiState.searchQuery,
                     onQueryChange = { viewModel.onEvent(BookPurohitEvent.SearchQueryChanged(it)) },
-                    placeholder = "Search by name or skills...",
                     isDark = isDark
                 )
 
-                // Content
                 when {
                     uiState.isLoading -> {
                         Box(
@@ -132,16 +123,17 @@ fun PurohitSelectionScreen(
                             )
                         }
                     }
+
                     uiState.purohits.isEmpty() -> {
                         PurohitEmptyState(
                             message = if (uiState.searchQuery.isBlank()) {
                                 "No service partners available in this area"
                             } else {
                                 "No service partners found for \"${uiState.searchQuery}\""
-                            },
-                            isDark = isDark
+                            }
                         )
                     }
+
                     else -> {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
@@ -152,12 +144,7 @@ fun PurohitSelectionScreen(
                                 PurohitCard(
                                     purohit = purohit,
                                     searchQuery = uiState.searchQuery,
-                                    onCallClick = { phone ->
-                                        val intent = Intent(Intent.ACTION_DIAL).apply {
-                                            data = Uri.parse("tel:$phone")
-                                        }
-                                        context.startActivity(intent)
-                                    },
+                                    onBookClick = onBookClick,
                                     isDark = isDark
                                 )
                             }
@@ -173,7 +160,6 @@ fun PurohitSelectionScreen(
 private fun PurohitSearchBar(
     query: String,
     onQueryChange: (String) -> Unit,
-    placeholder: String,
     isDark: Boolean
 ) {
     OutlinedTextField(
@@ -184,7 +170,7 @@ private fun PurohitSearchBar(
             .padding(16.dp),
         placeholder = {
             Text(
-                text = placeholder,
+                text = "Search by name or skills...",
                 fontFamily = FontFamily.Serif,
                 fontSize = 16.sp
             )
@@ -214,7 +200,7 @@ private fun PurohitSearchBar(
 private fun PurohitCard(
     purohit: PurohitItem,
     searchQuery: String,
-    onCallClick: (String) -> Unit,
+    onBookClick: (PurohitItem) -> Unit,
     isDark: Boolean
 ) {
     Card(
@@ -230,7 +216,7 @@ private fun PurohitCard(
                 .fillMaxWidth()
                 .padding(20.dp)
         ) {
-            // Name (Primary text)
+            // Name
             Text(
                 text = highlightSearchQuery(
                     text = purohit.name,
@@ -245,16 +231,13 @@ private fun PurohitCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Proficiency/Skills (Subtext)
+            // Proficiency
             if (purohit.proficiency.isNotEmpty()) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.Top
                 ) {
-                    Text(
-                        text = "🕉️ ",
-                        fontSize = 16.sp
-                    )
+                    Text(text = "🕉️ ", fontSize = 16.sp)
                     Text(
                         text = highlightSearchQuery(
                             text = purohit.proficiency.joinToString(", "),
@@ -267,103 +250,48 @@ private fun PurohitCard(
                         modifier = Modifier.weight(1f)
                     )
                 }
-
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
-            // Experience (Super subtext)
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "📅 ",
-                    fontSize = 14.sp
-                )
+            // Experience
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(text = "📅 ", fontSize = 14.sp)
                 Text(
                     text = "${purohit.experience} years of experience",
                     fontFamily = FontFamily.Serif,
                     fontSize = 14.sp,
-                    color = if (isDark) {
-                        Color.White.copy(alpha = 0.7f)
-                    } else {
-                        Color.Black.copy(alpha = 0.6f)
-                    }
+                    color = if (isDark) Color.White.copy(alpha = 0.7f)
+                    else Color.Black.copy(alpha = 0.6f)
                 )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Divider
             HorizontalDivider(
                 thickness = 1.dp,
-                color = if (isDark) {
-                    Color.White.copy(alpha = 0.1f)
-                } else {
-                    Color.Black.copy(alpha = 0.1f)
-                }
+                color = if (isDark) Color.White.copy(alpha = 0.1f)
+                else Color.Black.copy(alpha = 0.1f)
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Phone number with call button
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            // Book button
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(if (isDark) DarkBrandOrange else BrandOrange)
+                    .clickable { onBookClick(purohit) }
+                    .padding(vertical = 14.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Column(
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(
-                        text = "Contact Number",
-                        fontFamily = FontFamily.Serif,
-                        fontSize = 12.sp,
-                        color = if (isDark) {
-                            Color.White.copy(alpha = 0.6f)
-                        } else {
-                            Color.Black.copy(alpha = 0.5f)
-                        },
-                        fontWeight = FontWeight.Medium
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = purohit.phone,
-                        fontFamily = FontFamily.Serif,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (isDark) DarkBrandOrange else BrandRed
-                    )
-                }
-
-                // Call button
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(
-                            if (isDark) DarkBrandOrange else BrandOrange
-                        )
-                        .clickable { onCallClick(purohit.phone) }
-                        .padding(horizontal = 20.dp, vertical = 12.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Phone,
-                            contentDescription = "Call",
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Text(
-                            text = "Call",
-                            fontFamily = FontFamily.Serif,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp,
-                            color = Color.White
-                        )
-                    }
-                }
+                Text(
+                    text = "Book",
+                    fontFamily = FontFamily.Serif,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = Color.White
+                )
             }
         }
     }
@@ -377,11 +305,7 @@ private fun highlightSearchQuery(
 ): AnnotatedString {
     if (query.isBlank()) {
         return buildAnnotatedString {
-            withStyle(
-                style = SpanStyle(
-                    color = if (isDark) Color.White else Color.Black
-                )
-            ) {
+            withStyle(style = SpanStyle(color = if (isDark) Color.White else Color.Black)) {
                 append(text)
             }
         }
@@ -396,22 +320,14 @@ private fun highlightSearchQuery(
             val index = lowercaseText.indexOf(lowercaseQuery, lastIndex)
 
             if (index == -1) {
-                withStyle(
-                    style = SpanStyle(
-                        color = if (isDark) Color.White else Color.Black
-                    )
-                ) {
+                withStyle(style = SpanStyle(color = if (isDark) Color.White else Color.Black)) {
                     append(text.substring(lastIndex))
                 }
                 break
             }
 
             if (index > lastIndex) {
-                withStyle(
-                    style = SpanStyle(
-                        color = if (isDark) Color.White else Color.Black
-                    )
-                ) {
+                withStyle(style = SpanStyle(color = if (isDark) Color.White else Color.Black)) {
                     append(text.substring(lastIndex, index))
                 }
             }
@@ -420,11 +336,8 @@ private fun highlightSearchQuery(
                 style = SpanStyle(
                     color = if (isDark) DarkBrandOrange else BrandOrange,
                     fontWeight = FontWeight.ExtraBold,
-                    background = if (isDark) {
-                        DarkBrandOrange.copy(alpha = 0.2f)
-                    } else {
-                        BrandOrange.copy(alpha = 0.15f)
-                    }
+                    background = if (isDark) DarkBrandOrange.copy(alpha = 0.2f)
+                    else BrandOrange.copy(alpha = 0.15f)
                 )
             ) {
                 append(text.substring(index, index + query.length))
@@ -436,10 +349,7 @@ private fun highlightSearchQuery(
 }
 
 @Composable
-private fun PurohitEmptyState(
-    message: String,
-    isDark: Boolean
-) {
+private fun PurohitEmptyState(message: String) {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -448,10 +358,7 @@ private fun PurohitEmptyState(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(
-                text = "🕉️",
-                fontSize = 48.sp
-            )
+            Text(text = "🕉️", fontSize = 48.sp)
             Text(
                 text = message,
                 fontFamily = FontFamily.Serif,
@@ -467,7 +374,6 @@ private fun PurohitEmptyState(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PurohitTopBar(
-    title: String,
     onBackPressed: () -> Unit,
     isDark: Boolean
 ) {
@@ -497,11 +403,8 @@ private fun PurohitTopBar(
             ),
             modifier = Modifier.background(
                 brush = Brush.linearGradient(
-                    colors = if (isDark) {
-                        listOf(DarkBrandOrange, DarkBrandRed)
-                    } else {
-                        listOf(BrandOrange, BrandRed)
-                    },
+                    colors = if (isDark) listOf(DarkBrandOrange, DarkBrandRed)
+                    else listOf(BrandOrange, BrandRed),
                     start = Offset.Zero,
                     end = Offset.Infinite
                 )
@@ -513,18 +416,15 @@ private fun PurohitTopBar(
                 .fillMaxWidth()
                 .background(
                     brush = Brush.verticalGradient(
-                        colors = if (isDark) {
-                            listOf(DarkWelcomeBannerStart, DarkWelcomeBannerEnd)
-                        } else {
-                            listOf(WelcomeBannerStart, WelcomeBannerEnd)
-                        }
+                        colors = if (isDark) listOf(DarkWelcomeBannerStart, DarkWelcomeBannerEnd)
+                        else listOf(WelcomeBannerStart, WelcomeBannerEnd)
                     )
                 )
                 .padding(12.dp),
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = title,
+                text = "Select Purohit",
                 fontFamily = FontFamily.Serif,
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp,

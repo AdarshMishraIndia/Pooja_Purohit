@@ -100,28 +100,41 @@ class DashboardViewModel : ViewModel() {
     private fun observeUserProfile() {
         val uid = auth.currentUser?.uid ?: return
 
-        // Use addSnapshotListener for real-time updates from Firestore
-        firestore.collection("users").document(uid)
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    _uiState.update { it.copy(error = error.message) }
-                    return@addSnapshotListener
+        // Check users collection first
+        val userRef = firestore.collection("users").document(uid)
+        val purohitRef = firestore.collection("purohits").document(uid)
+
+        userRef.addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                _uiState.update { it.copy(error = error.message) }
+                return@addSnapshotListener
+            }
+
+            if (snapshot != null && snapshot.exists()) {
+                val name = snapshot.getString("name") ?: "User"
+                val email = auth.currentUser?.email ?: ""
+                _uiState.update {
+                    it.copy(userName = name, userEmail = email, isLoading = false)
                 }
-
-                if (snapshot != null && snapshot.exists()) {
-                    val name = snapshot.getString("name") ?: "User"
-                    val email = auth.currentUser?.email ?: ""
-
-                    // Update UI state immediately when database changes
-                    _uiState.update {
-                        it.copy(
-                            userName = name,
-                            userEmail = email,
-                            isLoading = false
-                        )
+            } else {
+                // Not in users, check purohits
+                purohitRef.addSnapshotListener { purohitSnapshot, purohitError ->
+                    if (purohitError != null) {
+                        _uiState.update { it.copy(error = purohitError.message) }
+                        return@addSnapshotListener
+                    }
+                    if (purohitSnapshot != null && purohitSnapshot.exists()) {
+                        val name = purohitSnapshot.getString("name") ?: "Purohit"
+                        val email = auth.currentUser?.email ?: ""
+                        _uiState.update {
+                            it.copy(userName = name, userEmail = email, isLoading = false)
+                        }
+                    } else {
+                        _uiState.update { it.copy(isLoading = false) }
                     }
                 }
             }
+        }
     }
 
     private fun handleSignOut() {
@@ -131,19 +144,21 @@ class DashboardViewModel : ViewModel() {
 
     private fun handleDeleteAccount() {
         val user = auth.currentUser
-        val uid = user?.uid
+        val uid = user?.uid ?: return
 
-        if (uid != null) {
-            viewModelScope.launch {
-                try {
+        viewModelScope.launch {
+            try {
+                // Delete from whichever collection they exist in
+                val userDoc = firestore.collection("users").document(uid).get().await()
+                if (userDoc.exists()) {
                     firestore.collection("users").document(uid).delete().await()
-                    user.delete().await()
-                    _effect.value = DashboardEffect.NavigateToAuth
-                } catch (e: Exception) {
-                    _effect.value = DashboardEffect.ShowToast(
-                        "Failed to delete account: ${e.message}"
-                    )
+                } else {
+                    firestore.collection("purohits").document(uid).delete().await()
                 }
+                user.delete().await()
+                _effect.value = DashboardEffect.NavigateToAuth
+            } catch (e: Exception) {
+                _effect.value = DashboardEffect.ShowToast("Failed to delete account: ${e.message}")
             }
         }
     }

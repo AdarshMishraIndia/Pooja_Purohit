@@ -112,9 +112,9 @@ class BookPurohitViewModel : ViewModel() {
         if (activeListeners.contains(ListenerType.LOCATIONS)) return
         _uiState.update { it.copy(isLoading = true, error = null) }
 
-        // Fetch all service partners, aggregate city data client-side
-        locationsListener = firestore.collection("users")
-            .whereEqualTo("isServicePartner", true)
+        locationsListener = firestore.collection("purohits")
+            .whereEqualTo("isVerified", true)
+            .whereEqualTo("isAvailable", true)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     _uiState.update { it.copy(isLoading = false, error = error.message) }
@@ -122,14 +122,12 @@ class BookPurohitViewModel : ViewModel() {
                 }
 
                 val cityMap = mutableMapOf<String, LocationItem>()
-
                 snapshot?.documents?.forEach { doc ->
                     val cityId = doc.getString("city") ?: return@forEach
-                    val cityName = doc.getString("cityName") ?: cityId
                     val existing = cityMap[cityId]
                     cityMap[cityId] = LocationItem(
                         id = cityId,
-                        name = cityName,
+                        name = cityId,
                         count = (existing?.count ?: 0) + 1
                     )
                 }
@@ -137,11 +135,7 @@ class BookPurohitViewModel : ViewModel() {
                 val locations = cityMap.values.sortedBy { it.name }
                 allLocations = locations
                 _uiState.update {
-                    it.copy(
-                        locations = locations,
-                        isLoading = false,
-                        currentLocationId = null
-                    )
+                    it.copy(locations = locations, isLoading = false, currentLocationId = null)
                 }
             }
         activeListeners.add(ListenerType.LOCATIONS)
@@ -159,9 +153,9 @@ class BookPurohitViewModel : ViewModel() {
             )
         }
 
-        // Query service partners in selected city, aggregate locality data client-side
-        subLocationsListener = firestore.collection("users")
-            .whereEqualTo("isServicePartner", true)
+        subLocationsListener = firestore.collection("purohits")
+            .whereEqualTo("isVerified", true)
+            .whereEqualTo("isAvailable", true)
             .whereEqualTo("city", locationId)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
@@ -170,14 +164,12 @@ class BookPurohitViewModel : ViewModel() {
                 }
 
                 val localityMap = mutableMapOf<String, LocationItem>()
-
                 snapshot?.documents?.forEach { doc ->
                     val localityId = doc.getString("locality") ?: return@forEach
-                    val localityName = doc.getString("localityName") ?: localityId
                     val existing = localityMap[localityId]
                     localityMap[localityId] = LocationItem(
                         id = localityId,
-                        name = localityName,
+                        name = localityId,
                         count = (existing?.count ?: 0) + 1
                     )
                 }
@@ -199,8 +191,9 @@ class BookPurohitViewModel : ViewModel() {
             )
         }
 
-        purohitsListener = firestore.collection("users")
-            .whereEqualTo("isServicePartner", true)
+        purohitsListener = firestore.collection("purohits")
+            .whereEqualTo("isVerified", true)
+            .whereEqualTo("isAvailable", true)
             .whereEqualTo("city", locationId)
             .whereEqualTo("locality", subLocationId)
             .orderBy("name", Query.Direction.ASCENDING)
@@ -217,7 +210,6 @@ class BookPurohitViewModel : ViewModel() {
                 allPurohits = items
                 _uiState.update { it.copy(purohits = items, isLoading = false) }
             }
-
         activeListeners.add(ListenerType.PUROHITS)
     }
 

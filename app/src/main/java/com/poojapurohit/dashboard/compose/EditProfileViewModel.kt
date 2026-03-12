@@ -138,25 +138,43 @@ class EditProfileViewModel : ViewModel() {
 
         viewModelScope.launch {
             try {
-                val document = firestore.collection("users").document(uid).get().await()
-                if (document.exists()) {
-                    val city = document.getString("city") ?: ""
-                    val experience = document.getString("experience")
-                    val skills = (document.get("proficiency") as? List<*>)?.filterIsInstance<String>() ?: emptyList()
-
+                // Try users collection first
+                val userDoc = firestore.collection("users").document(uid).get().await()
+                if (userDoc.exists()) {
                     _uiState.update {
                         it.copy(
-                            name = document.getString("name") ?: "",
-                            phone = (document.getString("phone") ?: "").removePrefix("+91"),
-                            city = city,
-                            locality = document.getString("locality") ?: "",
-                            experience = experience ?: "",
-                            selectedSkills = skills,
-                            isServicePartner = city.isNotBlank() || experience != null,
+                            name = userDoc.getString("name") ?: "",
+                            phone = (userDoc.getString("phone") ?: "").removePrefix("+91"),
+                            city = userDoc.getString("city") ?: "",
+                            locality = userDoc.getString("locality") ?: "",
+                            isServicePartner = false,
                             isLoading = false
                         )
                     }
+                    return@launch
                 }
+
+                // Try purohits collection
+                val purohitDoc = firestore.collection("purohits").document(uid).get().await()
+                if (purohitDoc.exists()) {
+                    val skills = (purohitDoc.get("proficiency") as? List<*>)
+                        ?.filterIsInstance<String>() ?: emptyList()
+                    _uiState.update {
+                        it.copy(
+                            name = purohitDoc.getString("name") ?: "",
+                            phone = (purohitDoc.getString("phone") ?: "").removePrefix("+91"),
+                            city = purohitDoc.getString("city") ?: "",
+                            locality = purohitDoc.getString("locality") ?: "",
+                            experience = purohitDoc.getLong("experience")?.toString() ?: "",
+                            selectedSkills = skills,
+                            isServicePartner = true,
+                            isLoading = false
+                        )
+                    }
+                    return@launch
+                }
+
+                _uiState.update { it.copy(isLoading = false) }
             } catch (_: Exception) {
                 _uiState.update { it.copy(isLoading = false) }
             }
@@ -193,9 +211,9 @@ class EditProfileViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 val updateData = buildUpdateData(_uiState.value)
+                val collection = if (_uiState.value.isServicePartner) "purohits" else "users"
 
-                // SINGLE DATABASE CALL: Updates only the user document
-                firestore.collection("users")
+                firestore.collection(collection)
                     .document(uid)
                     .set(updateData, SetOptions.merge())
                     .await()
@@ -212,16 +230,16 @@ class EditProfileViewModel : ViewModel() {
     private fun buildUpdateData(state: EditProfileUiState): Map<String, Any> {
         val data = mutableMapOf<String, Any>(
             "name" to state.name.trim(),
-            "phone" to "+91${state.phone.trim()}",
-            "isServicePartner" to state.isServicePartner
+            "phone" to "+91${state.phone.trim()}"
         )
 
         if (state.isServicePartner) {
             data["city"] = state.city.trim()
             data["locality"] = state.locality.trim()
-            data["experience"] = state.experience.trim()
+            data["experience"] = state.experience.trim().toIntOrNull() ?: 0
             data["proficiency"] = state.selectedSkills
         }
+
         return data
     }
 }

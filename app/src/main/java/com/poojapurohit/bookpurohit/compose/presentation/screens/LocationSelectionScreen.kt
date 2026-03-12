@@ -61,7 +61,6 @@ fun LocationSelectionScreen(
     Scaffold(
         topBar = {
             BookPurohitTopBar(
-                title = "Select Location",
                 onBackPressed = onBackPressed,
                 isDark = isDark
             )
@@ -98,7 +97,6 @@ fun LocationSelectionScreen(
                 SearchBar(
                     query = uiState.searchQuery,
                     onQueryChange = { viewModel.onEvent(BookPurohitEvent.SearchQueryChanged(it)) },
-                    placeholder = "Search locations...",
                     isDark = isDark
                 )
 
@@ -120,8 +118,7 @@ fun LocationSelectionScreen(
                                 "No locations available"
                             } else {
                                 "No locations found for \"${uiState.searchQuery}\""
-                            },
-                            isDark = isDark
+                            }
                         )
                     }
                     else -> {
@@ -150,7 +147,6 @@ fun LocationSelectionScreen(
 private fun SearchBar(
     query: String,
     onQueryChange: (String) -> Unit,
-    placeholder: String,
     isDark: Boolean
 ) {
     OutlinedTextField(
@@ -161,7 +157,7 @@ private fun SearchBar(
             .padding(16.dp),
         placeholder = {
             Text(
-                text = placeholder,
+                text = "Search Locations",
                 fontFamily = FontFamily.Serif,
                 fontSize = 16.sp
             )
@@ -317,8 +313,7 @@ private fun highlightSearchQuery(
 
 @Composable
 private fun EmptyState(
-    message: String,
-    isDark: Boolean
+    message: String
 ) {
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -347,7 +342,6 @@ private fun EmptyState(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun BookPurohitTopBar(
-    title: String,
     onBackPressed: () -> Unit,
     isDark: Boolean
 ) {
@@ -405,7 +399,7 @@ private fun BookPurohitTopBar(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = title,
+                text = "Select Location",
                 fontFamily = FontFamily.Serif,
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp,

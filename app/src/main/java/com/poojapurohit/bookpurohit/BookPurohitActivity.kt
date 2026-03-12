@@ -112,6 +112,9 @@ fun BookPurohitNavigation(viewModel: BookPurohitViewModel) {
                 subLocationId = subLocationId,
                 onBackPressed = {
                     navController.popBackStack()
+                },
+                onBookClick = { purohit ->
+                    navController.navigate("booking/${purohit.id}")
                 }
             )
         }

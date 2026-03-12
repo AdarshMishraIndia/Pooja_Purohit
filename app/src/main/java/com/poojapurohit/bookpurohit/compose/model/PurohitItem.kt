@@ -6,26 +6,22 @@ import com.google.firebase.firestore.DocumentSnapshot
 data class PurohitItem(
     val id: String = "",
     val name: String = "",
-    val phone: String = "",
     val city: String = "",
     val locality: String = "",
-    val email: String = "",
     val experience: Int = 0,
     val proficiency: List<String> = emptyList(),
     val createdAt: Timestamp? = null
+    // phone intentionally excluded — revealed only after booking ACCEPTED
 ) {
     companion object {
-
         fun fromDocument(doc: DocumentSnapshot): PurohitItem {
             return PurohitItem(
                 id = doc.id,
                 name = doc.getString("name") ?: "",
-                phone = doc.getString("phone") ?: "",
                 city = doc.getString("city") ?: "",
                 locality = doc.getString("locality") ?: "",
-                email = doc.getString("email") ?: "",
                 experience = parseExperience(doc.get("experience")),
-                proficiency = doc.get("proficiency") as? List<String> ?: emptyList(),
+                proficiency = (doc.get("proficiency") as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
                 createdAt = doc.getTimestamp("createdAt")
             )
         }

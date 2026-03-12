@@ -60,24 +60,33 @@ class AuthRepository(
         }
     }
 
+    // Check both collections — returns true if NEW user (not found anywhere)
     private suspend fun checkUserExists(uid: String): Boolean {
-        val doc = firestore.collection("users").document(uid).get().await()
-        return !doc.exists()
+        val userDoc = firestore.collection("users").document(uid).get().await()
+        if (userDoc.exists()) return false
+
+        val purohitDoc = firestore.collection("purohits").document(uid).get().await()
+        return !purohitDoc.exists() // new user
     }
 
-    suspend fun registerUser(uid: String, name: String, phone: String, email: String): Result<Unit> {
+    suspend fun registerUser(
+        uid: String,
+        name: String,
+        phone: String,
+        email: String
+    ): Result<Unit> {
         return try {
             val newUser = hashMapOf(
+                "userId" to uid,
                 "name" to name,
                 "phone" to phone,
                 "email" to email,
-                "isServicePartner" to false,
                 "createdAt" to Timestamp.now()
             )
             firestore.collection("users").document(uid).set(newUser).await()
             Result.success(Unit)
         } catch (e: Exception) {
-            Log.e("AuthRepository", "Firestore registration error", e)
+            Log.e("AuthRepository", "User registration error", e)
             Result.failure(e)
         }
     }
@@ -93,7 +102,8 @@ class AuthRepository(
         experience: String
     ): Result<Unit> {
         return try {
-            val newUser = hashMapOf(
+            val newPurohit = hashMapOf(
+                "purohitId" to uid,
                 "name" to name,
                 "phone" to phone,
                 "email" to email,
@@ -101,23 +111,30 @@ class AuthRepository(
                 "locality" to locality,
                 "proficiency" to proficiency,
                 "experience" to (experience.toIntOrNull() ?: 0),
-                "isServicePartner" to true,
+                "isVerified" to false,
+                "isAvailable" to false,
+                "rating" to 0.0,
+                "totalBookings" to 0,
                 "createdAt" to Timestamp.now()
             )
-            firestore.collection("users").document(uid).set(newUser).await()
+            firestore.collection("purohits").document(uid).set(newPurohit).await()
             Result.success(Unit)
         } catch (e: Exception) {
-            Log.e("AuthRepository", "Firestore service partner registration error", e)
+            Log.e("AuthRepository", "Purohit registration error", e)
             Result.failure(e)
         }
     }
 
+    // Check both collections for session persistence
     suspend fun isUserRegistered(): Boolean {
         val user = auth.currentUser ?: return false
         return try {
             user.reload().await()
-            val doc = firestore.collection("users").document(user.uid).get().await()
-            doc.exists()
+            val userDoc = firestore.collection("users").document(user.uid).get().await()
+            if (userDoc.exists()) return true
+
+            val purohitDoc = firestore.collection("purohits").document(user.uid).get().await()
+            purohitDoc.exists()
         } catch (_: Exception) {
             auth.signOut()
             false
