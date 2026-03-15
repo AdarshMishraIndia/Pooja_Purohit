@@ -7,6 +7,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.poojapurohit.R
 import com.poojapurohit.dashboard.ServiceItem
+import com.poojapurohit.notification.NotificationRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,6 +20,7 @@ data class DashboardUiState(
     val userEmail: String = "",
     val isLoading: Boolean = true,
     val services: List<ServiceItem> = emptyList(),
+    val unreadNotificationCount: Int = 0,
     val error: String? = null
 )
 
@@ -29,6 +31,7 @@ sealed interface DashboardEvent {
     data object NavigateToEditAccount : DashboardEvent
     data object NavigateToAboutUs : DashboardEvent
     data object NavigateToTerms : DashboardEvent
+    data object NavigateToNotifications : DashboardEvent
     data class ServiceClicked(val service: ServiceItem) : DashboardEvent
     data object CallContact : DashboardEvent
 }
@@ -36,7 +39,8 @@ sealed interface DashboardEvent {
 sealed interface DashboardEffect {
     data object NavigateToAuth : DashboardEffect
     data object NavigateToEditAccount : DashboardEffect
-    data object NavigateToBookPurohit : DashboardEffect  // Added
+    data object NavigateToBookPurohit : DashboardEffect
+    data object NavigateToNotifications : DashboardEffect
     data class ShowToast(val message: String) : DashboardEffect
     data class NavigateToInfo(val title: String, val content: String) : DashboardEffect
     data class MakePhoneCall(val phoneNumber: String) : DashboardEffect
@@ -45,6 +49,7 @@ sealed interface DashboardEffect {
 class DashboardViewModel : ViewModel() {
     private val firestore = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
+    private val notificationRepository = NotificationRepository()
 
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
@@ -55,6 +60,7 @@ class DashboardViewModel : ViewModel() {
     init {
         loadServices()
         observeUserProfile()
+        loadUnreadNotificationCount()
     }
 
     fun onEvent(event: DashboardEvent, context: Context? = null) {
@@ -67,6 +73,9 @@ class DashboardViewModel : ViewModel() {
             is DashboardEvent.NavigateToTerms -> {
                 context?.let { handleTermsConditions(it) }
             }
+            is DashboardEvent.NavigateToNotifications -> {
+                _effect.value = DashboardEffect.NavigateToNotifications
+            }
             is DashboardEvent.ServiceClicked -> handleServiceClick(event.service)
             is DashboardEvent.CallContact -> handleCallContact()
         }
@@ -74,6 +83,19 @@ class DashboardViewModel : ViewModel() {
 
     fun clearEffect() {
         _effect.value = null
+    }
+
+    private fun loadUnreadNotificationCount() {
+        viewModelScope.launch {
+            notificationRepository.fetchNotifications().fold(
+                onSuccess = { items ->
+                    _uiState.update { it.copy(unreadNotificationCount = items.count { n -> !n.isRead }) }
+                },
+                onFailure = {
+                    // Non-critical — badge just won't show
+                }
+            )
+        }
     }
 
     private fun loadServices() {
@@ -100,7 +122,6 @@ class DashboardViewModel : ViewModel() {
     private fun observeUserProfile() {
         val uid = auth.currentUser?.uid ?: return
 
-        // Check users collection first
         val userRef = firestore.collection("users").document(uid)
         val purohitRef = firestore.collection("purohits").document(uid)
 
@@ -117,7 +138,6 @@ class DashboardViewModel : ViewModel() {
                     it.copy(userName = name, userEmail = email, isLoading = false)
                 }
             } else {
-                // Not in users, check purohits
                 purohitRef.addSnapshotListener { purohitSnapshot, purohitError ->
                     if (purohitError != null) {
                         _uiState.update { it.copy(error = purohitError.message) }
@@ -148,7 +168,6 @@ class DashboardViewModel : ViewModel() {
 
         viewModelScope.launch {
             try {
-                // Delete from whichever collection they exist in
                 val userDoc = firestore.collection("users").document(uid).get().await()
                 if (userDoc.exists()) {
                     firestore.collection("users").document(uid).delete().await()
@@ -198,7 +217,6 @@ class DashboardViewModel : ViewModel() {
     }
 
     private fun handleServiceClick(service: ServiceItem) {
-        // Check if it's "Book a Purohit" service
         if (service.name.contains("Book a Purohit", ignoreCase = true)) {
             _effect.value = DashboardEffect.NavigateToBookPurohit
         } else {

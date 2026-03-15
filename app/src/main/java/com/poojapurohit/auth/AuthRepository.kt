@@ -9,7 +9,9 @@ import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.tasks.await
 import com.google.firebase.Timestamp
 
@@ -17,6 +19,16 @@ class AuthRepository(
     private val auth: FirebaseAuth = FirebaseAuth.getInstance(),
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance(),
 ) {
+
+    // Fetch FCM token suspending
+    private suspend fun getFcmToken(): String? {
+        return try {
+            FirebaseMessaging.getInstance().token.await()
+        } catch (e: Exception) {
+            Log.e("AuthRepository", "Failed to get FCM token", e)
+            null
+        }
+    }
 
     suspend fun signInWithGoogle(
         activity: Activity,
@@ -52,11 +64,37 @@ class AuthRepository(
             val user = authResult.user
             if (user?.uid != null) {
                 val isNewUser = checkUserExists(user.uid)
+                // Existing user — append FCM token
+                if (!isNewUser) {
+                    appendFcmTokenToExistingUser(user.uid)
+                }
                 Result.success(isNewUser)
             } else Result.failure(Exception("Signed in user has no UID"))
         } catch (e: Exception) {
             Log.e("AuthRepository", "Firebase sign-in failed", e)
             Result.failure(e)
+        }
+    }
+
+    // Appends FCM token to whichever collection the existing user belongs to
+    private suspend fun appendFcmTokenToExistingUser(uid: String) {
+        val token = getFcmToken() ?: return
+        try {
+            val userDoc = firestore.collection("users").document(uid).get().await()
+            if (userDoc.exists()) {
+                firestore.collection("users").document(uid)
+                    .update("fcmTokens", FieldValue.arrayUnion(token))
+                    .await()
+                return
+            }
+            val purohitDoc = firestore.collection("purohits").document(uid).get().await()
+            if (purohitDoc.exists()) {
+                firestore.collection("purohits").document(uid)
+                    .update("fcmTokens", FieldValue.arrayUnion(token))
+                    .await()
+            }
+        } catch (e: Exception) {
+            Log.e("AuthRepository", "Failed to append FCM token", e)
         }
     }
 
@@ -66,7 +104,7 @@ class AuthRepository(
         if (userDoc.exists()) return false
 
         val purohitDoc = firestore.collection("purohits").document(uid).get().await()
-        return !purohitDoc.exists() // new user
+        return !purohitDoc.exists()
     }
 
     suspend fun registerUser(
@@ -76,12 +114,14 @@ class AuthRepository(
         email: String
     ): Result<Unit> {
         return try {
+            val token = getFcmToken()
             val newUser = hashMapOf(
                 "userId" to uid,
                 "name" to name,
                 "phone" to phone,
                 "email" to email,
-                "createdAt" to Timestamp.now()
+                "createdAt" to Timestamp.now(),
+                "fcmTokens" to listOfNotNull(token)
             )
             firestore.collection("users").document(uid).set(newUser).await()
             Result.success(Unit)
@@ -102,6 +142,7 @@ class AuthRepository(
         experience: String
     ): Result<Unit> {
         return try {
+            val token = getFcmToken()
             val newPurohit = hashMapOf(
                 "purohitId" to uid,
                 "name" to name,
@@ -115,7 +156,8 @@ class AuthRepository(
                 "isAvailable" to false,
                 "rating" to 0.0,
                 "totalBookings" to 0,
-                "createdAt" to Timestamp.now()
+                "createdAt" to Timestamp.now(),
+                "fcmTokens" to listOfNotNull(token)
             )
             firestore.collection("purohits").document(uid).set(newPurohit).await()
             Result.success(Unit)
@@ -125,7 +167,6 @@ class AuthRepository(
         }
     }
 
-    // Check both collections for session persistence
     suspend fun isUserRegistered(): Boolean {
         val user = auth.currentUser ?: return false
         return try {

@@ -64,6 +64,7 @@ import com.poojapurohit.dashboard.compose.theme.DeleteRed
 import com.poojapurohit.dashboard.compose.theme.LightBackgroundGradientCenter
 import com.poojapurohit.dashboard.compose.theme.LightBackgroundGradientEnd
 import com.poojapurohit.dashboard.compose.theme.LightBackgroundGradientStart
+import com.poojapurohit.notification.compose.NotificationActivity
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -99,6 +100,10 @@ fun DashboardScreen(
                 context.startActivity(Intent(context, BookPurohitActivity::class.java))
                 viewModel.clearEffect()
             }
+            is DashboardEffect.NavigateToNotifications -> {
+                context.startActivity(Intent(context, NotificationActivity::class.java))
+                viewModel.clearEffect()
+            }
             is DashboardEffect.ShowToast -> {
                 Toast.makeText(context, currentEffect.message, Toast.LENGTH_SHORT).show()
                 viewModel.clearEffect()
@@ -121,19 +126,16 @@ fun DashboardScreen(
         }
     }
 
-    // Back press handler
     BackHandler(enabled = drawerState.isOpen) {
         scope.launch { drawerState.close() }
     }
 
-    // Delete confirmation dialog
     if (showDeleteDialog) {
         DeleteAccountDialog(
             onConfirm = {
-                showDeleteDialog = false
                 viewModel.onEvent(DashboardEvent.DeleteAccountConfirmed)
             },
-            onDismiss = { showDeleteDialog = false }
+            onDismiss = { }
         )
     }
 
@@ -147,7 +149,7 @@ fun DashboardScreen(
                 onAboutUs = { viewModel.onEvent(DashboardEvent.NavigateToAboutUs) },
                 onTermsConditions = { viewModel.onEvent(DashboardEvent.NavigateToTerms, context) },
                 onSignOut = { viewModel.onEvent(DashboardEvent.SignOut) },
-                onDeleteAccount = { showDeleteDialog = true },
+                onDeleteAccount = { },
                 onClose = { scope.launch { drawerState.close() } }
             )
         },
@@ -156,7 +158,9 @@ fun DashboardScreen(
         Scaffold(
             topBar = {
                 DashboardTopBar(
-                    onMenuClick = { scope.launch { drawerState.open() } }
+                    onMenuClick = { scope.launch { drawerState.open() } },
+                    onNotificationsClick = { viewModel.onEvent(DashboardEvent.NavigateToNotifications) },
+                    unreadNotificationCount = uiState.unreadNotificationCount
                 )
             }
         ) { paddingValues ->
@@ -184,9 +188,7 @@ fun DashboardScreen(
                     )
                     .padding(paddingValues)
             ) {
-                Column(
-                    modifier = Modifier.fillMaxSize()
-                ) {
+                Column(modifier = Modifier.fillMaxSize()) {
                     LazyColumn(
                         modifier = Modifier
                             .weight(1f)
@@ -204,7 +206,6 @@ fun DashboardScreen(
                         }
                     }
 
-                    // Elegant divider with phone icon
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()

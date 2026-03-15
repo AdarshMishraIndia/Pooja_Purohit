@@ -109,6 +109,7 @@ dependencies {
 
     // Flow layout for skills chips
     implementation(libs.accompanist.flowlayout)
+    implementation(libs.firebase.messaging)
 
     // Testing
     testImplementation(libs.junit)

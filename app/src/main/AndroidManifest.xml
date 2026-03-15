@@ -54,6 +54,12 @@
             android:theme="@style/Theme.PoojaPurohit">
         </activity>
 
+        <activity
+            android:name=".notification.compose.NotificationActivity"
+            android:exported="false"
+            android:theme="@style/Theme.PoojaPurohit">
+        </activity>
+
 
         <activity
             android:name=".bookpurohit.BookPurohitActivity"
