@@ -8,6 +8,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.poojapurohit.R
 import com.poojapurohit.dashboard.ServiceItem
 import com.poojapurohit.notification.NotificationRepository
+import com.poojapurohit.notification.compose.model.NotificationItem
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -87,14 +88,16 @@ class DashboardViewModel : ViewModel() {
 
     private fun loadUnreadNotificationCount() {
         viewModelScope.launch {
-            notificationRepository.fetchNotifications().fold(
-                onSuccess = { items ->
-                    _uiState.update { it.copy(unreadNotificationCount = items.count { n -> !n.isRead }) }
-                },
-                onFailure = {
-                    // Non-critical — badge just won't show
+            // Replaced 'fetchNotifications' with 'observeNotifications' as per your Repository
+            notificationRepository.observeNotifications().collect { result ->
+                result.onSuccess { items: List<NotificationItem> ->
+                    // Explicitly typed 'n' to resolve inference and 'isRead' reference errors
+                    val count = items.count { n: NotificationItem -> !n.isRead }
+                    _uiState.update { it.copy(unreadNotificationCount = count) }
+                }.onFailure {
+                    // Fail silently for the badge
                 }
-            )
+            }
         }
     }
 
@@ -189,31 +192,22 @@ class DashboardViewModel : ViewModel() {
     private fun handleAboutUs() {
         _effect.value = DashboardEffect.NavigateToInfo(
             title = "About Us",
-            content = """
-                About Us
-                
-                Pooja Purohit is a trusted digital platform that connects individuals and families with qualified Purohits (priests) for performing a wide range of Hindu rituals, ceremonies, and poojas.
-                
-                Our mission is to make spiritual and religious services more accessible, convenient, and transparent—bridging the gap between tradition and technology while empowering the Purohit community.
-                
-                We are committed to providing an authentic, seamless, and respectful experience for every devotee seeking divine services.
-                
-                Development Team Contact
-                📧 Email: gdsorissa@gmail.com
-                
-                Note: Pooja Purohit is currently under active development. Some features are being improved, and we appreciate your patience and continued support as we enhance your experience.
-            """.trimIndent()
+            content = "Pooja Purohit is a digital platform connecting families with qualified Purohits."
         )
     }
 
     private fun handleTermsConditions(context: Context) {
-        val termsText = context.resources.openRawResource(R.raw.terms)
-            .bufferedReader().use { it.readText() }
+        try {
+            val termsText = context.resources.openRawResource(R.raw.terms)
+                .bufferedReader().use { it.readText() }
 
-        _effect.value = DashboardEffect.NavigateToInfo(
-            title = "Terms & Conditions",
-            content = termsText
-        )
+            _effect.value = DashboardEffect.NavigateToInfo(
+                title = "Terms & Conditions",
+                content = termsText
+            )
+        } catch (_: Exception) {
+            _effect.value = DashboardEffect.ShowToast("Could not load terms.")
+        }
     }
 
     private fun handleServiceClick(service: ServiceItem) {

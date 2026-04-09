@@ -1,0 +1,118 @@
+{
+  "firestore_structure": {
+    "notifications": {
+      "dummy_doc_id": {
+        "metadata": {
+          "description": "Stores push notification logs or history for specific events.",
+          "type": "collection"
+        },
+        "fields": {
+          "body": "dummy_body",
+          "isRead": false,
+          "timestamp": "2026-03-15T17:42:16Z",
+          "title": "dummy_title"
+        }
+      }
+    },
+    "purohits": {
+      "dummy_purohit_id": {
+        "metadata": {
+          "description": "Profiles for service providers (Purohits) including credentials and ratings.",
+          "type": "collection"
+        },
+        "fields": {
+          "purohitId": "dummy_id",
+          "name": "dummy_name",
+          "phone": "dummy_phone",
+          "email": "dummy_email",
+          "city": "dummy_city",
+          "locality": "dummy_locality",
+          "experience": 10,
+          "proficiency": ["dummy_proficiency_p0"],
+          "isVerified": false,
+          "isAvailable": false,
+          "rating": 0.0,
+          "totalBookings": 0,
+          "createdAt": "2026-03-12T22:49:24Z"
+        }
+      }
+    },
+    "services": {
+      "BookAPurohit": {
+        "metadata": {
+          "description": "Master list of available services. Fed manually by admin.",
+          "type": "collection"
+        },
+        "fields": {
+          "name": [
+            "POOJA (Sri Ganesh, Sri Vishwakarma, Sri Satyanarayan, Maa Saraswati)",
+            "DEVI PUJANA (Maa Durga, Maa Kali)",
+            "Rudrabhishek Shivratri",
+            "Janamastami",
+            "Chhat Pooja",
+            "Gruha Pratistha",
+            "Vaahaan Pooja",
+            "Janeyu",
+            "Shraddha",
+            "Other Karma Kaanda",
+            "Antyesthi / Asthi Sangraha"
+          ]
+        }
+      }
+    },
+    "users": {
+      "dummy_user_id": {
+        "metadata": {
+          "description": "Basic profile information for end-users/customers.",
+          "type": "collection"
+        },
+        "fields": {
+          "userId": "dummy_id",
+          "name": "dummy_name",
+          "phone": "dummy_phone",
+          "email": "dummy_email",
+          "createdAt": "2026-03-12T23:52:54Z"
+        }
+      }
+    },
+    "bookings": {
+      "_metadata": {
+        "status": "TENTATIVE",
+        "planned_date": "2026-04-05",
+        "description": "Planned collection — not yet created in Firestore as of 2026-04-05. Schema finalized, pending Razorpay integration and booking flow implementation.",
+        "status_values": [
+          "PENDING_PAYMENT",
+          "PAYMENT_DONE",
+          "ACCEPTED",
+          "REJECTED",
+          "COMPLETED",
+          "CANCELLED",
+          "REFUNDED",
+          "AUTO_CANCELLED"
+        ]
+      },
+      "dummy_booking_id": {
+        "metadata": {
+          "description": "Core transaction record linking users, purohits, payments and booking states.",
+          "type": "collection"
+        },
+        "fields": {
+          "bookingId": "dummy_booking_id",
+          "userId": "dummy_user_id",
+          "purohitId": "dummy_purohit_id",
+          "purohitName": "dummy_purohit_name",
+          "userPhone": "dummy_user_phone",
+          "serviceName": "dummy_service_name",
+          "amount": 0,
+          "status": "PENDING_PAYMENT",
+          "razorpayOrderId": "dummy_razorpay_order_id",
+          "razorpayPaymentId": "dummy_razorpay_payment_id",
+          "scheduledDate": "2026-03-15T10:00:00Z",
+          "address": "dummy_address",
+          "createdAt": "2026-03-15T17:42:16Z",
+          "updatedAt": "2026-03-15T17:42:16Z"
+        }
+      }
+    }
+  }
+}
