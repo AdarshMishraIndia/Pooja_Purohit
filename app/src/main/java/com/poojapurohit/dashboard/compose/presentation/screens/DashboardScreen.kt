@@ -31,10 +31,7 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -79,11 +76,8 @@ fun DashboardScreen(
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
-    var showDeleteDialog by remember { mutableStateOf(false) }
-
     val isDark = isSystemInDarkTheme()
 
-    // Handle side effects
     LaunchedEffect(effect) {
         when (val currentEffect = effect) {
             is DashboardEffect.NavigateToAuth -> {
@@ -130,12 +124,10 @@ fun DashboardScreen(
         scope.launch { drawerState.close() }
     }
 
-    if (showDeleteDialog) {
+    if (uiState.showDeleteDialog) {
         DeleteAccountDialog(
-            onConfirm = {
-                viewModel.onEvent(DashboardEvent.DeleteAccountConfirmed)
-            },
-            onDismiss = { }
+            onConfirm = { viewModel.onEvent(DashboardEvent.DeleteAccountConfirmed) },
+            onDismiss = { viewModel.onEvent(DashboardEvent.DeleteAccountDismissed) }
         )
     }
 
@@ -149,7 +141,7 @@ fun DashboardScreen(
                 onAboutUs = { viewModel.onEvent(DashboardEvent.NavigateToAboutUs) },
                 onTermsConditions = { viewModel.onEvent(DashboardEvent.NavigateToTerms, context) },
                 onSignOut = { viewModel.onEvent(DashboardEvent.SignOut) },
-                onDeleteAccount = { },
+                onDeleteAccount = { viewModel.onEvent(DashboardEvent.DeleteAccountRequested) },
                 onClose = { scope.launch { drawerState.close() } }
             )
         },
@@ -162,7 +154,7 @@ fun DashboardScreen(
                     onNotificationsClick = { viewModel.onEvent(DashboardEvent.NavigateToNotifications) },
                     unreadNotificationCount = uiState.unreadNotificationCount
                 )
-            }
+            },
         ) { paddingValues ->
             Box(
                 modifier = Modifier
@@ -186,7 +178,7 @@ fun DashboardScreen(
                             end = Offset.Infinite
                         )
                     )
-                    .padding(paddingValues)
+                    .padding(top = paddingValues.calculateTopPadding())
             ) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     LazyColumn(
@@ -216,11 +208,8 @@ fun DashboardScreen(
                         HorizontalDivider(
                             modifier = Modifier.weight(1f),
                             thickness = 1.dp,
-                            color = if (isDark) {
-                                DarkBrandOrange.copy(alpha = 0.5f)
-                            } else {
-                                BrandOrange.copy(alpha = 0.5f)
-                            }
+                            color = if (isDark) DarkBrandOrange.copy(alpha = 0.5f)
+                            else BrandOrange.copy(alpha = 0.5f)
                         )
 
                         Icon(
@@ -235,11 +224,8 @@ fun DashboardScreen(
                         HorizontalDivider(
                             modifier = Modifier.weight(1f),
                             thickness = 1.dp,
-                            color = if (isDark) {
-                                DarkBrandOrange.copy(alpha = 0.5f)
-                            } else {
-                                BrandOrange.copy(alpha = 0.5f)
-                            }
+                            color = if (isDark) DarkBrandOrange.copy(alpha = 0.5f)
+                            else BrandOrange.copy(alpha = 0.5f)
                         )
                     }
 

@@ -2,8 +2,8 @@ package com.poojapurohit.dashboard.compose.presentation.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -36,6 +36,7 @@ fun DashboardTopBar(
     unreadNotificationCount: Int = 0
 ) {
     TopAppBar(
+        windowInsets = WindowInsets(0, 0, 0, 0),
         title = {
             Text(
                 text = "POOJA PUROHIT (ପୂଜା ପୁରୋହିତ)",
@@ -43,7 +44,6 @@ fun DashboardTopBar(
                 fontWeight = FontWeight.Bold,
                 fontSize = 20.sp,
                 color = Color.White,
-                modifier = Modifier.padding(10.dp)
             )
         },
         navigationIcon = {

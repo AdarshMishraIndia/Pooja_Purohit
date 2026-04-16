@@ -22,12 +22,14 @@ data class DashboardUiState(
     val isLoading: Boolean = true,
     val services: List<ServiceItem> = emptyList(),
     val unreadNotificationCount: Int = 0,
-    val error: String? = null
+    val error: String? = null,
+    val showDeleteDialog: Boolean = false
 )
 
 sealed interface DashboardEvent {
     data object SignOut : DashboardEvent
     data object DeleteAccountRequested : DashboardEvent
+    data object DeleteAccountDismissed : DashboardEvent
     data object DeleteAccountConfirmed : DashboardEvent
     data object NavigateToEditAccount : DashboardEvent
     data object NavigateToAboutUs : DashboardEvent
@@ -67,13 +69,12 @@ class DashboardViewModel : ViewModel() {
     fun onEvent(event: DashboardEvent, context: Context? = null) {
         when (event) {
             is DashboardEvent.SignOut -> handleSignOut()
-            is DashboardEvent.DeleteAccountRequested -> {}
+            is DashboardEvent.DeleteAccountRequested -> _uiState.update { it.copy(showDeleteDialog = true) }
+            is DashboardEvent.DeleteAccountDismissed -> _uiState.update { it.copy(showDeleteDialog = false) }
             is DashboardEvent.DeleteAccountConfirmed -> handleDeleteAccount()
             is DashboardEvent.NavigateToEditAccount -> handleEditAccount()
             is DashboardEvent.NavigateToAboutUs -> handleAboutUs()
-            is DashboardEvent.NavigateToTerms -> {
-                context?.let { handleTermsConditions(it) }
-            }
+            is DashboardEvent.NavigateToTerms -> context?.let { handleTermsConditions(it) }
             is DashboardEvent.NavigateToNotifications -> {
                 _effect.value = DashboardEffect.NavigateToNotifications
             }
@@ -88,10 +89,8 @@ class DashboardViewModel : ViewModel() {
 
     private fun loadUnreadNotificationCount() {
         viewModelScope.launch {
-            // Replaced 'fetchNotifications' with 'observeNotifications' as per your Repository
             notificationRepository.observeNotifications().collect { result ->
                 result.onSuccess { items: List<NotificationItem> ->
-                    // Explicitly typed 'n' to resolve inference and 'isRead' reference errors
                     val count = items.count { n: NotificationItem -> !n.isRead }
                     _uiState.update { it.copy(unreadNotificationCount = count) }
                 }.onFailure {
@@ -168,6 +167,8 @@ class DashboardViewModel : ViewModel() {
     private fun handleDeleteAccount() {
         val user = auth.currentUser
         val uid = user?.uid ?: return
+
+        _uiState.update { it.copy(showDeleteDialog = false) }
 
         viewModelScope.launch {
             try {
