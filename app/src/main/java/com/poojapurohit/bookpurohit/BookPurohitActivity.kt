@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.core.view.WindowCompat
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -17,6 +18,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.poojapurohit.bookpurohit.compose.BookPurohitViewModel
+import com.poojapurohit.bookpurohit.compose.presentation.screens.BookingScreen
 import com.poojapurohit.bookpurohit.compose.presentation.screens.LocationSelectionScreen
 import com.poojapurohit.bookpurohit.compose.presentation.screens.PurohitSelectionScreen
 import com.poojapurohit.bookpurohit.compose.presentation.screens.SubLocationSelectionScreen
@@ -42,6 +44,7 @@ class BookPurohitActivity : ComponentActivity() {
     @Composable
     private fun SetSystemBarsColor() {
         val isDark = isSystemInDarkTheme()
+        // Using the brand colors from your theme setup
         val statusBarColor = Color(if (isDark) 0xFF5E1100 else 0xFF811C01)
 
         DisposableEffect(isDark) {
@@ -64,11 +67,16 @@ fun BookPurohitNavigation(viewModel: BookPurohitViewModel) {
         navController = navController,
         startDestination = "location_selection"
     ) {
+        // 1. Location Selection Screen
         composable("location_selection") {
+            // Get the context here to finish the activity
+            val context = LocalContext.current
+
             LocationSelectionScreen(
                 viewModel = viewModel,
                 onBackPressed = {
-                    navController.popBackStack()
+                    // This will close BookPurohitActivity and take you back to DashActivity
+                    (context as? android.app.Activity)?.finish()
                 },
                 onLocationClick = { locationId ->
                     navController.navigate("sublocation_selection/$locationId")
@@ -76,6 +84,7 @@ fun BookPurohitNavigation(viewModel: BookPurohitViewModel) {
             )
         }
 
+        // 2. Sub-Location Selection Screen
         composable(
             route = "sublocation_selection/{locationId}",
             arguments = listOf(
@@ -96,6 +105,7 @@ fun BookPurohitNavigation(viewModel: BookPurohitViewModel) {
             )
         }
 
+        // 3. Purohit Selection Screen
         composable(
             route = "purohit_selection/{locationId}/{subLocationId}",
             arguments = listOf(
@@ -115,6 +125,27 @@ fun BookPurohitNavigation(viewModel: BookPurohitViewModel) {
                 },
                 onBookClick = { purohit ->
                     navController.navigate("booking/${purohit.id}")
+                }
+            )
+        }
+
+        // 4. Booking Screen (Checkout & Razorpay Stub)
+        composable(
+            route = "booking/{purohitId}",
+            arguments = listOf(
+                navArgument("purohitId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val purohitId = backStackEntry.arguments?.getString("purohitId") ?: return@composable
+
+            BookingScreen(
+                purohitId = purohitId,
+                onBackPressed = {
+                    navController.popBackStack()
+                },
+                onBookingSuccess = {
+                    // On success, pop all the way back to the start of the flow
+                    navController.popBackStack("location_selection", inclusive = false)
                 }
             )
         }

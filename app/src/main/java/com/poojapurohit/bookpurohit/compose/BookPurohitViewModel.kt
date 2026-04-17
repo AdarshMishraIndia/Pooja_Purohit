@@ -73,8 +73,7 @@ class BookPurohitViewModel : ViewModel() {
         when (event) {
             is BookPurohitEvent.SearchQueryChanged -> handleSearchQueryChanged(event.query)
             is BookPurohitEvent.LocationSelected -> attachSubLocationsListener(event.locationId)
-            is BookPurohitEvent.SubLocationSelected ->
-                attachPurohitsListener(event.locationId, event.subLocationId)
+            is BookPurohitEvent.SubLocationSelected -> attachPurohitsListener(event.locationId, event.subLocationId)
         }
     }
 
