@@ -33,6 +33,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
@@ -71,6 +72,7 @@ import com.poojapurohit.dashboard.compose.theme.LightBackgroundGradientEnd
 import com.poojapurohit.dashboard.compose.theme.LightBackgroundGradientStart
 import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -92,6 +94,13 @@ fun BookingScreen(
 
     // Temporary state to hold the date while the user selects the time
     var tempSelectedDateMillis by remember { mutableStateOf<Long?>(null) }
+
+    // Display string for the UI field
+    val formattedDateDisplay = remember(uiState.scheduledDateMillis) {
+        uiState.scheduledDateMillis?.let {
+            SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault()).format(Date(it))
+        } ?: ""
+    }
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let {
@@ -178,7 +187,7 @@ fun BookingScreen(
                 // Date & Time Picker Field
                 Box(modifier = Modifier.fillMaxWidth()) {
                     OutlinedTextField(
-                        value = uiState.scheduledDate,
+                        value = formattedDateDisplay,
                         onValueChange = { },
                         label = { Text("Date & Time") },
                         readOnly = true,
@@ -194,7 +203,6 @@ fun BookingScreen(
                             focusedBorderColor = if (isDark) DarkBrandOrange else BrandOrange
                         )
                     )
-                    // Invisible box to catch clicks over the entire text field
                     Box(
                         modifier = Modifier
                             .matchParentSize()
@@ -240,9 +248,16 @@ fun BookingScreen(
                 }
             }
 
-            // 1. Date Picker Dialog
+            // 1. Date Picker Dialog with validation
             if (showDatePicker) {
-                val datePickerState = rememberDatePickerState()
+                val datePickerState = rememberDatePickerState(
+                    selectableDates = object : SelectableDates {
+                        override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                            // Prevent back-date selection (today or future only)
+                            return utcTimeMillis >= System.currentTimeMillis() - 86400000
+                        }
+                    }
+                )
                 DatePickerDialog(
                     onDismissRequest = { showDatePicker = false },
                     confirmButton = {
@@ -250,7 +265,7 @@ fun BookingScreen(
                             tempSelectedDateMillis = datePickerState.selectedDateMillis
                             showDatePicker = false
                             if (tempSelectedDateMillis != null) {
-                                showTimePicker = true // Chain to Time Picker
+                                showTimePicker = true
                             }
                         }) {
                             Text("Next", color = if (isDark) DarkBrandOrange else BrandOrange)
@@ -271,7 +286,7 @@ fun BookingScreen(
                 val timePickerState = rememberTimePickerState(
                     initialHour = 10,
                     initialMinute = 0,
-                    is24Hour = false // Set to true for 24-hour format
+                    is24Hour = false
                 )
 
                 AlertDialog(
@@ -284,17 +299,14 @@ fun BookingScreen(
                     },
                     confirmButton = {
                         TextButton(onClick = {
-                            // Format Date and Time
                             val calendar = Calendar.getInstance().apply {
                                 timeInMillis = tempSelectedDateMillis ?: System.currentTimeMillis()
                                 set(Calendar.HOUR_OF_DAY, timePickerState.hour)
                                 set(Calendar.MINUTE, timePickerState.minute)
                             }
 
-                            val formatter = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault())
-                            val formattedDateTime = formatter.format(calendar.time)
-
-                            viewModel.onDateChange(formattedDateTime)
+                            // Send raw milliseconds to ViewModel for logic and Timestamp conversion
+                            viewModel.onDateChange(calendar.timeInMillis)
                             showTimePicker = false
                         }) {
                             Text("Confirm", color = if (isDark) DarkBrandOrange else BrandOrange)
@@ -308,7 +320,6 @@ fun BookingScreen(
                 )
             }
 
-            // Razorpay Stub
             if (uiState.isPaymentDialogVisible) {
                 RazorpayStubDialog(
                     isDark = isDark,
@@ -320,8 +331,6 @@ fun BookingScreen(
         }
     }
 }
-
-// ... (RazorpayStubDialog and BookingTopBar remain exactly the same as before)
 
 @Composable
 fun RazorpayStubDialog(
@@ -346,7 +355,7 @@ fun RazorpayStubDialog(
         confirmButton = {
             Button(
                 onClick = onSimulateSuccess,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)) // Green
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
             ) {
                 Text("Success (PAYMENT_DONE)")
             }
@@ -355,7 +364,7 @@ fun RazorpayStubDialog(
             Column(horizontalAlignment = Alignment.End) {
                 Button(
                     onClick = onSimulateFailure,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF44336)) // Red
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF44336))
                 ) {
                     Text("Fail (PENDING_PAYMENT)")
                 }

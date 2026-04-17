@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import java.util.Date
 import java.util.UUID
 
 data class BookingUiState(
@@ -20,7 +21,7 @@ data class BookingUiState(
     val error: String? = null,
     val selectedService: String = "POOJA (Sri Ganesh, Sri Vishwakarma...)",
     val address: String = "",
-    val scheduledDate: String = ""
+    val scheduledDateMillis: Long? = null // Stored as Long for internal logic
 )
 
 class BookingViewModel : ViewModel() {
@@ -48,12 +49,17 @@ class BookingViewModel : ViewModel() {
         _uiState.update { it.copy(address = address) }
     }
 
-    fun onDateChange(date: String) {
-        _uiState.update { it.copy(scheduledDate = date) }
+    fun onDateChange(dateMillis: Long) {
+        // Prevent back-dating by comparing with current time
+        if (dateMillis < System.currentTimeMillis()) {
+            _uiState.update { it.copy(error = "Back-dated bookings are not allowed") }
+            return
+        }
+        _uiState.update { it.copy(scheduledDateMillis = dateMillis, error = null) }
     }
 
     fun showPaymentDialog() {
-        if (_uiState.value.address.isBlank() || _uiState.value.scheduledDate.isBlank()) {
+        if (_uiState.value.address.isBlank() || _uiState.value.scheduledDateMillis == null) {
             _uiState.update { it.copy(error = "Please fill in all details") }
             return
         }
@@ -69,29 +75,27 @@ class BookingViewModel : ViewModel() {
     }
 
     fun processPaymentStub(purohitId: String, status: String) {
+        val selectedDate = _uiState.value.scheduledDateMillis ?: return
+
         _uiState.update { it.copy(isLoading = true, isPaymentDialogVisible = false) }
 
         viewModelScope.launch {
             try {
-                // 1. Get Current User ID
                 val userId = auth.currentUser?.uid
                     ?: throw Exception("User is not logged in.")
 
-                // 2. Fetch User Details from 'users' collection
                 val userSnapshot = firestore.collection("users").document(userId).get().await()
                 if (!userSnapshot.exists()) {
                     throw Exception("User profile not found in database.")
                 }
                 val userPhone = userSnapshot.getString("phone") ?: ""
 
-                // 3. Fetch Purohit Details from 'purohits' collection
                 val purohitSnapshot = firestore.collection("purohits").document(purohitId).get().await()
                 if (!purohitSnapshot.exists()) {
                     throw Exception("Purohit details not found in database.")
                 }
                 val purohitName = purohitSnapshot.getString("name") ?: "Unknown Purohit"
 
-                // 4. Construct Booking Data
                 val bookingId = UUID.randomUUID().toString()
                 val currentTimestamp = Timestamp.now()
 
@@ -102,27 +106,25 @@ class BookingViewModel : ViewModel() {
                     "purohitName" to purohitName,
                     "userPhone" to userPhone,
                     "serviceName" to _uiState.value.selectedService,
-                    "amount" to 1500, // Replace with dynamic amount later if needed
+                    "amount" to 1500,
                     "status" to status,
                     "razorpayOrderId" to "order_stub_${UUID.randomUUID().toString().take(8)}",
                     "razorpayPaymentId" to if (status == "PAYMENT_DONE") "pay_stub_${UUID.randomUUID().toString().take(8)}" else "",
-                    "scheduledDate" to _uiState.value.scheduledDate,
+                    // FIX: Stored as Timestamp object
+                    "scheduledDate" to Timestamp(Date(selectedDate)),
                     "address" to _uiState.value.address,
                     "createdAt" to currentTimestamp,
                     "updatedAt" to currentTimestamp
                 )
 
-                // 5. Save to 'bookings' collection
                 firestore.collection("bookings")
                     .document(bookingId)
                     .set(bookingData)
                     .await()
 
-                // Success
                 _uiState.update { it.copy(isLoading = false, bookingComplete = true) }
 
             } catch (e: Exception) {
-                // Failure
                 _uiState.update { it.copy(isLoading = false, error = e.message ?: "An error occurred during booking.") }
             }
         }
