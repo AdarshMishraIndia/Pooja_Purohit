@@ -21,7 +21,7 @@ data class BookingUiState(
     val error: String? = null,
     val selectedService: String = "POOJA (Sri Ganesh, Sri Vishwakarma...)",
     val address: String = "",
-    val scheduledDateMillis: Long? = null // Stored as Long for internal logic
+    val scheduledDateMillis: Long? = null
 )
 
 class BookingViewModel : ViewModel() {
@@ -50,7 +50,6 @@ class BookingViewModel : ViewModel() {
     }
 
     fun onDateChange(dateMillis: Long) {
-        // Prevent back-dating by comparing with current time
         if (dateMillis < System.currentTimeMillis()) {
             _uiState.update { it.copy(error = "Back-dated bookings are not allowed") }
             return
@@ -74,6 +73,13 @@ class BookingViewModel : ViewModel() {
         _uiState.update { it.copy(error = null) }
     }
 
+    /**
+     * Writes the booking document to Firestore.
+     *
+     * Notifications are NOT dispatched from here. The Cloud Function
+     * onBookingStatusUpdated (index.ts) reacts to every bookings/{id} write
+     * and writes the correct notifications automatically.
+     */
     fun processPaymentStub(purohitId: String, status: String) {
         val selectedDate = _uiState.value.scheduledDateMillis ?: return
 
@@ -85,15 +91,11 @@ class BookingViewModel : ViewModel() {
                     ?: throw Exception("User is not logged in.")
 
                 val userSnapshot = firestore.collection("users").document(userId).get().await()
-                if (!userSnapshot.exists()) {
-                    throw Exception("User profile not found in database.")
-                }
+                if (!userSnapshot.exists()) throw Exception("User profile not found in database.")
                 val userPhone = userSnapshot.getString("phone") ?: ""
 
                 val purohitSnapshot = firestore.collection("purohits").document(purohitId).get().await()
-                if (!purohitSnapshot.exists()) {
-                    throw Exception("Purohit details not found in database.")
-                }
+                if (!purohitSnapshot.exists()) throw Exception("Purohit details not found in database.")
                 val purohitName = purohitSnapshot.getString("name") ?: "Unknown Purohit"
 
                 val bookingId = UUID.randomUUID().toString()
@@ -110,7 +112,6 @@ class BookingViewModel : ViewModel() {
                     "status" to status,
                     "razorpayOrderId" to "order_stub_${UUID.randomUUID().toString().take(8)}",
                     "razorpayPaymentId" to if (status == "PAYMENT_DONE") "pay_stub_${UUID.randomUUID().toString().take(8)}" else "",
-                    // FIX: Stored as Timestamp object
                     "scheduledDate" to Timestamp(Date(selectedDate)),
                     "address" to _uiState.value.address,
                     "createdAt" to currentTimestamp,
@@ -125,7 +126,9 @@ class BookingViewModel : ViewModel() {
                 _uiState.update { it.copy(isLoading = false, bookingComplete = true) }
 
             } catch (e: Exception) {
-                _uiState.update { it.copy(isLoading = false, error = e.message ?: "An error occurred during booking.") }
+                _uiState.update {
+                    it.copy(isLoading = false, error = e.message ?: "An error occurred during booking.")
+                }
             }
         }
     }

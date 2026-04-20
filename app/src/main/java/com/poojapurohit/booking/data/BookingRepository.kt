@@ -20,36 +20,10 @@ class BookingRepository(
      *
      * Returns Flow<Result<List<Booking>>> so the ViewModel handles errors without try/catch noise.
      */
-    fun observeUserBookings(): Flow<Result<List<Booking>>> {
-        val uid = auth.currentUser?.uid
-            ?: return flowOf(Result.failure(IllegalStateException("User not authenticated")))
-
-        return callbackFlow {
-            val listener = firestore
-                .collection("bookings")
-                .whereEqualTo("userId", uid)
-                .orderBy("createdAt", Query.Direction.DESCENDING)
-                .addSnapshotListener { snapshot, error ->
-                    if (error != null) {
-                        trySend(Result.failure(error))
-                        return@addSnapshotListener
-                    }
-                    val bookings = snapshot?.documents
-                        ?.mapNotNull { doc ->
-                            runCatching { Booking.fromDocument(doc) }.getOrNull()
-                        }
-                        ?: emptyList()
-
-                    trySend(Result.success(bookings))
-                }
-
-            awaitClose { listener.remove() }
-        }
-    }
 
     /**
-     * Stub: observes bookings for a purohit account.
-     * Swap userId → purohitId when purohit-side dashboard is built.
+     * Observes all bookings where the currently authenticated user is the assigned Purohit.
+     * Queries by purohitId for real-time updates.
      */
     fun observePurohitBookings(): Flow<Result<List<Booking>>> {
         val uid = auth.currentUser?.uid
@@ -77,4 +51,32 @@ class BookingRepository(
             awaitClose { listener.remove() }
         }
     }
+
+    fun observeUserBookings(): Flow<Result<List<Booking>>> {
+        val uid = auth.currentUser?.uid
+            ?: return flowOf(Result.failure(IllegalStateException("User not authenticated")))
+
+        return callbackFlow {
+            val listener = firestore
+                .collection("bookings")
+                .whereEqualTo("userId", uid)
+                .orderBy("createdAt", Query.Direction.DESCENDING)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        trySend(Result.failure(error))
+                        return@addSnapshotListener
+                    }
+                    val bookings = snapshot?.documents
+                        ?.mapNotNull { doc ->
+                            runCatching { Booking.fromDocument(doc) }.getOrNull()
+                        }
+                        ?: emptyList()
+
+                    trySend(Result.success(bookings))
+                }
+
+            awaitClose { listener.remove() }
+        }
+    }
+
 }
