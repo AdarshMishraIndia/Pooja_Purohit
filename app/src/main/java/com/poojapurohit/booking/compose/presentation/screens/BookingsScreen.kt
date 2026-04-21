@@ -122,19 +122,25 @@ fun BookingsScreen(
         }
     }
 
-    // Confirmation dialogues — guard destructive actions
+    // Confirmation dialogs — guard all destructive / irreversible actions
     var pendingCancel by remember { mutableStateOf<Booking?>(null) }
     var pendingReject by remember { mutableStateOf<Booking?>(null) }
+    var pendingComplete by remember { mutableStateOf<Booking?>(null) }
 
+    // ── Cancel dialog ─────────────────────────────────────────────────────────
     pendingCancel?.let { booking ->
         AlertDialog(
             onDismissRequest = { pendingCancel = null },
             title = {
-                Text("Cancel Booking?", fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold)
+                Text(
+                    text = "Cancel Booking?",
+                    fontFamily = FontFamily.Serif,
+                    fontWeight = FontWeight.Bold
+                )
             },
             text = {
                 Text(
-                    "Are you sure you want to cancel your booking for ${booking.serviceName}? This cannot be undone.",
+                    text = "Are you sure you want to cancel your booking for ${booking.serviceName}? This cannot be undone.",
                     fontFamily = FontFamily.Serif
                 )
             },
@@ -154,15 +160,20 @@ fun BookingsScreen(
         )
     }
 
+    // ── Reject dialog ─────────────────────────────────────────────────────────
     pendingReject?.let { booking ->
         AlertDialog(
             onDismissRequest = { pendingReject = null },
             title = {
-                Text("Reject Booking?", fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold)
+                Text(
+                    text = "Reject Booking?",
+                    fontFamily = FontFamily.Serif,
+                    fontWeight = FontWeight.Bold
+                )
             },
             text = {
                 Text(
-                    "Reject the booking for ${booking.serviceName}? The user will be notified.",
+                    text = "Reject the booking for ${booking.serviceName}? The user will be notified.",
                     fontFamily = FontFamily.Serif
                 )
             },
@@ -182,6 +193,41 @@ fun BookingsScreen(
         )
     }
 
+    // ── Mark as Completed dialog ──────────────────────────────────────────────
+    pendingComplete?.let { booking ->
+        AlertDialog(
+            onDismissRequest = { pendingComplete = null },
+            title = {
+                Text(
+                    text = "Mark as Completed?",
+                    fontFamily = FontFamily.Serif,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = "Confirm that you have successfully completed the pooja for ${booking.serviceName}. This action cannot be undone.",
+                    fontFamily = FontFamily.Serif
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.completeBooking(booking); pendingComplete = null },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isDark) DarkBrandOrange else BrandOrange
+                    )
+                ) {
+                    Text("Yes, Completed", color = Color.White, fontFamily = FontFamily.Serif)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingComplete = null }) {
+                    Text("Cancel", fontFamily = FontFamily.Serif)
+                }
+            }
+        )
+    }
+
     Scaffold(snackbarHost = { SnackbarHost(hostState = snackbarHostState) }) { scaffoldPadding ->
         Column(
             modifier = Modifier
@@ -189,7 +235,7 @@ fun BookingsScreen(
                 .background(MaterialTheme.colorScheme.background)
                 .padding(scaffoldPadding)
         ) {
-            // Header banner
+            // ── Header banner ─────────────────────────────────────────────────
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -213,12 +259,12 @@ fun BookingsScreen(
                 )
             }
 
+            // ── Tab row ───────────────────────────────────────────────────────
             SecondaryTabRow(
                 selectedTabIndex = pagerState.currentPage,
                 containerColor = MaterialTheme.colorScheme.surface,
                 contentColor = if (isDark) DarkBrandOrange else BrandOrange,
                 indicator = {
-                    // TabIndicatorScope provides the tabPositions implicitly
                     TabRowDefaults.SecondaryIndicator(
                         modifier = Modifier.tabIndicatorOffset(pagerState.currentPage),
                         color = if (isDark) DarkBrandOrange else BrandOrange
@@ -243,6 +289,7 @@ fun BookingsScreen(
                 }
             }
 
+            // ── Content ───────────────────────────────────────────────────────
             if (uiState.isLoading) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(
@@ -281,6 +328,7 @@ fun BookingsScreen(
                             },
                             onAccept = { booking -> viewModel.acceptBooking(booking) },
                             onReject = { booking -> pendingReject = booking },
+                            onComplete = { booking -> pendingComplete = booking },
                             onCancel = { booking -> pendingCancel = booking },
                             onHighlightConsumed = { viewModel.clearHighlight() }
                         )
@@ -299,6 +347,7 @@ private fun BookingList(
     onCompletePayment: (Booking) -> Unit,
     onAccept: (Booking) -> Unit,
     onReject: (Booking) -> Unit,
+    onComplete: (Booking) -> Unit,
     onCancel: (Booking) -> Unit,
     onHighlightConsumed: () -> Unit
 ) {
@@ -330,6 +379,7 @@ private fun BookingList(
                 onCompletePayment = onCompletePayment,
                 onAccept = onAccept,
                 onReject = onReject,
+                onComplete = onComplete,
                 onCancel = onCancel
             )
         }

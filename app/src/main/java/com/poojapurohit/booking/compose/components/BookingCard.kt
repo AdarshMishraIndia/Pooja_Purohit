@@ -50,10 +50,12 @@ import java.util.Locale
  * @param isHighlighted       True when navigated to via a deep link — renders with
  *                            an accent border and elevated shadow for 2 s.
  * @param isPurohitView       True when the signed-in user is the purohit on this booking.
- *                            Shows Accept / Reject instead of Cancel.
+ *                            Shows Accept / Reject (on PAYMENT_DONE) or Mark as Completed
+ *                            (on ACCEPTED) instead of Cancel.
  * @param onCompletePayment   Invoked on PENDING_PAYMENT bookings (user view only).
  * @param onAccept            Invoked by purohit on PAYMENT_DONE bookings.
  * @param onReject            Invoked by purohit on PAYMENT_DONE bookings.
+ * @param onComplete          Invoked by purohit on ACCEPTED bookings to mark the pooja done.
  * @param onCancel            Invoked by user on PENDING_PAYMENT / PAYMENT_DONE / ACCEPTED.
  */
 @Composable
@@ -65,6 +67,7 @@ fun BookingCard(
     onCompletePayment: ((Booking) -> Unit)? = null,
     onAccept: ((Booking) -> Unit)? = null,
     onReject: ((Booking) -> Unit)? = null,
+    onComplete: ((Booking) -> Unit)? = null,
     onCancel: ((Booking) -> Unit)? = null
 ) {
     val isDark = isSystemInDarkTheme()
@@ -144,23 +147,32 @@ fun BookingCard(
                 )
             }
 
-            // ── Action buttons ────────────────────────────────────────────────
+            // ── Action button visibility flags ────────────────────────────────
+
+            // Purohit: PAYMENT_DONE → Accept / Reject
             val showPurohitActions = isPurohitView &&
                     booking.status == BookingStatus.PAYMENT_DONE &&
                     (onAccept != null || onReject != null)
 
+            // Purohit: ACCEPTED → Mark as Completed
+            val showCompleteAction = isPurohitView &&
+                    booking.status == BookingStatus.ACCEPTED &&
+                    onComplete != null
+
+            // User: PENDING_PAYMENT → Complete Payment (+ optional Cancel below it)
             val showCompletePayment = !isPurohitView &&
                     booking.status == BookingStatus.PENDING_PAYMENT &&
                     onCompletePayment != null
 
+            // User: PENDING_PAYMENT / PAYMENT_DONE / ACCEPTED → Cancel
             val showCancelOnly = !isPurohitView &&
                     booking.status in listOf(
-                        BookingStatus.PENDING_PAYMENT,
-                        BookingStatus.PAYMENT_DONE,
-                        BookingStatus.ACCEPTED
-                    ) && onCancel != null
+                BookingStatus.PENDING_PAYMENT,
+                BookingStatus.PAYMENT_DONE,
+                BookingStatus.ACCEPTED
+            ) && onCancel != null
 
-            if (showPurohitActions || showCompletePayment || showCancelOnly) {
+            if (showPurohitActions || showCompleteAction || showCompletePayment || showCancelOnly) {
                 Spacer(modifier = Modifier.height(12.dp))
                 HorizontalDivider(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
@@ -169,7 +181,7 @@ fun BookingCard(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 when {
-                    // Purohit: Accept / Reject
+                    // ── Purohit: Accept / Reject ──────────────────────────────
                     showPurohitActions -> {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -208,7 +220,26 @@ fun BookingCard(
                         }
                     }
 
-                    // User: PENDING_PAYMENT — Complete Payment + Cancel
+                    // ── Purohit: Mark as Completed ────────────────────────────
+                    showCompleteAction -> {
+                        Button(
+                            onClick = { onComplete.invoke(booking) },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isDark) DarkBrandOrange else BrandOrange
+                            )
+                        ) {
+                            Text(
+                                text = "Mark as Completed",
+                                fontFamily = FontFamily.Serif,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                color = Color.White
+                            )
+                        }
+                    }
+
+                    // ── User: PENDING_PAYMENT — Complete Payment + Cancel ─────
                     showCompletePayment -> {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(
@@ -246,7 +277,7 @@ fun BookingCard(
                         }
                     }
 
-                    // User: PAYMENT_DONE or ACCEPTED — Cancel only
+                    // ── User: PAYMENT_DONE or ACCEPTED — Cancel only ──────────
                     else -> {
                         OutlinedButton(
                             onClick = { onCancel?.invoke(booking) },

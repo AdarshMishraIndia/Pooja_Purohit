@@ -48,8 +48,6 @@ class BookingsViewModel(
     private val _effect = MutableSharedFlow<BookingsEffect>(extraBufferCapacity = 1)
     val effect: SharedFlow<BookingsEffect> = _effect.asSharedFlow()
 
-    // Backing lists updated independently by each flow collector.
-    // MutableStateFlow ensures the merge always uses the latest snapshot from both.
     private val userBookings = MutableStateFlow<List<Booking>>(emptyList())
     private val purohitBookings = MutableStateFlow<List<Booking>>(emptyList())
 
@@ -59,39 +57,30 @@ class BookingsViewModel(
         observeMerged()
     }
 
-    /**
-     * Collects the user-side query (whereEqualTo "userId") into [userBookings].
-     */
     private fun observeUserBookings() {
         viewModelScope.launch {
-            repository.observeUserBookings().collect { result: Result<List<Booking>> ->
-                result.onSuccess { list: List<Booking> ->
-                    userBookings.value = list
-                }
+            repository.observeUserBookings().collect { result ->
+                result
+                    .onSuccess { list -> userBookings.value = list }
+                    .onFailure { error ->
+                        _uiState.update { it.copy(error = error.message) }
+                    }
             }
         }
     }
 
-    /**
-     * Collects the purohit-side query (whereEqualTo "purohitId") into [purohitBookings].
-     */
     private fun observePurohitBookings() {
         viewModelScope.launch {
-            repository.observePurohitBookings().collect { result: Result<List<Booking>> ->
-                result.onSuccess { list: List<Booking> ->
-                    purohitBookings.value = list
-                }
+            repository.observePurohitBookings().collect { result ->
+                result
+                    .onSuccess { list -> purohitBookings.value = list }
+                    .onFailure { error ->
+                        _uiState.update { it.copy(error = error.message) }
+                    }
             }
         }
     }
 
-    /**
-     * Merges [userBookings] and [purohitBookings] into a single deduplicated list
-     * and pushes the grouped result into [_uiState].
-     *
-     * Uses kotlinx.coroutines.flow.combine with explicit types on the lambda
-     * to avoid Kotlin's type inference ambiguity when both flows share the same type.
-     */
     private fun observeMerged() {
         viewModelScope.launch {
             kotlinx.coroutines.flow.combine(
@@ -99,10 +88,10 @@ class BookingsViewModel(
                 purohitBookings
             ) { fromUser: List<Booking>, fromPurohit: List<Booking> ->
                 (fromUser + fromPurohit)
-                    .distinctBy { booking: Booking -> booking.bookingId }
-                    .sortedByDescending { booking: Booking -> booking.createdAt?.seconds ?: 0L }
-            }.collect { merged: List<Booking> ->
-                val grouped: Map<BookingCategory, List<Booking>> = merged.groupBy { it.status.category }
+                    .distinctBy { it.bookingId }
+                    .sortedByDescending { it.createdAt?.seconds ?: 0L }
+            }.collect { merged ->
+                val grouped = merged.groupBy { it.status.category }
                 _uiState.update { state ->
                     state.copy(
                         activeBookings = grouped[BookingCategory.ACTIVE] ?: emptyList(),
@@ -148,6 +137,18 @@ class BookingsViewModel(
         updateStatus(booking, BookingStatus.CANCELLED, "Booking cancelled")
     }
 
+    fun completeBooking(booking: Booking) {
+        updateStatus(booking, BookingStatus.COMPLETED, "Booking marked as completed")
+    }
+
+    /**
+     * Writes the new status to Firestore and applies it immediately to the
+     * local backing StateFlows so the UI reacts instantly without waiting for
+     * the snapshot listener round-trip.
+     *
+     * The snapshot listener will still fire shortly after and emit the same
+     * data — [distinctBy] in observeMerged guarantees no duplicates.
+     */
     private fun updateStatus(booking: Booking, newStatus: BookingStatus, successMessage: String) {
         viewModelScope.launch {
             try {
@@ -160,12 +161,33 @@ class BookingsViewModel(
                         )
                     )
                     .await()
+
+                // Optimistic local update — patch the booking in whichever
+                // backing list owns it so the UI moves the card immediately.
+                val updated = booking.copy(status = newStatus, updatedAt = Timestamp.now())
+                applyLocalUpdate(updated)
+
                 _effect.emit(BookingsEffect.ShowSnackbar(successMessage))
             } catch (e: Exception) {
                 _effect.emit(
                     BookingsEffect.ShowSnackbar(e.message ?: "Action failed. Please try again.")
                 )
             }
+        }
+    }
+
+    /**
+     * Replaces the stale booking in [userBookings] and/or [purohitBookings]
+     * with the updated copy. Both lists are patched because a booking can
+     * appear in both (purohit is also a user in some edge cases, or the
+     * booking was fetched by both queries).
+     */
+    private fun applyLocalUpdate(updated: Booking) {
+        userBookings.update { list ->
+            list.map { if (it.bookingId == updated.bookingId) updated else it }
+        }
+        purohitBookings.update { list ->
+            list.map { if (it.bookingId == updated.bookingId) updated else it }
         }
     }
 
