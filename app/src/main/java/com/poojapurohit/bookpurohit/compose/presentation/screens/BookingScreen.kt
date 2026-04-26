@@ -59,7 +59,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import com.poojapurohit.bookpurohit.compose.BookingViewModel
 import com.poojapurohit.dashboard.compose.theme.BrandOrange
 import com.poojapurohit.dashboard.compose.theme.BrandRed
@@ -81,14 +84,23 @@ fun BookingScreen(
     purohitId: String,
     onBackPressed: () -> Unit,
     onBookingSuccess: () -> Unit,
-    viewModel: BookingViewModel = viewModel()
+    viewModel: BookingViewModel = viewModel(
+        factory = viewModelFactory {
+            initializer {
+                val savedState = createSavedStateHandle()
+                // purohitId injected into SavedStateHandle via nav backstack entry
+                BookingViewModel(savedState)
+            }
+        }
+    )
+
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val isDark = isSystemInDarkTheme()
     var expanded by remember { mutableStateOf(false) }
 
-    // Dialog States
+    // Dialogue States
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
 
@@ -248,7 +260,7 @@ fun BookingScreen(
                 }
             }
 
-            // 1. Date Picker Dialog with validation
+            // 1. Date Picker Dialogue with validation
             if (showDatePicker) {
                 val datePickerState = rememberDatePickerState(
                     selectableDates = object : SelectableDates {

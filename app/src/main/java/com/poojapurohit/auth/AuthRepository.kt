@@ -7,26 +7,49 @@ import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialException
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessaging
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
-import com.google.firebase.Timestamp
+import kotlinx.coroutines.withContext
 
 class AuthRepository(
     private val auth: FirebaseAuth = FirebaseAuth.getInstance(),
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance(),
 ) {
 
-    // Fetch FCM token suspending
     private suspend fun getFcmToken(): String? {
         return try {
             FirebaseMessaging.getInstance().token.await()
         } catch (e: Exception) {
             Log.e("AuthRepository", "Failed to get FCM token", e)
             null
+        }
+    }
+
+    /**
+     * Forces a refresh of the Firebase ID Token.
+     * This is the standard way to handle 401s in Firebase-backed apps.
+     * @return true if token refresh was successful
+     */
+    suspend fun refreshToken(): Boolean = withContext(Dispatchers.IO) {
+        return@withContext try {
+            val user = auth.currentUser
+            if (user != null) {
+                // forceRefresh = true ensures the token is fetched from the server
+                user.getIdToken(true).await()
+                Log.d("AuthRepository", "Firebase ID token refreshed successfully.")
+                true
+            } else {
+                false
+            }
+        } catch (e: Exception) {
+            Log.e("AuthRepository", "Failed to refresh token", e)
+            false
         }
     }
 
@@ -64,7 +87,6 @@ class AuthRepository(
             val user = authResult.user
             if (user?.uid != null) {
                 val isNewUser = checkUserExists(user.uid)
-                // Existing user — append FCM token
                 if (!isNewUser) {
                     appendFcmTokenToExistingUser(user.uid)
                 }
@@ -76,7 +98,6 @@ class AuthRepository(
         }
     }
 
-    // Appends FCM token to whichever collection the existing user belongs to
     private suspend fun appendFcmTokenToExistingUser(uid: String) {
         val token = getFcmToken() ?: return
         try {
@@ -98,21 +119,17 @@ class AuthRepository(
         }
     }
 
-    // Check both collections — returns true if NEW user (not found anywhere)
     private suspend fun checkUserExists(uid: String): Boolean {
-        val userDoc = firestore.collection("users").document(uid).get().await()
-        if (userDoc.exists()) return false
+        return withContext(Dispatchers.IO) {
+            val userDoc = firestore.collection("users").document(uid).get().await()
+            if (userDoc.exists()) return@withContext false
 
-        val purohitDoc = firestore.collection("purohits").document(uid).get().await()
-        return !purohitDoc.exists()
+            val purohitDoc = firestore.collection("purohits").document(uid).get().await()
+            return@withContext !purohitDoc.exists()
+        }
     }
 
-    suspend fun registerUser(
-        uid: String,
-        name: String,
-        phone: String,
-        email: String
-    ): Result<Unit> {
+    suspend fun registerUser(uid: String, name: String, phone: String, email: String): Result<Unit> {
         return try {
             val token = getFcmToken()
             val newUser = hashMapOf(
@@ -126,20 +143,13 @@ class AuthRepository(
             firestore.collection("users").document(uid).set(newUser).await()
             Result.success(Unit)
         } catch (e: Exception) {
-            Log.e("AuthRepository", "User registration error", e)
             Result.failure(e)
         }
     }
 
     suspend fun registerServicePartner(
-        uid: String,
-        name: String,
-        phone: String,
-        email: String,
-        city: String,
-        locality: String,
-        proficiency: List<String>,
-        experience: String
+        uid: String, name: String, phone: String, email: String,
+        city: String, locality: String, proficiency: List<String>, experience: String
     ): Result<Unit> {
         return try {
             val token = getFcmToken()
@@ -162,7 +172,6 @@ class AuthRepository(
             firestore.collection("purohits").document(uid).set(newPurohit).await()
             Result.success(Unit)
         } catch (e: Exception) {
-            Log.e("AuthRepository", "Purohit registration error", e)
             Result.failure(e)
         }
     }
@@ -170,6 +179,7 @@ class AuthRepository(
     suspend fun isUserRegistered(): Boolean {
         val user = auth.currentUser ?: return false
         return try {
+            // Refresh to ensure we have the latest auth state
             user.reload().await()
             val userDoc = firestore.collection("users").document(user.uid).get().await()
             if (userDoc.exists()) return true
@@ -184,16 +194,10 @@ class AuthRepository(
 
     suspend fun loadServices(): Result<List<String>> {
         return try {
-            val doc = firestore
-                .collection("services")
-                .document("BookAPurohit")
-                .get()
-                .await()
-            val services = (doc.get("name") as? List<*>)?.filterIsInstance<String>()
-                ?: emptyList()
+            val doc = firestore.collection("services").document("BookAPurohit").get().await()
+            val services = (doc.get("name") as? List<*>)?.filterIsInstance<String>() ?: emptyList()
             Result.success(services)
-        } catch (e: Exception) {
-            Log.e("AuthRepository", "Failed to load services", e)
+        } catch (_: Exception) {
             Result.success(emptyList())
         }
     }
