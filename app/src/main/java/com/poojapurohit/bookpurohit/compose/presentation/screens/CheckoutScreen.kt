@@ -59,11 +59,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.lifecycle.viewmodel.initializer
-import androidx.lifecycle.viewmodel.viewModelFactory
-import com.poojapurohit.bookpurohit.compose.BookingViewModel
+import com.poojapurohit.bookpurohit.compose.CheckoutViewModel
 import com.poojapurohit.dashboard.compose.theme.BrandOrange
 import com.poojapurohit.dashboard.compose.theme.BrandRed
 import com.poojapurohit.dashboard.compose.theme.DarkBackgroundGradientEnd
@@ -78,36 +75,30 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
+/**
+ * Checkout screen — service selection, date/time picker, address, payment stub.
+ *
+ * [purohitId] arrives via the nav back-stack entry. Navigation Compose automatically
+ * populates SavedStateHandle with nav arguments, so [CheckoutViewModel] reads purohitId
+ * from SavedStateHandle directly. No manual factory needed.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BookingScreen(
+fun CheckoutScreen(
     purohitId: String,
     onBackPressed: () -> Unit,
     onBookingSuccess: () -> Unit,
-    viewModel: BookingViewModel = viewModel(
-        factory = viewModelFactory {
-            initializer {
-                val savedState = createSavedStateHandle()
-                // purohitId injected into SavedStateHandle via nav backstack entry
-                BookingViewModel(savedState)
-            }
-        }
-    )
-
+    viewModel: CheckoutViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val isDark = isSystemInDarkTheme()
     var expanded by remember { mutableStateOf(false) }
 
-    // Dialogue States
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
-
-    // Temporary state to hold the date while the user selects the time
     var tempSelectedDateMillis by remember { mutableStateOf<Long?>(null) }
 
-    // Display string for the UI field
     val formattedDateDisplay = remember(uiState.scheduledDateMillis) {
         uiState.scheduledDateMillis?.let {
             SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault()).format(Date(it))
@@ -129,9 +120,7 @@ fun BookingScreen(
     }
 
     Scaffold(
-        topBar = {
-            BookingTopBar(onBackPressed = onBackPressed, isDark = isDark)
-        }
+        topBar = { CheckoutTopBar(onBackPressed = onBackPressed, isDark = isDark) }
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -140,7 +129,8 @@ fun BookingScreen(
                     brush = Brush.linearGradient(
                         colors = if (isDark) listOf(DarkBackgroundGradientStart, DarkBackgroundGradientEnd)
                         else listOf(LightBackgroundGradientStart, LightBackgroundGradientEnd),
-                        start = Offset.Zero, end = Offset.Infinite
+                        start = Offset.Zero,
+                        end = Offset.Infinite
                     )
                 )
                 .padding(paddingValues)
@@ -159,7 +149,7 @@ fun BookingScreen(
                     color = if (isDark) Color.White else Color.Black
                 )
 
-                // Service Selection Dropdown
+                // Service dropdown
                 ExposedDropdownMenuBox(
                     expanded = expanded,
                     onExpandedChange = { expanded = !expanded }
@@ -184,11 +174,11 @@ fun BookingScreen(
                         expanded = expanded,
                         onDismissRequest = { expanded = false }
                     ) {
-                        viewModel.availableServices.forEach { selectionOption ->
+                        viewModel.availableServices.forEach { option ->
                             DropdownMenuItem(
-                                text = { Text(selectionOption) },
+                                text = { Text(option) },
                                 onClick = {
-                                    viewModel.onServiceChange(selectionOption)
+                                    viewModel.onServiceChange(option)
                                     expanded = false
                                 }
                             )
@@ -196,11 +186,11 @@ fun BookingScreen(
                     }
                 }
 
-                // Date & Time Picker Field
+                // Date & time field
                 Box(modifier = Modifier.fillMaxWidth()) {
                     OutlinedTextField(
                         value = formattedDateDisplay,
-                        onValueChange = { },
+                        onValueChange = {},
                         label = { Text("Date & Time") },
                         readOnly = true,
                         trailingIcon = {
@@ -215,6 +205,7 @@ fun BookingScreen(
                             focusedBorderColor = if (isDark) DarkBrandOrange else BrandOrange
                         )
                     )
+                    // Transparent overlay captures tap since readOnly field suppresses clicks
                     Box(
                         modifier = Modifier
                             .matchParentSize()
@@ -236,7 +227,7 @@ fun BookingScreen(
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                // Pay Now Button
+                // Pay button
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -260,14 +251,12 @@ fun BookingScreen(
                 }
             }
 
-            // 1. Date Picker Dialogue with validation
+            // Date picker
             if (showDatePicker) {
                 val datePickerState = rememberDatePickerState(
                     selectableDates = object : SelectableDates {
-                        override fun isSelectableDate(utcTimeMillis: Long): Boolean {
-                            // Prevent back-date selection (today or future only)
-                            return utcTimeMillis >= System.currentTimeMillis() - 86400000
-                        }
+                        override fun isSelectableDate(utcTimeMillis: Long): Boolean =
+                            utcTimeMillis >= System.currentTimeMillis() - 86400000L
                     }
                 )
                 DatePickerDialog(
@@ -276,31 +265,26 @@ fun BookingScreen(
                         TextButton(onClick = {
                             tempSelectedDateMillis = datePickerState.selectedDateMillis
                             showDatePicker = false
-                            if (tempSelectedDateMillis != null) {
-                                showTimePicker = true
-                            }
+                            if (tempSelectedDateMillis != null) showTimePicker = true
                         }) {
                             Text("Next", color = if (isDark) DarkBrandOrange else BrandOrange)
                         }
                     },
                     dismissButton = {
-                        TextButton(onClick = { showDatePicker = false }) {
-                            Text("Cancel")
-                        }
+                        TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
                     }
                 ) {
                     DatePicker(state = datePickerState)
                 }
             }
 
-            // 2. Time Picker Dialog
+            // Time picker
             if (showTimePicker) {
                 val timePickerState = rememberTimePickerState(
                     initialHour = 10,
                     initialMinute = 0,
                     is24Hour = false
                 )
-
                 AlertDialog(
                     onDismissRequest = { showTimePicker = false },
                     title = { Text("Select Time") },
@@ -316,8 +300,6 @@ fun BookingScreen(
                                 set(Calendar.HOUR_OF_DAY, timePickerState.hour)
                                 set(Calendar.MINUTE, timePickerState.minute)
                             }
-
-                            // Send raw milliseconds to ViewModel for logic and Timestamp conversion
                             viewModel.onDateChange(calendar.timeInMillis)
                             showTimePicker = false
                         }) {
@@ -325,13 +307,12 @@ fun BookingScreen(
                         }
                     },
                     dismissButton = {
-                        TextButton(onClick = { showTimePicker = false }) {
-                            Text("Cancel")
-                        }
+                        TextButton(onClick = { showTimePicker = false }) { Text("Cancel") }
                     }
                 )
             }
 
+            // Razorpay stub dialog
             if (uiState.isPaymentDialogVisible) {
                 RazorpayStubDialog(
                     isDark = isDark,
@@ -391,34 +372,33 @@ fun RazorpayStubDialog(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun BookingTopBar(onBackPressed: () -> Unit, isDark: Boolean) {
-    Column {
-        TopAppBar(
-            title = {
-                Text(
-                    text = "Checkout",
-                    fontFamily = FontFamily.Serif,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp,
-                    color = Color.White
+private fun CheckoutTopBar(onBackPressed: () -> Unit, isDark: Boolean) {
+    TopAppBar(
+        title = {
+            Text(
+                text = "Checkout",
+                fontFamily = FontFamily.Serif,
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp,
+                color = Color.White
+            )
+        },
+        navigationIcon = {
+            IconButton(onClick = onBackPressed) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = Color.White
                 )
-            },
-            navigationIcon = {
-                IconButton(onClick = onBackPressed) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = Color.White
-                    )
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
-            modifier = Modifier.background(
-                brush = Brush.linearGradient(
-                    colors = if (isDark) listOf(DarkBrandOrange, DarkBrandRed) else listOf(BrandOrange, BrandRed),
-                    start = Offset.Zero, end = Offset.Infinite
-                )
+            }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+        modifier = Modifier.background(
+            brush = Brush.linearGradient(
+                colors = if (isDark) listOf(DarkBrandOrange, DarkBrandRed) else listOf(BrandOrange, BrandRed),
+                start = Offset.Zero,
+                end = Offset.Infinite
             )
         )
-    }
+    )
 }

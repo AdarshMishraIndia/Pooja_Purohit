@@ -18,7 +18,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.poojapurohit.bookpurohit.compose.BookPurohitViewModel
-import com.poojapurohit.bookpurohit.compose.presentation.screens.BookingScreen
+import com.poojapurohit.bookpurohit.compose.presentation.screens.CheckoutScreen
 import com.poojapurohit.bookpurohit.compose.presentation.screens.LocationSelectionScreen
 import com.poojapurohit.bookpurohit.compose.presentation.screens.PurohitSelectionScreen
 import com.poojapurohit.bookpurohit.compose.presentation.screens.SubLocationSelectionScreen
@@ -44,7 +44,7 @@ class BookPurohitActivity : ComponentActivity() {
     @Composable
     private fun SetSystemBarsColor() {
         val isDark = isSystemInDarkTheme()
-        // Using the brand colors from your theme setup
+        // Using the brand colours from your theme setup
         val statusBarColor = Color(if (isDark) 0xFF5E1100 else 0xFF811C01)
 
         DisposableEffect(isDark) {
@@ -138,7 +138,7 @@ fun BookPurohitNavigation(viewModel: BookPurohitViewModel) {
         ) { backStackEntry ->
             val purohitId = backStackEntry.arguments?.getString("purohitId") ?: return@composable
 
-            BookingScreen(
+            CheckoutScreen(
                 purohitId = purohitId,
                 onBackPressed = {
                     navController.popBackStack()

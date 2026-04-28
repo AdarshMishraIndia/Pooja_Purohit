@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.util.Date
 
-data class BookingUiState(
+data class CheckoutUiState(
     val isLoading: Boolean = false,
     val isPaymentDialogVisible: Boolean = false,
     val bookingComplete: Boolean = false,
@@ -29,7 +29,7 @@ data class BookingUiState(
     val isPrefetchComplete: Boolean = false
 )
 
-class BookingViewModel(
+class CheckoutViewModel(
     // SavedStateHandle lets us read nav-arg purohitId without the screen passing it manually
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
@@ -37,8 +37,8 @@ class BookingViewModel(
     private val firestore = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
 
-    private val _uiState = MutableStateFlow(BookingUiState())
-    val uiState: StateFlow<BookingUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(CheckoutUiState())
+    val uiState: StateFlow<CheckoutUiState> = _uiState.asStateFlow()
 
     val availableServices = listOf(
         "POOJA (Sri Ganesh, Sri Vishwakarma, Sri Satyanarayan, Maa Saraswati)",

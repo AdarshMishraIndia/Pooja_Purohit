@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.poojapurohit.booking.data.BookingRepository
+import com.poojapurohit.booking.data.BookingsRepository
 import com.poojapurohit.booking.model.Booking
 import com.poojapurohit.booking.model.BookingCategory
 import com.poojapurohit.booking.model.BookingStatus
@@ -36,7 +36,7 @@ sealed interface BookingsEffect {
 }
 
 class BookingsViewModel(
-    private val repository: BookingRepository = BookingRepository()
+    private val repository: BookingsRepository = BookingsRepository()
 ) : ViewModel() {
 
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
