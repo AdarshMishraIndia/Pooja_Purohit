@@ -141,6 +141,16 @@ class BookingsViewModel(
         updateStatus(booking, BookingStatus.COMPLETED, "Booking marked as completed")
     }
 
+    fun processPaymentStub(booking: Booking, isSuccess: Boolean) {
+        if (isSuccess) {
+            updateStatus(booking, BookingStatus.PAYMENT_DONE, "Payment successful!")
+        } else {
+            viewModelScope.launch {
+                _effect.emit(BookingsEffect.ShowSnackbar("Payment failed or cancelled."))
+            }
+        }
+    }
+
     /**
      * Writes the new status to Firestore and applies it immediately to the
      * local backing StateFlows so the UI reacts instantly without waiting for

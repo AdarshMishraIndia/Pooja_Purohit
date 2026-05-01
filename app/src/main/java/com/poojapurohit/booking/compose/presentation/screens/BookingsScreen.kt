@@ -55,6 +55,7 @@ import com.poojapurohit.booking.compose.BookingsEffect
 import com.poojapurohit.booking.compose.BookingsViewModel
 import com.poojapurohit.booking.compose.components.BookingCard
 import com.poojapurohit.booking.model.Booking
+import com.poojapurohit.bookpurohit.compose.presentation.screens.RazorpayStubDialog
 import com.poojapurohit.dashboard.compose.theme.BrandOrange
 import com.poojapurohit.dashboard.compose.theme.BrandRed
 import com.poojapurohit.dashboard.compose.theme.DarkBrandOrange
@@ -78,20 +79,33 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BookingsScreen(
-    viewModel: BookingsViewModel = viewModel(),
+    viewModel : BookingsViewModel = viewModel(),
     highlightBookingId: String? = null,
     initialTabIndex: Int = 0
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    // Wire the deep link into the VM once data is loaded
+    LaunchedEffect(highlightBookingId, uiState.isLoading) {
+        if (!highlightBookingId.isNullOrBlank() && !uiState.isLoading) {
+            viewModel.handleDeepLink(highlightBookingId)
+        }
+    }
+
+    // Sync tab to requestedTabIndex
+    val pagerState = rememberPagerState(
+        initialPage = uiState.requestedTabIndex,
+        pageCount = { 3 }
+    )
+    LaunchedEffect(uiState.requestedTabIndex) {
+        pagerState.animateScrollToPage(uiState.requestedTabIndex)
+    }
+
     val isDark = isSystemInDarkTheme()
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
     val tabs = listOf("Active", "Cancelled", "Completed")
-    val pagerState = rememberPagerState(
-        initialPage = initialTabIndex.coerceIn(0, tabs.lastIndex),
-        pageCount = { tabs.size }
-    )
 
     // Pass deep link bookingId to VM once bookings are loaded
     LaunchedEffect(
@@ -122,10 +136,27 @@ fun BookingsScreen(
         }
     }
 
-    // Confirmation dialogs — guard all destructive / irreversible actions
+    // Confirmation dialogues — guard all destructive / irreversible actions
     var pendingCancel by remember { mutableStateOf<Booking?>(null) }
     var pendingReject by remember { mutableStateOf<Booking?>(null) }
     var pendingComplete by remember { mutableStateOf<Booking?>(null) }
+    var pendingPaymentBooking by remember { mutableStateOf<Booking?>(null) }
+
+    // ── Payment Stub dialog ──────────────────────────────────────────────
+    pendingPaymentBooking?.let { booking ->
+        RazorpayStubDialog(
+            isDark = isDark,
+            onDismiss = { pendingPaymentBooking = null },
+            onSimulateSuccess = {
+                viewModel.processPaymentStub(booking, isSuccess = true)
+                pendingPaymentBooking = null
+            },
+            onSimulateFailure = {
+                viewModel.processPaymentStub(booking, isSuccess = false)
+                pendingPaymentBooking = null
+            }
+        )
+    }
 
     // ── Cancel dialog ─────────────────────────────────────────────────────────
     pendingCancel?.let { booking ->
@@ -319,12 +350,7 @@ fun BookingsScreen(
                                 viewModel.currentUserIsPurohitFor(booking)
                             },
                             onCompletePayment = { booking ->
-                                // TODO: launch Razorpay flow for booking.bookingId.
-                                scope.launch {
-                                    snackbarHostState.showSnackbar(
-                                        "Open payment flow for ${booking.bookingId}"
-                                    )
-                                }
+                                pendingPaymentBooking = booking
                             },
                             onAccept = { booking -> viewModel.acceptBooking(booking) },
                             onReject = { booking -> pendingReject = booking },

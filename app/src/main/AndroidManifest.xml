@@ -39,7 +39,7 @@
 
         <activity
             android:name="com.poojapurohit.dashboard.DashActivity"
-            android:exported="false"
+            android:exported="true"
             android:theme="@style/Theme.PoojaPurohit">
         </activity>
 
@@ -61,11 +61,27 @@
             android:theme="@style/Theme.PoojaPurohit">
         </activity>
 
-
         <activity
             android:name=".bookpurohit.BookPurohitActivity"
             android:exported="false"
             android:theme="@style/Theme.PoojaPurohit">
+        </activity>
+
+        <!-- Added BookingsActivity with deep link intent filter -->
+        <activity
+            android:name=".booking.BookingsActivity"
+            android:launchMode="singleTop"
+            android:exported="true"
+            android:theme="@style/Theme.PoojaPurohit">
+
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="poojapurohit"
+                    android:host="bookings" />
+            </intent-filter>
         </activity>
 
     </application>

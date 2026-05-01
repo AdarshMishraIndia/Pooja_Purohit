@@ -1,6 +1,11 @@
 package com.poojapurohit.booking.compose.components
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -23,9 +28,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -42,21 +50,23 @@ import com.poojapurohit.dashboard.compose.theme.DarkBrandOrange
 import com.poojapurohit.dashboard.compose.theme.DarkSurface
 import com.poojapurohit.dashboard.compose.theme.DeleteRed
 import com.poojapurohit.dashboard.compose.theme.LightSurface
+import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Locale
 
 /**
  * @param booking             Booking data to display.
  * @param isHighlighted       True when navigated to via a deep link — renders with
- *                            an accent border and elevated shadow for 2 s.
+ * an accent border and elevated shadow for 2 s.
  * @param isPurohitView       True when the signed-in user is the purohit on this booking.
- *                            Shows Accept / Reject (on PAYMENT_DONE) or Mark as Completed
- *                            (on ACCEPTED) instead of Cancel.
+ * Shows Accept / Reject (on PAYMENT_DONE) or Mark as Completed
+ * (on ACCEPTED) instead of Cancel.
  * @param onCompletePayment   Invoked on PENDING_PAYMENT bookings (user view only).
  * @param onAccept            Invoked by purohit on PAYMENT_DONE bookings.
  * @param onReject            Invoked by purohit on PAYMENT_DONE bookings.
  * @param onComplete          Invoked by purohit on ACCEPTED bookings to mark the pooja done.
  * @param onCancel            Invoked by user on PENDING_PAYMENT / PAYMENT_DONE / ACCEPTED.
+ * @param onHighlightClear    Invoked when the 2-second highlight duration completes.
  */
 @Composable
 fun BookingCard(
@@ -68,9 +78,18 @@ fun BookingCard(
     onAccept: ((Booking) -> Unit)? = null,
     onReject: ((Booking) -> Unit)? = null,
     onComplete: ((Booking) -> Unit)? = null,
-    onCancel: ((Booking) -> Unit)? = null
+    onCancel: ((Booking) -> Unit)? = null,
+    onHighlightClear: (() -> Unit)? = null
 ) {
     val isDark = isSystemInDarkTheme()
+
+    // Auto-clear highlight after 2s
+    LaunchedEffect(isHighlighted) {
+        if (isHighlighted) {
+            delay(2000)
+            onHighlightClear?.invoke()
+        }
+    }
 
     val cardContainerColor by animateColorAsState(
         targetValue = if (isHighlighted) {
@@ -82,6 +101,33 @@ fun BookingCard(
         label = "card_highlight_color"
     )
 
+    // Running gradient highlight animation
+    val infiniteTransition = rememberInfiniteTransition(label = "highlight_loop")
+    val gradientOffset by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 2000f, // The distance the gradient travels before repeating
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "gradient_offset"
+    )
+
+    val runningBrush = Brush.linearGradient(
+        colors = listOf(
+            if (isDark) DarkBrandOrange else BrandOrange,
+            BrandGold,
+            Color.Transparent, // Creates a gap in the light for a "chasing" effect
+            if (isDark) DarkBrandOrange else BrandOrange
+        ),
+        start = Offset(0f, gradientOffset),
+        end = Offset(gradientOffset + 500f, gradientOffset + 500f) // Angled sweep
+    )
+
+    val cardBorder = if (isHighlighted) {
+        BorderStroke(2.dp, runningBrush)
+    } else null
+
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -91,9 +137,7 @@ fun BookingCard(
             defaultElevation = if (isHighlighted) 8.dp else 4.dp
         ),
         colors = CardDefaults.cardColors(containerColor = cardContainerColor),
-        border = if (isHighlighted) {
-            BorderStroke(1.5.dp, if (isDark) DarkBrandOrange else BrandOrange)
-        } else null
+        border = cardBorder
     ) {
         Column(
             modifier = Modifier
@@ -125,6 +169,12 @@ fun BookingCard(
                 val formatted = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault())
                     .format(ts.toDate())
                 LabelValueRow(label = "Scheduled", value = formatted)
+            }
+
+            booking.createdAt?.let { ts ->
+                val formatted = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault())
+                    .format(ts.toDate())
+                LabelValueRow(label = "Booked On", value = formatted)
             }
 
             if (booking.address.isNotBlank()) {
