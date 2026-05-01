@@ -21,14 +21,16 @@
           "type": "collection"
         },
         "fields": {
-          "purohitId": "dummy_id",
+          "purohitId": "dummy_purohit_id",
           "name": "dummy_name",
           "phone": "dummy_phone",
           "email": "dummy_email",
           "city": "dummy_city",
           "locality": "dummy_locality",
           "experience": 10,
-          "proficiency": ["dummy_proficiency_p0"],
+          "proficiency": [
+            "dummy_proficiency_p0"
+          ],
           "isVerified": false,
           "isAvailable": false,
           "rating": 0.0,
@@ -40,7 +42,7 @@
     "services": {
       "BookAPurohit": {
         "metadata": {
-          "description": "Master list of available services. Fed manually by admin.",
+          "description": "Master list of available services. Fed manually by admin using admin portal.",
           "type": "collection"
         },
         "fields": {
@@ -67,7 +69,7 @@
           "type": "collection"
         },
         "fields": {
-          "userId": "dummy_id",
+          "userId": "dummy_user_id",
           "name": "dummy_name",
           "phone": "dummy_phone",
           "email": "dummy_email",
@@ -104,7 +106,7 @@
           "userPhone": "dummy_user_phone",
           "serviceName": "dummy_service_name",
           "amount": 0,
-          "status": "PENDING_PAYMENT",
+          "status": "CANCELLED",
           "razorpayOrderId": "dummy_razorpay_order_id",
           "razorpayPaymentId": "dummy_razorpay_payment_id",
           "scheduledDate": "2026-03-15T10:00:00Z",
