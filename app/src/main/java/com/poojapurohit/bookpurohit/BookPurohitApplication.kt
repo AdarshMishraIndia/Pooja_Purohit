@@ -4,7 +4,9 @@ import android.app.Application
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestoreSettings
 import com.google.firebase.firestore.persistentCacheSettings
+import dagger.hilt.android.HiltAndroidApp
 
+@HiltAndroidApp
 class BookPurohitApplication : Application() {
 
     override fun onCreate() {

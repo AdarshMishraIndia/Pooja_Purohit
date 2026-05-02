@@ -13,46 +13,9 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.core.view.WindowCompat
 import com.poojapurohit.booking.compose.presentation.screens.BookingsScreen
 import com.poojapurohit.dashboard.compose.theme.PoojaPurohitTheme
+import dagger.hilt.android.AndroidEntryPoint
 
-/**
- * Host Activity for the Bookings screen.
- *
- * ── Entry points ─────────────────────────────────────────────────────────────
- *
- * 1. Normal launch (dashboard bottom nav / tab):
- *      startActivity(Intent(context, BookingsActivity::class.java))
- *    Opens the Active tab, no highlight.
- *
- * 2. Deep link from a notification tap:
- *      Intent(ACTION_VIEW, "poojapurohit://bookings/{bookingId}".toUri())
- *    Extracts the bookingId, passes it to BookingsScreen which jumps to the
- *    correct tab and highlights the card for 2 s.
- *
- * ── AndroidManifest.xml ──────────────────────────────────────────────────────
- * Add this inside <application>:
- *
- *   <activity
- *       android:name=".booking.BookingsActivity"
- *       android:launchMode="singleTop"
- *       android:exported="true">
- *
- *       <!-- Normal launch -->
- *       <intent-filter>
- *           <action android:name="android.intent.action.MAIN" />
- *       </intent-filter>
- *
- *       <!-- Deep link: poojapurohit://bookings/{bookingId} -->
- *       <intent-filter>
- *           <action android:name="android.intent.action.VIEW" />
- *           <category android:name="android.intent.category.DEFAULT" />
- *           <category android:name="android.intent.category.BROWSABLE" />
- *           <data
- *               android:scheme="poojapurohit"
- *               android:host="bookings" />
- *       </intent-filter>
- *
- *   </activity>
- */
+@AndroidEntryPoint
 class BookingsActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -62,11 +25,6 @@ class BookingsActivity : ComponentActivity() {
         renderScreen(intent)
     }
 
-    /**
-     * Called when the activity is already running (launchMode="singleTop") and a new
-     * deep link arrives — e.g. the user taps a second notification while the screen
-     * is already open.
-     */
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
@@ -78,22 +36,11 @@ class BookingsActivity : ComponentActivity() {
         setContent {
             PoojaPurohitTheme {
                 SetSystemBarsColor()
-                BookingsScreen(
-                    highlightBookingId = bookingId,
-                    initialTabIndex = 0
-                )
+                BookingsScreen(highlightBookingId = bookingId)
             }
         }
     }
 
-    /**
-     * Extracts the bookingId from a deep link URI.
-     *
-     * URI format:  poojapurohit://bookings/{bookingId}
-     * pathSegments: ["bookingId"]   ← first segment after the host
-     *
-     * Returns null for normal (non-deep-link) launches.
-     */
     private fun extractBookingId(intent: Intent?): String? {
         if (intent?.action != Intent.ACTION_VIEW) return null
         val uri = intent.data ?: return null

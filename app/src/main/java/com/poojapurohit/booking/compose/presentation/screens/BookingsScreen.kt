@@ -50,7 +50,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.poojapurohit.booking.compose.BookingsEffect
 import com.poojapurohit.booking.compose.BookingsViewModel
 import com.poojapurohit.booking.compose.components.BookingCard
@@ -64,69 +64,44 @@ import com.poojapurohit.dashboard.compose.theme.DeleteRed
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-/**
- * Bookings screen — three tabs: Active / Cancelled / Completed.
- *
- * Works for both user and purohit roles. The VM merges both Firestore queries
- * (whereEqualTo userId + whereEqualTo purohitId) so each party sees only their
- * own bookings. Per-card role is determined via [BookingsViewModel.currentUserIsPurohitFor].
- *
- * @param highlightBookingId  bookingId from a deep link (poojapurohit://bookings/{id}).
- *                            Passed by BookingsActivity after parsing the Intent URI.
- * @param initialTabIndex     Default tab when no deep link active (0 = Active).
- */
-@Suppress("ASSIGNED_BUT_NEVER_READ_VARIABLE")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BookingsScreen(
-    viewModel : BookingsViewModel = viewModel(),
+    viewModel: BookingsViewModel = hiltViewModel(),
     highlightBookingId: String? = null,
     initialTabIndex: Int = 0
 ) {
     val uiState by viewModel.uiState.collectAsState()
-
-    // Wire the deep link into the VM once data is loaded
-    LaunchedEffect(highlightBookingId, uiState.isLoading) {
-        if (!highlightBookingId.isNullOrBlank() && !uiState.isLoading) {
-            viewModel.handleDeepLink(highlightBookingId)
-        }
-    }
-
-    // Sync tab to requestedTabIndex
-    val pagerState = rememberPagerState(
-        initialPage = uiState.requestedTabIndex,
-        pageCount = { 3 }
-    )
-    LaunchedEffect(uiState.requestedTabIndex) {
-        pagerState.animateScrollToPage(uiState.requestedTabIndex)
-    }
-
     val isDark = isSystemInDarkTheme()
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
-
     val tabs = listOf("Active", "Cancelled", "Completed")
 
-    // Pass deep link bookingId to VM once bookings are loaded
+    val pagerState = rememberPagerState(
+        initialPage = initialTabIndex,
+        pageCount = { 3 }
+    )
+
+    // Deep link — fire once bookings are loaded
     LaunchedEffect(
         highlightBookingId,
         uiState.activeBookings,
         uiState.cancelledBookings,
         uiState.completedBookings
     ) {
-        if (highlightBookingId != null) {
+        if (!highlightBookingId.isNullOrBlank()) {
             viewModel.handleDeepLink(highlightBookingId)
         }
     }
 
-    // Jump pager to the tab the VM resolved for this booking
+    // Scroll pager to resolved tab
     LaunchedEffect(uiState.requestedTabIndex, uiState.highlightedBookingId) {
         if (uiState.highlightedBookingId != null) {
             pagerState.animateScrollToPage(uiState.requestedTabIndex)
         }
     }
 
-    // Collect one-shot effects
+    // One-shot effects
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
@@ -136,13 +111,13 @@ fun BookingsScreen(
         }
     }
 
-    // Confirmation dialogues — guard all destructive / irreversible actions
     var pendingCancel by remember { mutableStateOf<Booking?>(null) }
     var pendingReject by remember { mutableStateOf<Booking?>(null) }
     var pendingComplete by remember { mutableStateOf<Booking?>(null) }
     var pendingPaymentBooking by remember { mutableStateOf<Booking?>(null) }
 
-    // ── Payment Stub dialog ──────────────────────────────────────────────
+    // ── Dialogs ───────────────────────────────────────────────────────────────
+
     pendingPaymentBooking?.let { booking ->
         RazorpayStubDialog(
             isDark = isDark,
@@ -158,20 +133,13 @@ fun BookingsScreen(
         )
     }
 
-    // ── Cancel dialog ─────────────────────────────────────────────────────────
     pendingCancel?.let { booking ->
         AlertDialog(
             onDismissRequest = { pendingCancel = null },
-            title = {
-                Text(
-                    text = "Cancel Booking?",
-                    fontFamily = FontFamily.Serif,
-                    fontWeight = FontWeight.Bold
-                )
-            },
+            title = { Text("Cancel Booking?", fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold) },
             text = {
                 Text(
-                    text = "Are you sure you want to cancel your booking for ${booking.serviceName}? This cannot be undone.",
+                    "Are you sure you want to cancel your booking for ${booking.serviceName}? This cannot be undone.",
                     fontFamily = FontFamily.Serif
                 )
             },
@@ -179,9 +147,7 @@ fun BookingsScreen(
                 Button(
                     onClick = { viewModel.cancelBooking(booking); pendingCancel = null },
                     colors = ButtonDefaults.buttonColors(containerColor = DeleteRed)
-                ) {
-                    Text("Yes, Cancel", color = Color.White, fontFamily = FontFamily.Serif)
-                }
+                ) { Text("Yes, Cancel", color = Color.White, fontFamily = FontFamily.Serif) }
             },
             dismissButton = {
                 TextButton(onClick = { pendingCancel = null }) {
@@ -191,20 +157,13 @@ fun BookingsScreen(
         )
     }
 
-    // ── Reject dialog ─────────────────────────────────────────────────────────
     pendingReject?.let { booking ->
         AlertDialog(
             onDismissRequest = { pendingReject = null },
-            title = {
-                Text(
-                    text = "Reject Booking?",
-                    fontFamily = FontFamily.Serif,
-                    fontWeight = FontWeight.Bold
-                )
-            },
+            title = { Text("Reject Booking?", fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold) },
             text = {
                 Text(
-                    text = "Reject the booking for ${booking.serviceName}? The user will be notified.",
+                    "Reject the booking for ${booking.serviceName}? The user will be notified.",
                     fontFamily = FontFamily.Serif
                 )
             },
@@ -212,9 +171,7 @@ fun BookingsScreen(
                 Button(
                     onClick = { viewModel.rejectBooking(booking); pendingReject = null },
                     colors = ButtonDefaults.buttonColors(containerColor = DeleteRed)
-                ) {
-                    Text("Reject", color = Color.White, fontFamily = FontFamily.Serif)
-                }
+                ) { Text("Reject", color = Color.White, fontFamily = FontFamily.Serif) }
             },
             dismissButton = {
                 TextButton(onClick = { pendingReject = null }) {
@@ -224,20 +181,13 @@ fun BookingsScreen(
         )
     }
 
-    // ── Mark as Completed dialog ──────────────────────────────────────────────
     pendingComplete?.let { booking ->
         AlertDialog(
             onDismissRequest = { pendingComplete = null },
-            title = {
-                Text(
-                    text = "Mark as Completed?",
-                    fontFamily = FontFamily.Serif,
-                    fontWeight = FontWeight.Bold
-                )
-            },
+            title = { Text("Mark as Completed?", fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold) },
             text = {
                 Text(
-                    text = "Confirm that you have successfully completed the pooja for ${booking.serviceName}. This action cannot be undone.",
+                    "Confirm that you have successfully completed the pooja for ${booking.serviceName}. This action cannot be undone.",
                     fontFamily = FontFamily.Serif
                 )
             },
@@ -247,9 +197,7 @@ fun BookingsScreen(
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (isDark) DarkBrandOrange else BrandOrange
                     )
-                ) {
-                    Text("Yes, Completed", color = Color.White, fontFamily = FontFamily.Serif)
-                }
+                ) { Text("Yes, Completed", color = Color.White, fontFamily = FontFamily.Serif) }
             },
             dismissButton = {
                 TextButton(onClick = { pendingComplete = null }) {
@@ -259,6 +207,8 @@ fun BookingsScreen(
         )
     }
 
+    // ── Scaffold ──────────────────────────────────────────────────────────────
+
     Scaffold(snackbarHost = { SnackbarHost(hostState = snackbarHostState) }) { scaffoldPadding ->
         Column(
             modifier = Modifier
@@ -266,7 +216,6 @@ fun BookingsScreen(
                 .background(MaterialTheme.colorScheme.background)
                 .padding(scaffoldPadding)
         ) {
-            // ── Header banner ─────────────────────────────────────────────────
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -290,7 +239,6 @@ fun BookingsScreen(
                 )
             }
 
-            // ── Tab row ───────────────────────────────────────────────────────
             SecondaryTabRow(
                 selectedTabIndex = pagerState.currentPage,
                 containerColor = MaterialTheme.colorScheme.surface,
@@ -311,8 +259,7 @@ fun BookingsScreen(
                             Text(
                                 text = title,
                                 fontFamily = FontFamily.Serif,
-                                fontWeight = if (pagerState.currentPage == index) FontWeight.Bold
-                                else FontWeight.Normal,
+                                fontWeight = if (pagerState.currentPage == index) FontWeight.Bold else FontWeight.Normal,
                                 fontSize = 14.sp
                             )
                         }
@@ -320,12 +267,9 @@ fun BookingsScreen(
                 }
             }
 
-            // ── Content ───────────────────────────────────────────────────────
             if (uiState.isLoading) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(
-                        color = if (isDark) DarkBrandOrange else BrandOrange
-                    )
+                    CircularProgressIndicator(color = if (isDark) DarkBrandOrange else BrandOrange)
                 }
             } else {
                 HorizontalPager(
@@ -339,23 +283,18 @@ fun BookingsScreen(
                         2 -> uiState.completedBookings
                         else -> emptyList()
                     }
-
                     if (bookings.isEmpty()) {
                         EmptyBookingsPlaceholder()
                     } else {
                         BookingList(
                             bookings = bookings,
                             highlightedBookingId = uiState.highlightedBookingId,
-                            isPurohitViewFor = { booking ->
-                                viewModel.currentUserIsPurohitFor(booking)
-                            },
-                            onCompletePayment = { booking ->
-                                pendingPaymentBooking = booking
-                            },
-                            onAccept = { booking -> viewModel.acceptBooking(booking) },
-                            onReject = { booking -> pendingReject = booking },
-                            onComplete = { booking -> pendingComplete = booking },
-                            onCancel = { booking -> pendingCancel = booking },
+                            isPurohitViewFor = { viewModel.currentUserIsPurohitFor(it) },
+                            onCompletePayment = { pendingPaymentBooking = it },
+                            onAccept = { viewModel.acceptBooking(it) },
+                            onReject = { pendingReject = it },
+                            onComplete = { pendingComplete = it },
+                            onCancel = { pendingCancel = it },
                             onHighlightConsumed = { viewModel.clearHighlight() }
                         )
                     }
@@ -379,7 +318,6 @@ private fun BookingList(
 ) {
     val listState = rememberLazyListState()
 
-    // Scroll to highlighted card, then clear after 2 s
     LaunchedEffect(highlightedBookingId, bookings) {
         if (highlightedBookingId == null) return@LaunchedEffect
         val index = bookings.indexOfFirst { it.bookingId == highlightedBookingId }
@@ -397,11 +335,10 @@ private fun BookingList(
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         items(items = bookings, key = { it.bookingId }) { booking ->
-            val purohitView = isPurohitViewFor(booking)
             BookingCard(
                 booking = booking,
                 isHighlighted = booking.bookingId == highlightedBookingId,
-                isPurohitView = purohitView,
+                isPurohitView = isPurohitViewFor(booking),
                 onCompletePayment = onCompletePayment,
                 onAccept = onAccept,
                 onReject = onReject,

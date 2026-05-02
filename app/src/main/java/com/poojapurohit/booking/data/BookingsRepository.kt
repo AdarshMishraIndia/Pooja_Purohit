@@ -1,56 +1,26 @@
 package com.poojapurohit.booking.data
 
+import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.poojapurohit.booking.model.Booking
+import com.poojapurohit.booking.model.BookingStatus
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.tasks.await
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class BookingsRepository(
-    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance(),
-    private val auth: FirebaseAuth = FirebaseAuth.getInstance()
+@Singleton
+class BookingsRepository @Inject constructor(
+    private val firestore: FirebaseFirestore,
+    private val auth: FirebaseAuth
 ) {
 
-    /**
-     * Observes all bookings for the currently authenticated user in real time.
-     * Queries by userId — forward-compatible with purohit-side queries by swapping the field.
-     *
-     * Returns Flow<Result<List<Booking>>> so the ViewModel handles errors without try/catch noise.
-     */
-
-    /**
-     * Observes all bookings where the currently authenticated user is the assigned Purohit.
-     * Queries by purohitId for real-time updates.
-     */
-    fun observePurohitBookings(): Flow<Result<List<Booking>>> {
-        val uid = auth.currentUser?.uid
-            ?: return flowOf(Result.failure(IllegalStateException("User not authenticated")))
-
-        return callbackFlow {
-            val listener = firestore
-                .collection("bookings")
-                .whereEqualTo("purohitId", uid)
-                .orderBy("createdAt", Query.Direction.DESCENDING)
-                .addSnapshotListener { snapshot, error ->
-                    if (error != null) {
-                        trySend(Result.failure(error))
-                        return@addSnapshotListener
-                    }
-                    val bookings = snapshot?.documents
-                        ?.mapNotNull { doc ->
-                            runCatching { Booking.fromDocument(doc) }.getOrNull()
-                        }
-                        ?: emptyList()
-
-                    trySend(Result.success(bookings))
-                }
-
-            awaitClose { listener.remove() }
-        }
-    }
+    fun currentUserId(): String? = auth.currentUser?.uid
 
     fun observeUserBookings(): Flow<Result<List<Booking>>> {
         val uid = auth.currentUser?.uid
@@ -62,21 +32,47 @@ class BookingsRepository(
                 .whereEqualTo("userId", uid)
                 .orderBy("createdAt", Query.Direction.DESCENDING)
                 .addSnapshotListener { snapshot, error ->
-                    if (error != null) {
-                        trySend(Result.failure(error))
-                        return@addSnapshotListener
-                    }
+                    if (error != null) { trySend(Result.failure(error)); return@addSnapshotListener }
                     val bookings = snapshot?.documents
-                        ?.mapNotNull { doc ->
-                            runCatching { Booking.fromDocument(doc) }.getOrNull()
-                        }
+                        ?.mapNotNull { runCatching { Booking.fromDocument(it) }.getOrNull() }
                         ?: emptyList()
-
                     trySend(Result.success(bookings))
                 }
-
             awaitClose { listener.remove() }
         }
     }
 
+    fun observePurohitBookings(): Flow<Result<List<Booking>>> {
+        val uid = auth.currentUser?.uid
+            ?: return flowOf(Result.failure(IllegalStateException("User not authenticated")))
+
+        return callbackFlow {
+            val listener = firestore
+                .collection("bookings")
+                .whereEqualTo("purohitId", uid)
+                .orderBy("createdAt", Query.Direction.DESCENDING)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) { trySend(Result.failure(error)); return@addSnapshotListener }
+                    val bookings = snapshot?.documents
+                        ?.mapNotNull { runCatching { Booking.fromDocument(it) }.getOrNull() }
+                        ?: emptyList()
+                    trySend(Result.success(bookings))
+                }
+            awaitClose { listener.remove() }
+        }
+    }
+
+    suspend fun updateBookingStatus(bookingId: String, newStatus: BookingStatus): Result<Unit> {
+        return runCatching {
+            firestore.collection("bookings")
+                .document(bookingId)
+                .update(
+                    mapOf(
+                        "status" to newStatus.name,
+                        "updatedAt" to Timestamp.now()
+                    )
+                )
+                .await()
+        }
+    }
 }

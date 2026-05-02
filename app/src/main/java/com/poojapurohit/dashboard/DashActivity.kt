@@ -2,7 +2,6 @@ package com.poojapurohit.dashboard
 
 import android.os.Bundle
 import android.widget.Toast
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -41,7 +40,10 @@ import com.poojapurohit.booking.compose.presentation.screens.BookingsScreen
 import com.poojapurohit.dashboard.compose.presentation.screens.DashboardScreen
 import com.poojapurohit.dashboard.compose.theme.PoojaPurohitTheme
 import kotlinx.coroutines.launch
+import dagger.hilt.android.AndroidEntryPoint
+import androidx.activity.ComponentActivity
 
+@AndroidEntryPoint
 class DashActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
