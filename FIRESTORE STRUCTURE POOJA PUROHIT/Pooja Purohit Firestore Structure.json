@@ -35,7 +35,8 @@
           "isAvailable": false,
           "rating": 0.0,
           "totalBookings": 0,
-          "createdAt": "2026-03-12T22:49:24Z"
+          "createdAt": "2026-03-12T22:49:24Z",
+          "trustIndex": 0.0
         }
       }
     },
@@ -112,7 +113,8 @@
           "scheduledDate": "2026-03-15T10:00:00Z",
           "address": "dummy_address",
           "createdAt": "2026-03-15T17:42:16Z",
-          "updatedAt": "2026-03-15T17:42:16Z"
+          "updatedAt": "2026-03-15T17:42:16Z",
+          "remarks": "Stores the remark on each booking"
         }
       }
     }

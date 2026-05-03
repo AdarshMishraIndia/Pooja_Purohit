@@ -116,10 +116,18 @@ class BookingsViewModel @Inject constructor(
 
     // ── Actions ───────────────────────────────────────────────────────────────
 
-    fun acceptBooking(booking: Booking) = updateStatus(booking, BookingStatus.ACCEPTED, "Booking accepted")
-    fun rejectBooking(booking: Booking) = updateStatus(booking, BookingStatus.REJECTED, "Booking rejected")
-    fun cancelBooking(booking: Booking) = updateStatus(booking, BookingStatus.CANCELLED, "Booking cancelled")
-    fun completeBooking(booking: Booking) = updateStatus(booking, BookingStatus.COMPLETED, "Booking marked as completed")
+    fun acceptBooking(booking: Booking) =
+        updateStatus(booking, BookingStatus.ACCEPTED, "Booking accepted")
+
+    fun rejectBooking(booking: Booking) =
+        updateStatus(booking, BookingStatus.REJECTED, "Booking rejected")
+
+    /** User cancel — no remarks required. */
+    fun cancelBooking(booking: Booking) =
+        updateStatus(booking, BookingStatus.CANCELLED, "Booking cancelled")
+
+    fun completeBooking(booking: Booking) =
+        updateStatus(booking, BookingStatus.COMPLETED, "Booking marked as completed")
 
     fun processPaymentStub(booking: Booking, isSuccess: Boolean) {
         if (isSuccess) {
@@ -131,6 +139,40 @@ class BookingsViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Purohit cancel — requires a non-blank reason.
+     * Writes status + remarks atomically via [BookingsRepository.cancelBookingWithRemarks].
+     * Guard: COMPLETED bookings cannot be cancelled (enforced in UI and here).
+     */
+    fun cancelBookingAsPurohit(booking: Booking, remarks: String) {
+        if (booking.status == BookingStatus.COMPLETED) return
+        val trimmed = remarks.trim()
+        if (trimmed.isBlank()) {
+            viewModelScope.launch {
+                _effect.emit(BookingsEffect.ShowSnackbar("Please provide a reason for cancellation."))
+            }
+            return
+        }
+        viewModelScope.launch {
+            repository.cancelBookingWithRemarks(booking.bookingId, trimmed)
+                .onSuccess {
+                    applyLocalUpdate(
+                        booking.copy(
+                            status = BookingStatus.CANCELLED,
+                            remarks = trimmed,
+                            updatedAt = Timestamp.now()
+                        )
+                    )
+                    _effect.emit(BookingsEffect.ShowSnackbar("Booking cancelled."))
+                }
+                .onFailure { e ->
+                    _effect.emit(
+                        BookingsEffect.ShowSnackbar(e.message ?: "Cancellation failed. Please try again.")
+                    )
+                }
+        }
+    }
+
     private fun updateStatus(booking: Booking, newStatus: BookingStatus, successMessage: String) {
         viewModelScope.launch {
             repository.updateBookingStatus(booking.bookingId, newStatus)
@@ -139,14 +181,20 @@ class BookingsViewModel @Inject constructor(
                     _effect.emit(BookingsEffect.ShowSnackbar(successMessage))
                 }
                 .onFailure { e ->
-                    _effect.emit(BookingsEffect.ShowSnackbar(e.message ?: "Action failed. Please try again."))
+                    _effect.emit(
+                        BookingsEffect.ShowSnackbar(e.message ?: "Action failed. Please try again.")
+                    )
                 }
         }
     }
 
     private fun applyLocalUpdate(updated: Booking) {
-        userBookings.update { list -> list.map { if (it.bookingId == updated.bookingId) updated else it } }
-        purohitBookings.update { list -> list.map { if (it.bookingId == updated.bookingId) updated else it } }
+        userBookings.update { list ->
+            list.map { if (it.bookingId == updated.bookingId) updated else it }
+        }
+        purohitBookings.update { list ->
+            list.map { if (it.bookingId == updated.bookingId) updated else it }
+        }
     }
 
     // ── Role ──────────────────────────────────────────────────────────────────

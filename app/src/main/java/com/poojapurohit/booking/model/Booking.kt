@@ -65,7 +65,9 @@ data class Booking(
     val scheduledDate: Timestamp? = null,
     val address: String = "",
     val createdAt: Timestamp? = null,
-    val updatedAt: Timestamp? = null
+    val updatedAt: Timestamp? = null,
+    /** Populated when a purohit cancels — stores their stated reason. Null for user cancellations. */
+    val remarks: String? = null
 ) {
     companion object {
         fun fromDocument(doc: DocumentSnapshot): Booking {
@@ -83,7 +85,8 @@ data class Booking(
                 scheduledDate = doc.getTimestamp("scheduledDate"),
                 address = doc.getString("address") ?: "",
                 createdAt = doc.getTimestamp("createdAt"),
-                updatedAt = doc.getTimestamp("updatedAt")
+                updatedAt = doc.getTimestamp("updatedAt"),
+                remarks = doc.getString("remarks")
             )
         }
     }

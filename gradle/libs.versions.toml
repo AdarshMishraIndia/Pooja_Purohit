@@ -31,6 +31,7 @@ lifecycleRuntimeCompose = "2.10.0"
 lottieCompose = "6.7.1"
 navigationCompose = "2.9.8"
 firebaseMessaging = "25.0.1"
+animationCore = "1.11.0"
 
 [libraries]
 accompanist-flowlayout = { module = "com.google.accompanist:accompanist-flowlayout", version.ref = "accompanistFlowlayout" }
@@ -75,6 +76,7 @@ lottie-compose = { group = "com.airbnb.android", name = "lottie-compose", versio
 # Navigation Compose
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging", version.ref = "firebaseMessaging" }
+androidx-compose-animation-core = { group = "androidx.compose.animation", name = "animation-core", version.ref = "animationCore" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

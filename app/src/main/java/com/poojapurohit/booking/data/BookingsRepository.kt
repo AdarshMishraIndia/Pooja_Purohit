@@ -62,17 +62,42 @@ class BookingsRepository @Inject constructor(
         }
     }
 
-    suspend fun updateBookingStatus(bookingId: String, newStatus: BookingStatus): Result<Unit> {
-        return runCatching {
-            firestore.collection("bookings")
-                .document(bookingId)
-                .update(
-                    mapOf(
-                        "status" to newStatus.name,
-                        "updatedAt" to Timestamp.now()
-                    )
+    /**
+     * Generic status update — used for accept, reject, complete, user-cancel,
+     * and payment flows where no remarks are needed.
+     */
+    suspend fun updateBookingStatus(
+        bookingId: String,
+        newStatus: BookingStatus
+    ): Result<Unit> = runCatching {
+        firestore.collection("bookings")
+            .document(bookingId)
+            .update(
+                mapOf(
+                    "status" to newStatus.name,
+                    "updatedAt" to Timestamp.now()
                 )
-                .await()
-        }
+            )
+            .await()
+    }
+
+    /**
+     * Purohit-cancel path — writes status + remarks atomically in one document update.
+     * [remarks] must be non-blank (enforced by the VM before calling this).
+     */
+    suspend fun cancelBookingWithRemarks(
+        bookingId: String,
+        remarks: String
+    ): Result<Unit> = runCatching {
+        firestore.collection("bookings")
+            .document(bookingId)
+            .update(
+                mapOf(
+                    "status" to BookingStatus.CANCELLED.name,
+                    "remarks" to remarks.trim(),
+                    "updatedAt" to Timestamp.now()
+                )
+            )
+            .await()
     }
 }
