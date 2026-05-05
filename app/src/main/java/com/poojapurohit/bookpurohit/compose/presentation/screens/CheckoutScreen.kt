@@ -7,6 +7,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -76,11 +78,15 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Checkout screen — service selection, date/time picker, address, payment stub.
+ * Checkout screen — service selection, date/time picker, address + map pin, payment stub.
  *
- * [purohitId] arrives via the nav back-stack entry. Navigation Compose automatically
- * populates SavedStateHandle with nav arguments, so [CheckoutViewModel] reads purohitId
- * from SavedStateHandle directly. No manual factory needed.
+ * Map pin is MANDATORY — [com.poojapurohit.bookpurohit.compose.CheckoutViewModel.showPaymentDialog] blocks if [com.poojapurohit.bookpurohit.compose.CheckoutViewModel.CheckoutUiState.coordinates] is null.
+ *
+ * Dependency: add to build.gradle (app module):
+ * implementation("com.google.maps.android:maps-compose:4.3.3")
+ * implementation("com.google.android.gms:play-services-maps:19.0.0")
+ * // Also add your Maps API key in AndroidManifest.xml:
+ * // <meta-data android:name="com.google.android.geo.API_KEY" android:value="YOUR_KEY"/>
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -93,10 +99,11 @@ fun CheckoutScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val isDark = isSystemInDarkTheme()
-    var expanded by remember { mutableStateOf(false) }
 
+    var expanded by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
+    var showMapPicker by remember { mutableStateOf(false) }
     var tempSelectedDateMillis by remember { mutableStateOf<Long?>(null) }
 
     val formattedDateDisplay = remember(uiState.scheduledDateMillis) {
@@ -149,7 +156,7 @@ fun CheckoutScreen(
                     color = if (isDark) Color.White else Color.Black
                 )
 
-                // Service dropdown
+                // ── Service dropdown ──────────────────────────────────────────
                 ExposedDropdownMenuBox(
                     expanded = expanded,
                     onExpandedChange = { expanded = !expanded }
@@ -186,7 +193,7 @@ fun CheckoutScreen(
                     }
                 }
 
-                // Date & time field
+                // ── Date & time field ─────────────────────────────────────────
                 Box(modifier = Modifier.fillMaxWidth()) {
                     OutlinedTextField(
                         value = formattedDateDisplay,
@@ -205,7 +212,6 @@ fun CheckoutScreen(
                             focusedBorderColor = if (isDark) DarkBrandOrange else BrandOrange
                         )
                     )
-                    // Transparent overlay captures tap since readOnly field suppresses clicks
                     Box(
                         modifier = Modifier
                             .matchParentSize()
@@ -214,20 +220,67 @@ fun CheckoutScreen(
                     )
                 }
 
-                OutlinedTextField(
-                    value = uiState.address,
-                    onValueChange = viewModel::onAddressChange,
-                    label = { Text("Complete Address") },
+                // ── Address + Map pin ─────────────────────────────────────────
+                // Row: address text field (weight 1) + pin button
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    minLines = 3,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = if (isDark) DarkBrandOrange else BrandOrange
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    OutlinedTextField(
+                        value = uiState.address,
+                        onValueChange = viewModel::onAddressChange,
+                        label = { Text("Complete Address") },
+                        modifier = Modifier.weight(1f),
+                        minLines = 3,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = if (isDark) DarkBrandOrange else BrandOrange
+                        )
                     )
-                )
+
+                    // Map pin button — changes appearance once a pin is set
+                    val pinSet = uiState.coordinates != null
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(
+                                if (pinSet) Color(0xFF4CAF50)
+                                else if (isDark) DarkBrandOrange else BrandOrange
+                            )
+                            .clickable { showMapPicker = true },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = if (pinSet) "Location pinned" else "Pin location on map",
+                            tint = Color.White,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                }
+
+                // Coordinate hint text below the row
+                if (uiState.coordinates != null) {
+                    val coords = uiState.coordinates!!
+                    Text(
+                        text = "📍 Pinned: ${"%.5f".format(coords.latitude)}, ${"%.5f".format(coords.longitude)}",
+                        fontFamily = FontFamily.Serif,
+                        fontSize = 12.sp,
+                        color = Color(0xFF4CAF50)
+                    )
+                } else {
+                    Text(
+                        text = "⚠ Map pin required — tap the pin button to mark your exact location",
+                        fontFamily = FontFamily.Serif,
+                        fontSize = 12.sp,
+                        color = if (isDark) DarkBrandOrange else BrandRed
+                    )
+                }
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                // Pay button
+                // ── Pay button ────────────────────────────────────────────────
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -251,7 +304,7 @@ fun CheckoutScreen(
                 }
             }
 
-            // Date picker
+            // ── Date picker ───────────────────────────────────────────────────
             if (showDatePicker) {
                 val datePickerState = rememberDatePickerState(
                     selectableDates = object : SelectableDates {
@@ -278,7 +331,7 @@ fun CheckoutScreen(
                 }
             }
 
-            // Time picker
+            // ── Time picker ───────────────────────────────────────────────────
             if (showTimePicker) {
                 val timePickerState = rememberTimePickerState(
                     initialHour = 10,
@@ -312,7 +365,20 @@ fun CheckoutScreen(
                 )
             }
 
-            // Razorpay stub dialog
+            // ── Map pin picker (extracted to MapPinPickerScreen.kt) ───────────
+            if (showMapPicker) {
+                MapPinPickerScreen(
+                    initialPin = uiState.coordinates,
+                    isDark = isDark,
+                    onConfirm = { latLng ->
+                        viewModel.onCoordinatesSelected(latLng)
+                        showMapPicker = false
+                    },
+                    onDismiss = { showMapPicker = false }
+                )
+            }
+
+            // ── Razorpay stub dialog ──────────────────────────────────────────
             if (uiState.isPaymentDialogVisible) {
                 RazorpayStubDialog(
                     isDark = isDark,
@@ -324,6 +390,9 @@ fun CheckoutScreen(
         }
     }
 }
+
+
+// MapPinPickerDialog has been extracted to MapPinPickerScreen.kt
 
 @Composable
 fun RazorpayStubDialog(

@@ -1,49 +1,57 @@
 {
   "firestore_structure": {
     "notifications": {
-      "dummy_doc_id": {
+      "<stakeholder_uid>": {
         "metadata": {
-          "description": "Stores push notification logs or history for specific events.",
+          "description": "One document per stakeholder (user or purohit). UID matches their respective collection document ID.",
           "type": "collection"
         },
-        "fields": {
-          "body": "dummy_body",
-          "isRead": false,
-          "timestamp": "2026-03-15T17:42:16Z",
-          "title": "dummy_title"
+        "subcollections": {
+          "items": {
+            "<notification_id>": {
+              "metadata": {
+                "description": "Individual notification entry for the stakeholder.",
+                "type": "subcollection"
+              },
+              "fields": {
+                "title": "dummy_title",
+                "body": "dummy_body",
+                "isRead": false,
+                "timestamp": "2026-03-15T17:42:16Z"
+              }
+            }
+          }
         }
       }
     },
     "purohits": {
-      "dummy_purohit_id": {
+      "<purohit_id>": {
         "metadata": {
           "description": "Profiles for service providers (Purohits) including credentials and ratings.",
           "type": "collection"
         },
         "fields": {
-          "purohitId": "dummy_purohit_id",
+          "purohitId": "<purohit_id>",
           "name": "dummy_name",
           "phone": "dummy_phone",
           "email": "dummy_email",
           "city": "dummy_city",
           "locality": "dummy_locality",
           "experience": 10,
-          "proficiency": [
-            "dummy_proficiency_p0"
-          ],
+          "proficiency": ["dummy_proficiency_p0"],
           "isVerified": false,
           "isAvailable": false,
           "rating": 0.0,
           "totalBookings": 0,
-          "createdAt": "2026-03-12T22:49:24Z",
-          "trustIndex": 0.0
+          "trustIndex": 0.0,
+          "createdAt": "2026-03-12T22:49:24Z"
         }
       }
     },
     "services": {
       "BookAPurohit": {
         "metadata": {
-          "description": "Master list of available services. Fed manually by admin using admin portal.",
+          "description": "Master list of available services. Fed manually by admin via admin portal.",
           "type": "collection"
         },
         "fields": {
@@ -64,13 +72,13 @@
       }
     },
     "users": {
-      "dummy_user_id": {
+      "<user_id>": {
         "metadata": {
           "description": "Basic profile information for end-users/customers.",
           "type": "collection"
         },
         "fields": {
-          "userId": "dummy_user_id",
+          "userId": "<user_id>",
           "name": "dummy_name",
           "phone": "dummy_phone",
           "email": "dummy_email",
@@ -94,15 +102,15 @@
           "AUTO_CANCELLED"
         ]
       },
-      "dummy_booking_id": {
+      "<booking_id>": {
         "metadata": {
           "description": "Core transaction record linking users, purohits, payments and booking states.",
           "type": "collection"
         },
         "fields": {
-          "bookingId": "dummy_booking_id",
-          "userId": "dummy_user_id",
-          "purohitId": "dummy_purohit_id",
+          "bookingId": "<booking_id>",
+          "userId": "<user_id>",
+          "purohitId": "<purohit_id>",
           "purohitName": "dummy_purohit_name",
           "userPhone": "dummy_user_phone",
           "serviceName": "dummy_service_name",
@@ -112,9 +120,9 @@
           "razorpayPaymentId": "dummy_razorpay_payment_id",
           "scheduledDate": "2026-03-15T10:00:00Z",
           "address": "dummy_address",
+          "remarks": "dummy_remarks",
           "createdAt": "2026-03-15T17:42:16Z",
-          "updatedAt": "2026-03-15T17:42:16Z",
-          "remarks": "Stores the remark on each booking"
+          "updatedAt": "2026-03-15T17:42:16Z"
         }
       }
     }

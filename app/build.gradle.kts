@@ -20,6 +20,9 @@ android {
         versionCode = 1
         versionName = "1.0"
 
+        val mapsKey = project.findProperty("MAPS_API_KEY")?.toString() ?: ""
+        manifestPlaceholders["MAPS_API_KEY"] = mapsKey
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -128,7 +131,13 @@ dependencies {
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
 
+    implementation(libs.places)
+    implementation(libs.kotlinx.coroutines.play.services)
+
     // Debug
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+
+    implementation(libs.play.services.maps)
+    implementation(libs.maps.compose)
 }

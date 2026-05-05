@@ -3,6 +3,7 @@ package com.poojapurohit.bookpurohit.compose
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.android.gms.maps.model.LatLng
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -19,18 +20,20 @@ data class CheckoutUiState(
     val isPaymentDialogVisible: Boolean = false,
     val bookingComplete: Boolean = false,
     val error: String? = null,
-    val selectedService: String = "POOJA (Sri Ganesh, Sri Vishwakarma...)",
+    val selectedService: String = "POOJA (Sri Ganesh, Sri Vishwakarma, Sri Satyanarayan, Maa Saraswati)",
     val address: String = "",
     val scheduledDateMillis: Long? = null,
 
-    // FIX #2 — cached eagerly so payment write needs zero extra reads
+    // Map pin — mandatory before payment can proceed
+    val coordinates: LatLng? = null,
+
+    // Cached eagerly so payment write needs zero extra reads (FIX #2)
     val cachedUserPhone: String = "",
     val cachedPurohitName: String = "",
     val isPrefetchComplete: Boolean = false
 )
 
 class CheckoutViewModel(
-    // SavedStateHandle lets us read nav-arg purohitId without the screen passing it manually
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -46,31 +49,26 @@ class CheckoutViewModel(
         "Rudrabhishek Shivratri",
         "Janamastami",
         "Chhat Pooja",
-        "Ruhan Pratistha",
-        "Vaahaan Pooja"
+        "Gruha Pratistha",
+        "Vaahaan Pooja",
+        "Janeyu",
+        "Shraddha",
+        "Other Karma Kaanda",
+        "Antyesthi / Asthi Sangraha"
     )
 
     init {
-        // FIX #2 — pre-fetch user + purohit as soon as VM is created,
-        // before the user even touches the payment button.
-        // This way processPayment() only needs 1 write — no reads at payment time.
         val purohitId = savedStateHandle.get<String>("purohitId") ?: ""
         if (purohitId.isNotBlank()) prefetchData(purohitId)
     }
 
     // ─── FIX #2: EAGER PREFETCH ──────────────────────────────────────────────
-    // Fetches user phone + purohit name once when screen loads.
-    // If offline, Firestore offline cache serves this (persistence enabled in App).
-    // Cached into uiState so payment coroutine does zero reads.
     private fun prefetchData(purohitId: String) {
         viewModelScope.launch {
             try {
                 val userId = auth.currentUser?.uid ?: return@launch
-
-                // Both fetches run sequentially — acceptable since this is background prefetch
                 val userDoc = firestore.collection("users").document(userId).get().await()
                 val purohitDoc = firestore.collection("purohits").document(purohitId).get().await()
-
                 _uiState.update {
                     it.copy(
                         cachedUserPhone = userDoc.getString("phone") ?: "",
@@ -79,19 +77,16 @@ class CheckoutViewModel(
                     )
                 }
             } catch (_: Exception) {
-                // Non-fatal — payment will catch missing data and surface a clear error
                 _uiState.update { it.copy(isPrefetchComplete = true) }
             }
         }
     }
 
-    fun onServiceChange(service: String) {
-        _uiState.update { it.copy(selectedService = service) }
-    }
+    fun onServiceChange(service: String) = _uiState.update { it.copy(selectedService = service) }
 
-    fun onAddressChange(address: String) {
-        _uiState.update { it.copy(address = address) }
-    }
+    fun onAddressChange(address: String) = _uiState.update { it.copy(address = address) }
+
+    fun onCoordinatesSelected(latLng: LatLng) = _uiState.update { it.copy(coordinates = latLng) }
 
     fun onDateChange(dateMillis: Long) {
         if (dateMillis < System.currentTimeMillis()) {
@@ -102,43 +97,32 @@ class CheckoutViewModel(
     }
 
     fun showPaymentDialog() {
-        if (_uiState.value.address.isBlank() || _uiState.value.scheduledDateMillis == null) {
-            _uiState.update { it.copy(error = "Please fill in all details") }
-            return
+        val state = _uiState.value
+        when {
+            state.address.isBlank() || state.scheduledDateMillis == null ->
+                _uiState.update { it.copy(error = "Please fill in all details") }
+            state.coordinates == null ->
+                _uiState.update { it.copy(error = "Please pin your exact location on the map") }
+            else ->
+                _uiState.update { it.copy(isPaymentDialogVisible = true, error = null) }
         }
-        _uiState.update { it.copy(isPaymentDialogVisible = true, error = null) }
     }
 
-    fun hidePaymentDialog() {
-        _uiState.update { it.copy(isPaymentDialogVisible = false) }
-    }
+    fun hidePaymentDialog() = _uiState.update { it.copy(isPaymentDialogVisible = false) }
 
-    fun clearError() {
-        _uiState.update { it.copy(error = null) }
-    }
+    fun clearError() = _uiState.update { it.copy(error = null) }
 
     /**
-     * Writes booking doc to Firestore — atomic, idempotent, offline-safe.
+     * Writes booking doc to Firestore.
      *
-     * FIX #1 — Firestore offline persistence (enabled in Application class) means
-     *           .set().await() resolves as soon as local cache is written, not
-     *           waiting for server. SDK syncs to server when connectivity returns.
-     *
-     * FIX #2 — user phone + purohit name already cached in uiState (see prefetchData).
-     *           Zero Firestore reads here — only 1 write. Nothing can go wrong mid-read.
-     *
-     * FIX #3 — bookingId derived from userId + purohitId + date-minute-bucket.
-     *           Same inputs → same bookingId → .set() overwrites instead of duplicating.
-     *           If user taps Pay twice (network retry, back-press, etc.), second write
-     *           just overwrites the first identically. No duplicate bookings.
-     *
-     * Cloud Function onBookingStatusUpdated handles notifications — not here.
+     * FIX #1 — offline persistence (see BookPurohitApplication)
+     * FIX #2 — zero reads at payment time; uses prefetched cache
+     * FIX #3 — deterministic bookingId → idempotent upsert, no duplicates
      */
     fun processPaymentStub(purohitId: String, status: String) {
         val selectedDate = _uiState.value.scheduledDateMillis ?: return
         val state = _uiState.value
 
-        // Guard: prefetch must have completed — avoids writing with empty purohit name
         if (!state.isPrefetchComplete) {
             _uiState.update { it.copy(error = "Still loading details, please wait...") }
             return
@@ -150,13 +134,16 @@ class CheckoutViewModel(
             return
         }
 
-        // FIX #3 — DETERMINISTIC BOOKING ID ──────────────────────────────────
-        // Bucket = selectedDate rounded to nearest minute (millis / 60_000).
-        // Same user + same purohit + same minute window → same bookingId.
-        // .set() is an upsert — retries are safe, no duplicates.
+        // Guard: coordinates must be present (enforced in showPaymentDialog too, but double-check)
+        val coords = state.coordinates
+        if (coords == null) {
+            _uiState.update { it.copy(error = "Location pin is required") }
+            return
+        }
+
+        // FIX #3 — DETERMINISTIC BOOKING ID
         val dateBucket = selectedDate / 60_000
         val bookingId = "${userId}_${purohitId}_$dateBucket"
-        // ─────────────────────────────────────────────────────────────────────
 
         _uiState.update { it.copy(isLoading = true, isPaymentDialogVisible = false) }
 
@@ -164,13 +151,12 @@ class CheckoutViewModel(
             try {
                 val currentTimestamp = Timestamp.now()
 
-                // FIX #2 — reads replaced by cached values — single .set() write only
                 val bookingData = hashMapOf(
                     "bookingId" to bookingId,
                     "userId" to userId,
                     "purohitId" to purohitId,
-                    "purohitName" to state.cachedPurohitName,   // from cache
-                    "userPhone" to state.cachedUserPhone,        // from cache
+                    "purohitName" to state.cachedPurohitName,
+                    "userPhone" to state.cachedUserPhone,
                     "serviceName" to state.selectedService,
                     "amount" to 1500L,
                     "status" to status,
@@ -182,17 +168,20 @@ class CheckoutViewModel(
                     },
                     "scheduledDate" to Timestamp(Date(selectedDate)),
                     "address" to state.address,
+                    // Stored as a nested map — GeoPoint is cleaner but requires
+                    // Firestore GeoPoint type; using lat/lng map keeps it schema-agnostic
+                    // and easy to consume from Cloud Functions / admin SDK.
+                    "coordinates" to mapOf(
+                        "latitude" to coords.latitude,
+                        "longitude" to coords.longitude
+                    ),
                     "createdAt" to currentTimestamp,
                     "updatedAt" to currentTimestamp
                 )
 
-                // FIX #1 + FIX #3 — .set() is an upsert (not .add()).
-                // With offline persistence enabled, await() returns once local
-                // cache confirms — does NOT wait for server round-trip.
-                // If offline: write queued locally, syncs when online.
-                // If retried: same bookingId → overwrites, no duplicate.
+                // FIX #1 + FIX #3 — upsert via explicit doc ID, offline-safe
                 firestore.collection("bookings")
-                    .document(bookingId)    // explicit doc ID → idempotent
+                    .document(bookingId)
                     .set(bookingData)
                     .await()
 
