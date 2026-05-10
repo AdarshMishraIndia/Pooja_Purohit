@@ -61,6 +61,18 @@ import com.poojapurohit.dashboard.compose.theme.LightSurface
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Locale
+import androidx.compose.material.icons.filled.Map
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.MarkerState
+import com.google.maps.android.compose.rememberCameraPositionState
 
 private const val HIGHLIGHT_DURATION_MS    = 4_000L
 private const val BORDER_PULSE_DURATION_MS = 2_500
@@ -99,11 +111,8 @@ fun BookingCard(
     val isDark = isSystemInDarkTheme()
 
     // Reading LocalConfiguration makes locale changes observable to the Compose runtime.
-    val locale: Locale = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+    val locale: Locale =
         LocalConfiguration.current.locales[0]
-    } else {
-        TODO("VERSION.SDK_INT < N")
-    }
     val dateFmt = remember(locale) { SimpleDateFormat("dd MMM yyyy, hh:mm a", locale) }
 
     LaunchedEffect(isHighlighted) {

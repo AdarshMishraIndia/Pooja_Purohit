@@ -10,6 +10,9 @@ import com.poojapurohit.auth.AuthFormData
 import com.poojapurohit.auth.AuthFormValidator
 import com.poojapurohit.auth.AuthRepository
 import com.poojapurohit.auth.AuthUiState
+import com.poojapurohit.auth.NetworkUtils
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,18 +23,48 @@ class AuthViewModel(
     private val repository: AuthRepository = AuthRepository()
 ) : ViewModel() {
 
-    // Single source of truth for form
-    val formData = AuthFormData()
+    companion object {
+        private const val TAG = "AuthViewModel"
 
+        /** Number of auto-retry attempts before giving up. */
+        private const val MAX_RETRY_ATTEMPTS = 3
+
+        /** Initial delay before first retry (ms). Doubles on each attempt (exponential backoff). */
+        private const val RETRY_BASE_DELAY_MS = 3_000L
+    }
+
+    // ─── Form State ──────────────────────────────────────────────────────────
+
+    val formData = AuthFormData()
     var currentStep = 0
     var isServicePartnerFlow = false
         private set
 
-    // Migrated from LiveData to StateFlow
+    // ─── UI State ────────────────────────────────────────────────────────────
+
     private val _uiState = MutableStateFlow<AuthUiState>(AuthUiState.Idle)
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
-    /** Google Sign-In flow that fetches credentials via CredentialManager */
+    // ─── Active Auth Job (cancellable via back key) ───────────────────────────
+
+    /**
+     * Holds the currently running sign-in coroutine.
+     * Cancelled when user presses back during Loading/RetryingConnection.
+     */
+    private var activeAuthJob: Job? = null
+
+    // ─── Sign In With Google ─────────────────────────────────────────────────
+
+    /**
+     * Entry point for Google Sign-In.
+     * Flow:
+     *   1. Fast connectivity check (ConnectivityManager)
+     *   2. Deep reachability ping (HTTP 204)
+     *   3. Attempt sign-in with timeout
+     *   4. On timeout/failure → exponential backoff retry up to MAX_RETRY_ATTEMPTS
+     *   5. On NoCredentials → immediate typed error (no retry)
+     *   6. On Cancelled → silently return to initial state
+     */
     fun signInWithGoogle(
         activity: Activity,
         credentialManager: CredentialManager,
@@ -39,32 +72,121 @@ class AuthViewModel(
         isServicePartner: Boolean = false
     ) {
         isServicePartnerFlow = isServicePartner
-        _uiState.value = AuthUiState.Loading
 
-        viewModelScope.launch {
-            try {
-                val result = repository.signInWithGoogle(activity, credentialManager, clientId)
-                _uiState.value = result.fold(
-                    onSuccess = { isNewUser ->
-                        if (isNewUser) {
-                            currentStep = 1
-                            if (isServicePartner) AuthUiState.ShowServicePartnerStep1
-                            else AuthUiState.ShowCustomerFields
-                        } else {
-                            AuthUiState.Success
-                        }
-                    },
-                    onFailure = { AuthUiState.Error(it.message ?: "Sign-in failed") }
-                )
-            } catch (_: SecurityException) {
-                _uiState.value = AuthUiState.Error("Google Sign-In unavailable")
-            } catch (e: Exception) {
-                _uiState.value = AuthUiState.Error(e.message ?: "Sign-in failed")
+        // Cancel any previous in-flight auth attempt
+        activeAuthJob?.cancel()
+
+        activeAuthJob = viewModelScope.launch {
+            // ── Step 1: Fast network check ──────────────────────────────────
+            val context = activity.applicationContext
+            if (!NetworkUtils.isNetworkAvailable(context)) {
+                Log.w(TAG, "No network reported by ConnectivityManager")
+                _uiState.value = AuthUiState.NetworkError
+                return@launch
             }
+
+            // ── Step 2: Deep reachability ping ──────────────────────────────
+            _uiState.value = AuthUiState.Loading
+            val isReachable = NetworkUtils.isInternetReachable()
+            if (!isReachable) {
+                Log.w(TAG, "Internet unreachable — ping failed")
+                _uiState.value = AuthUiState.NetworkError
+                return@launch
+            }
+
+            // ── Step 3 + 4: Attempt with retry loop ─────────────────────────
+            var lastFailureCause = "Sign-in failed"
+
+            for (attempt in 1..MAX_RETRY_ATTEMPTS) {
+                if (attempt > 1) {
+                    val delayMs = RETRY_BASE_DELAY_MS * (1L shl (attempt - 2)) // 3s, 6s, 12s
+                    Log.d(TAG, "Retry attempt $attempt — waiting ${delayMs}ms")
+                    _uiState.value = AuthUiState.RetryingConnection(
+                        attempt = attempt,
+                        maxAttempts = MAX_RETRY_ATTEMPTS,
+                        statusMessage = "Slow connection. Retrying ($attempt/$MAX_RETRY_ATTEMPTS)…"
+                    )
+                    delay(delayMs)
+
+                    // Re-check network before each retry
+                    if (!NetworkUtils.isNetworkAvailable(context)) {
+                        _uiState.value = AuthUiState.NetworkError
+                        return@launch
+                    }
+                }
+
+                when (val result = repository.signInWithGoogle(activity, credentialManager, clientId)) {
+
+                    is AuthRepository.AuthResult.Success -> {
+                        handleSignInSuccess(result.isNewUser, isServicePartner)
+                        return@launch
+                    }
+
+                    is AuthRepository.AuthResult.NoCredentials -> {
+                        // Device has no Google account — retrying won't help
+                        Log.w(TAG, "No Google account found on device")
+                        _uiState.value = AuthUiState.Error(
+                            "No Google account found on this device. " +
+                            "Please add a Google account in your device Settings and try again."
+                        )
+                        return@launch
+                    }
+
+                    is AuthRepository.AuthResult.Cancelled -> {
+                        // User deliberately cancelled — restore initial screen silently
+                        Log.d(TAG, "User cancelled sign-in picker")
+                        _uiState.value = AuthUiState.ShowInitialState
+                        return@launch
+                    }
+
+                    is AuthRepository.AuthResult.Timeout -> {
+                        Log.w(TAG, "Attempt $attempt timed out")
+                        lastFailureCause = "Connection timed out"
+                        // Continue retry loop
+                    }
+
+                    is AuthRepository.AuthResult.Failure -> {
+                        Log.e(TAG, "Attempt $attempt failed: ${result.cause.message}")
+                        lastFailureCause = result.cause.message ?: "Sign-in failed"
+                        // Continue retry loop
+                    }
+                }
+            }
+
+            // ── All retries exhausted ────────────────────────────────────────
+            Log.e(TAG, "All $MAX_RETRY_ATTEMPTS attempts failed. Last cause: $lastFailureCause")
+            _uiState.value = AuthUiState.Error(
+                "Unable to connect after $MAX_RETRY_ATTEMPTS attempts. " +
+                "Please check your internet connection and try again."
+            )
         }
     }
 
-    /** Check if user already signed in */
+    /**
+     * Cancels the active auth job and returns to initial state.
+     * Called when user presses back during Loading or RetryingConnection.
+     */
+    fun cancelSignIn() {
+        Log.d(TAG, "User cancelled sign-in — cancelling active auth job")
+        activeAuthJob?.cancel()
+        activeAuthJob = null
+        _uiState.value = AuthUiState.ShowInitialState
+    }
+
+    // ─── Sign In Success Handler ─────────────────────────────────────────────
+
+    private fun handleSignInSuccess(isNewUser: Boolean, isServicePartner: Boolean) {
+        _uiState.value = if (isNewUser) {
+            currentStep = 1
+            if (isServicePartner) AuthUiState.ShowServicePartnerStep1
+            else AuthUiState.ShowCustomerFields
+        } else {
+            AuthUiState.Success
+        }
+    }
+
+    // ─── Check If Already Signed In ──────────────────────────────────────────
+
     fun checkIfUserSignedIn() {
         viewModelScope.launch {
             try {
@@ -76,67 +198,60 @@ class AuthViewModel(
         }
     }
 
-    /** Proceed to next step in registration */
-    fun nextStep(name: String? = null, phone: String? = null, city: String? = null, locality: String? = null) {
-        Log.d("AuthFlow", "nextStep - currentStep: $currentStep, isServicePartnerFlow: $isServicePartnerFlow")
-        Log.d("AuthFlow", "nextStep - name: $name, phone: $phone, city: $city, locality: $locality")
+    // ─── Multi-Step Navigation ───────────────────────────────────────────────
+
+    fun nextStep(
+        name: String? = null,
+        phone: String? = null,
+        city: String? = null,
+        locality: String? = null
+    ) {
+        Log.d(TAG, "nextStep — currentStep: $currentStep, isServicePartnerFlow: $isServicePartnerFlow")
 
         if (currentStep == 0) {
-            Log.d("AuthFlow", "Handling step 0 - moving to step 1")
             currentStep = 1
             return nextStep(name, phone, city, locality)
         }
 
         when (currentStep) {
             1 -> {
-                Log.d("AuthFlow", "Processing step 1 - Name and Phone")
                 formData.name = name.orEmpty()
                 formData.phone = phone.orEmpty()
 
                 val error = AuthFormValidator().validateNameAndPhone(formData.name, formData.phone)
                 if (error != null) {
-                    Log.e("AuthFlow", "Validation error in step 1: $error")
+                    Log.e(TAG, "Validation error in step 1: $error")
                     return
                 }
 
-                Log.d("AuthFlow", "Step 1 validation passed")
-
                 if (isServicePartnerFlow) {
-                    Log.d("AuthFlow", "Moving to step 2 (service partner flow)")
                     currentStep = 2
                     _uiState.value = AuthUiState.ShowServicePartnerStep2
-                    Log.d("AuthFlow", "UI state updated to ShowServicePartnerStep2")
                 } else {
-                    Log.d("AuthFlow", "Proceeding with customer registration")
                     registerUser()
                 }
             }
             2 -> {
-                Log.d("AuthFlow", "Processing step 2 - City and Locality")
                 formData.city = city.orEmpty()
                 formData.locality = locality.orEmpty()
 
                 val error = AuthFormValidator().validateCityAndLocality(formData.city, formData.locality)
                 if (error != null) {
-                    Log.e("AuthFlow", "Validation error in step 2: $error")
+                    Log.e(TAG, "Validation error in step 2: $error")
                     return
                 }
 
-                Log.d("AuthFlow", "Step 2 validation passed")
-
                 if (isServicePartnerFlow) {
-                    Log.d("AuthFlow", "Loading services for step 3")
                     loadServicesForStep3()
                 } else {
-                    val errorMsg = "Invalid flow - reached step 2 in non-service partner flow"
-                    Log.e("AuthFlow", errorMsg)
-                    _uiState.value = AuthUiState.Error(errorMsg)
+                    _uiState.value = AuthUiState.Error("Invalid flow state")
                 }
             }
         }
     }
 
-    /** Load services for step 3 via repository */
+    // ─── Load Services ───────────────────────────────────────────────────────
+
     private fun loadServicesForStep3() {
         _uiState.value = AuthUiState.Loading
         viewModelScope.launch {
@@ -150,7 +265,8 @@ class AuthViewModel(
         }
     }
 
-    /** Register a customer */
+    // ─── Register Customer ───────────────────────────────────────────────────
+
     fun registerUser() {
         val user = FirebaseAuth.getInstance().currentUser ?: run {
             _uiState.value = AuthUiState.Error("User not signed in")
@@ -178,7 +294,8 @@ class AuthViewModel(
         }
     }
 
-    /** Register a service partner */
+    // ─── Register Service Partner ────────────────────────────────────────────
+
     fun registerServicePartner(experience: String, services: List<String>) {
         val user = FirebaseAuth.getInstance().currentUser ?: run {
             _uiState.value = AuthUiState.Error("User not signed in")
@@ -207,30 +324,39 @@ class AuthViewModel(
         }
     }
 
-    /** Navigate back to previous step */
+    // ─── Back Navigation ─────────────────────────────────────────────────────
+
     fun goBackToPreviousStep() {
-        Log.d("AuthFlow", "goBackToPreviousStep - currentStep: $currentStep")
+        Log.d(TAG, "goBackToPreviousStep — currentStep: $currentStep")
+
+        // If in loading/retrying state, cancel the operation instead of navigating
+        val current = _uiState.value
+        if (current is AuthUiState.Loading || current is AuthUiState.RetryingConnection) {
+            cancelSignIn()
+            return
+        }
 
         when (currentStep) {
             3 -> {
                 currentStep = 2
                 _uiState.value = AuthUiState.ShowServicePartnerStep2
-                Log.d("AuthFlow", "Navigated back to step 2")
             }
             2 -> {
                 currentStep = 1
                 _uiState.value = AuthUiState.ShowServicePartnerStep1
-                Log.d("AuthFlow", "Navigated back to step 1")
             }
             1 -> {
                 currentStep = 0
                 isServicePartnerFlow = false
                 _uiState.value = AuthUiState.ShowInitialState
-                Log.d("AuthFlow", "Navigated back to initial state")
-            }
-            else -> {
-                Log.d("AuthFlow", "Already at initial step or invalid step")
             }
         }
+    }
+
+    // ─── Cleanup ─────────────────────────────────────────────────────────────
+
+    override fun onCleared() {
+        super.onCleared()
+        activeAuthJob?.cancel()
     }
 }

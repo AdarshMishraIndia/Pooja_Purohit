@@ -26,10 +26,9 @@ fun AuthScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    Box(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        // Background Image
+    Box(modifier = Modifier.fillMaxSize()) {
+
+        // ── Background ────────────────────────────────────────────────────────
         Image(
             painter = painterResource(R.drawable.auth_bg),
             contentDescription = null,
@@ -37,68 +36,121 @@ fun AuthScreen(
             contentScale = ContentScale.Crop
         )
 
-        // Main Content - Always show the current screen based on state
+        // ── Screen Content ────────────────────────────────────────────────────
         when (val state = uiState) {
+
             is AuthUiState.ShowInitialState -> {
                 InitialAuthScreen(viewModel = viewModel)
             }
+
             is AuthUiState.ShowCustomerFields -> {
                 CustomerRegistrationScreen(viewModel = viewModel)
             }
+
             is AuthUiState.ShowServicePartnerStep1 -> {
                 ServicePartnerStep1Screen(viewModel = viewModel)
             }
+
             is AuthUiState.ShowServicePartnerStep2 -> {
                 ServicePartnerStep2Screen(viewModel = viewModel)
             }
+
             is AuthUiState.ShowServicePartnerStep3 -> {
                 ServicePartnerStep3Screen(
                     viewModel = viewModel,
                     services = state.services
                 )
             }
+
             is AuthUiState.Success -> {
                 LaunchedEffect(Unit) {
                     onNavigateToDashboard()
                 }
             }
+
             is AuthUiState.Error -> {
                 LaunchedEffect(state.message) {
                     Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
                 }
-                // Show initial screen so user can retry
                 InitialAuthScreen(viewModel = viewModel)
             }
-            AuthUiState.Idle -> {
-                // Show initial state instead of nothing
+
+            is AuthUiState.NetworkError -> {
+                // Show initial screen; toast informs the user
+                LaunchedEffect(Unit) {
+                    Toast.makeText(
+                        context,
+                        "No internet connection. Please check your network and try again.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
                 InitialAuthScreen(viewModel = viewModel)
             }
+
             is AuthUiState.Loading -> {
-                // Show previous screen behind the loading dialog
-                // Determine which screen to show based on currentStep
-                when {
-                    viewModel.currentStep == 0 -> InitialAuthScreen(viewModel = viewModel)
-                    viewModel.currentStep == 1 && viewModel.isServicePartnerFlow ->
+                // Render the appropriate screen behind the loading overlay
+                when (viewModel.currentStep) {
+                    0 ->
+                        InitialAuthScreen(viewModel = viewModel)
+
+                    1 if viewModel.isServicePartnerFlow ->
                         ServicePartnerStep1Screen(viewModel = viewModel)
-                    viewModel.currentStep == 1 && !viewModel.isServicePartnerFlow ->
+
+                    1 if true ->
                         CustomerRegistrationScreen(viewModel = viewModel)
-                    viewModel.currentStep == 2 ->
+
+                    2 ->
                         ServicePartnerStep2Screen(viewModel = viewModel)
-                    viewModel.currentStep == 3 ->
+
+                    3 ->
                         ServicePartnerStep3Screen(viewModel = viewModel, services = emptyList())
+
                     else -> InitialAuthScreen(viewModel = viewModel)
                 }
             }
+
+            is AuthUiState.RetryingConnection -> {
+                // Show initial screen behind the retry overlay
+                InitialAuthScreen(viewModel = viewModel)
+            }
+
+            AuthUiState.Idle -> {
+                InitialAuthScreen(viewModel = viewModel)
+            }
         }
 
-        // Loading Dialog - Show on top of content
-        if (uiState is AuthUiState.Loading) {
-            LoadingDialog()
+        // ── Loading / Retry Overlay ───────────────────────────────────────────
+        when (val state = uiState) {
+            is AuthUiState.Loading -> {
+                LoadingDialog(
+                    statusMessage = "Signing you in…",
+                    isRetrying = false,
+                    // Allow cancel during initial sign-in attempts (step 0 = auth flow)
+                    onCancel = if (viewModel.currentStep == 0) viewModel::cancelSignIn else null
+                )
+            }
+
+            is AuthUiState.RetryingConnection -> {
+                LoadingDialog(
+                    statusMessage = state.statusMessage,
+                    isRetrying = true,
+                    retryAttempt = state.attempt,
+                    maxRetries = state.maxAttempts,
+                    onCancel = viewModel::cancelSignIn
+                )
+            }
+
+            else -> { /* No overlay */ }
         }
     }
 
-    // Back press handling
-    BackHandler(enabled = viewModel.currentStep > 0) {
+    // ── Back Handler ──────────────────────────────────────────────────────────
+    // Intercept back press at all steps including during loading/retrying.
+    BackHandler(
+        enabled = viewModel.currentStep > 0
+                || uiState is AuthUiState.Loading
+                || uiState is AuthUiState.RetryingConnection
+    ) {
         viewModel.goBackToPreviousStep()
     }
 }

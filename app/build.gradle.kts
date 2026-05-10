@@ -14,7 +14,7 @@ android {
 
     defaultConfig {
         applicationId = "com.poojapurohit"
-        minSdk = 23
+        minSdk = 24
         //noinspection OldTargetApi
         targetSdk = 36
         versionCode = 1

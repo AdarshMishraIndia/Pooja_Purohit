@@ -1,5 +1,6 @@
 package com.poojapurohit.bookpurohit.compose.presentation.screens
 
+import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -62,6 +63,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.poojapurohit.booking.BookingsActivity
 import com.poojapurohit.bookpurohit.compose.CheckoutViewModel
 import com.poojapurohit.dashboard.compose.theme.BrandOrange
 import com.poojapurohit.dashboard.compose.theme.BrandRed
@@ -76,17 +78,15 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import androidx.core.net.toUri
 
 /**
  * Checkout screen — service selection, date/time picker, address + map pin, payment stub.
  *
- * Map pin is MANDATORY — [com.poojapurohit.bookpurohit.compose.CheckoutViewModel.showPaymentDialog] blocks if [com.poojapurohit.bookpurohit.compose.CheckoutViewModel.CheckoutUiState.coordinates] is null.
+ * On booking success, navigates directly to [BookingsActivity] with a deep link that
+ * opens [BookingDetailScreen] for the newly created booking.
  *
- * Dependency: add to build.gradle (app module):
- * implementation("com.google.maps.android:maps-compose:4.3.3")
- * implementation("com.google.android.gms:play-services-maps:19.0.0")
- * // Also add your Maps API key in AndroidManifest.xml:
- * // <meta-data android:name="com.google.android.geo.API_KEY" android:value="YOUR_KEY"/>
+ * Map pin is MANDATORY — [CheckoutViewModel.showPaymentDialog] blocks if coordinates is null.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -119,9 +119,23 @@ fun CheckoutScreen(
         }
     }
 
+    // On booking success: navigate to BookingsActivity → BookingDetailScreen for this booking.
     LaunchedEffect(uiState.bookingComplete) {
         if (uiState.bookingComplete) {
-            Toast.makeText(context, "Booking recorded successfully!", Toast.LENGTH_LONG).show()
+            val bookingId = uiState.completedBookingId
+            if (bookingId != null) {
+                val intent = Intent(
+                    Intent.ACTION_VIEW,
+                    "poojapurohit://bookings/$bookingId".toUri(),
+                    context,
+                    BookingsActivity::class.java
+                ).apply {
+                    flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                }
+                context.startActivity(intent)
+            } else {
+                Toast.makeText(context, "Booking recorded successfully!", Toast.LENGTH_LONG).show()
+            }
             onBookingSuccess()
         }
     }
@@ -221,7 +235,6 @@ fun CheckoutScreen(
                 }
 
                 // ── Address + Map pin ─────────────────────────────────────────
-                // Row: address text field (weight 1) + pin button
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -238,7 +251,6 @@ fun CheckoutScreen(
                         )
                     )
 
-                    // Map pin button — changes appearance once a pin is set
                     val pinSet = uiState.coordinates != null
                     Box(
                         modifier = Modifier
@@ -260,7 +272,6 @@ fun CheckoutScreen(
                     }
                 }
 
-                // Coordinate hint text below the row
                 if (uiState.coordinates != null) {
                     val coords = uiState.coordinates!!
                     Text(
@@ -365,7 +376,7 @@ fun CheckoutScreen(
                 )
             }
 
-            // ── Map pin picker (extracted to MapPinPickerScreen.kt) ───────────
+            // ── Map pin picker ────────────────────────────────────────────────
             if (showMapPicker) {
                 MapPinPickerScreen(
                     initialPin = uiState.coordinates,
@@ -390,9 +401,6 @@ fun CheckoutScreen(
         }
     }
 }
-
-
-// MapPinPickerDialog has been extracted to MapPinPickerScreen.kt
 
 @Composable
 fun RazorpayStubDialog(

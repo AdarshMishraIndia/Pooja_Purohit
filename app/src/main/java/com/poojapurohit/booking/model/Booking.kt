@@ -53,39 +53,56 @@ val BookingStatus.displayLabel: String
 
 data class Booking(
     val bookingId: String = "",
-    val userId: String = "",
+
     val purohitId: String = "",
     val purohitName: String = "",
+    val purohitPhone: String = "",
+
+    val userId: String = "",
+    val userName: String = "",
     val userPhone: String = "",
+
     val serviceName: String = "",
     val amount: Long = 0L,
+
     val status: BookingStatus = BookingStatus.PENDING_PAYMENT,
     val razorpayOrderId: String = "",
     val razorpayPaymentId: String = "",
+
     val scheduledDate: Timestamp? = null,
     val address: String = "",
+
     val createdAt: Timestamp? = null,
     val updatedAt: Timestamp? = null,
-    /** Populated when a purohit cancels — stores their stated reason. Null for user cancellations. */
+
     val remarks: String? = null
 ) {
     companion object {
         fun fromDocument(doc: DocumentSnapshot): Booking {
             return Booking(
                 bookingId = doc.getString("bookingId") ?: doc.id,
+
                 userId = doc.getString("userId") ?: "",
+                userName     = doc.getString("userName") ?: "",
+                userPhone = doc.getString("userPhone") ?: "",
+
                 purohitId = doc.getString("purohitId") ?: "",
                 purohitName = doc.getString("purohitName") ?: "",
-                userPhone = doc.getString("userPhone") ?: "",
+                purohitPhone = doc.getString("purohitPhone") ?: "",
+
                 serviceName = doc.getString("serviceName") ?: "",
                 amount = doc.getLong("amount") ?: 0L,
+
                 status = BookingStatus.fromString(doc.getString("status")),
                 razorpayOrderId = doc.getString("razorpayOrderId") ?: "",
                 razorpayPaymentId = doc.getString("razorpayPaymentId") ?: "",
+
                 scheduledDate = doc.getTimestamp("scheduledDate"),
                 address = doc.getString("address") ?: "",
+
                 createdAt = doc.getTimestamp("createdAt"),
                 updatedAt = doc.getTimestamp("updatedAt"),
+
                 remarks = doc.getString("remarks")
             )
         }

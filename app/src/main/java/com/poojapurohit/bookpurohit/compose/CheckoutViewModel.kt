@@ -23,6 +23,7 @@ data class CheckoutUiState(
     val selectedService: String = "POOJA (Sri Ganesh, Sri Vishwakarma, Sri Satyanarayan, Maa Saraswati)",
     val address: String = "",
     val scheduledDateMillis: Long? = null,
+    val completedBookingId: String? = null,
 
     // Map pin — mandatory before payment can proceed
     val coordinates: LatLng? = null,
@@ -185,7 +186,7 @@ class CheckoutViewModel(
                     .set(bookingData)
                     .await()
 
-                _uiState.update { it.copy(isLoading = false, bookingComplete = true) }
+                _uiState.update { it.copy(isLoading = false, bookingComplete = true, completedBookingId = bookingId) }
 
             } catch (e: Exception) {
                 _uiState.update {

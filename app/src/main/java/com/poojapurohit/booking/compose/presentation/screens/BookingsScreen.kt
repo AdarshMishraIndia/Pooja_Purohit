@@ -152,6 +152,15 @@ fun BookingsScreen(
         }
     }
 
+    LaunchedEffect(uiState.highlightedBookingId, uiState.activeBookings,
+        uiState.cancelledBookings, uiState.completedBookings) {
+        val id = uiState.highlightedBookingId ?: return@LaunchedEffect
+        val all = uiState.activeBookings + uiState.cancelledBookings + uiState.completedBookings
+        if (all.any { it.bookingId == id }) {
+            selectedBookingId = id
+        }
+    }
+
     // ── One-shot effects ──────────────────────────────────────────────────────
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
