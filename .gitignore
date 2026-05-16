@@ -14,3 +14,11 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Sensitive Credentials
+SERVICE ACCOUNTS KEY/
+*.json
+
+# IDE and Build Artifacts
+.idea/inspectionProfiles/
+app/release/
