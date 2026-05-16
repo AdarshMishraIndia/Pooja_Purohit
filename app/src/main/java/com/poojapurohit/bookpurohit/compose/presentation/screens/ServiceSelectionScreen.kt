@@ -10,10 +10,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -46,11 +44,10 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.poojapurohit.bookpurohit.compose.BookPurohitEvent
 import com.poojapurohit.bookpurohit.compose.BookPurohitViewModel
-import com.poojapurohit.bookpurohit.compose.LocationItem
+import com.poojapurohit.bookpurohit.compose.model.ServiceItem
 import com.poojapurohit.bookpurohit.compose.presentation.components.BookPurohitTopBar
 import com.poojapurohit.bookpurohit.compose.presentation.util.highlightSearchQuery
 import com.poojapurohit.dashboard.compose.theme.BrandOrange
-import com.poojapurohit.dashboard.compose.theme.BrandRed
 import com.poojapurohit.dashboard.compose.theme.DarkBackgroundGradientCenter
 import com.poojapurohit.dashboard.compose.theme.DarkBackgroundGradientEnd
 import com.poojapurohit.dashboard.compose.theme.DarkBackgroundGradientStart
@@ -61,19 +58,18 @@ import com.poojapurohit.dashboard.compose.theme.LightBackgroundGradientEnd
 import com.poojapurohit.dashboard.compose.theme.LightBackgroundGradientStart
 
 @Composable
-fun LocationSelectionScreen(
+fun ServiceSelectionScreen(
     viewModel: BookPurohitViewModel,
-    serviceSlug: String,
     onBackPressed: () -> Unit,
-    onLocationClick: (String) -> Unit
+    onServiceClick: (String) -> Unit      // passes serviceSlug
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val isDark = isSystemInDarkTheme()
 
-    LaunchedEffect(serviceSlug) {
-        viewModel.attachLocationsListener(serviceSlug)
-    }
+    // Services listener is started in ViewModel.init — no LaunchedEffect needed.
+    // Re-entering this screen after back-press: resetToServices() restores allServices,
+    // so attachServicesListener() guard (activeListeners check) keeps it idempotent.
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let {
@@ -87,7 +83,7 @@ fun LocationSelectionScreen(
     Scaffold(
         topBar = {
             BookPurohitTopBar(
-                bannerTitle = "Select Location",
+                bannerTitle = "Select Service",
                 onBackPressed = onBackPressed,
                 isDark = isDark
             )
@@ -114,7 +110,7 @@ fun LocationSelectionScreen(
                 .padding(paddingValues)
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                LocationSearchBar(
+                ServiceSearchBar(
                     query = uiState.searchQuery,
                     onQueryChange = { viewModel.onEvent(BookPurohitEvent.SearchQueryChanged(it)) },
                     isDark = isDark
@@ -128,9 +124,9 @@ fun LocationSelectionScreen(
                         CircularProgressIndicator(color = if (isDark) DarkBrandOrange else BrandOrange)
                     }
 
-                    uiState.locations.isEmpty() -> LocationEmptyState(
-                        message = if (uiState.searchQuery.isBlank()) "No locations available"
-                        else "No locations found for \"${uiState.searchQuery}\""
+                    uiState.services.isEmpty() -> ServiceEmptyState(
+                        message = if (uiState.searchQuery.isBlank()) "No services available"
+                        else "No services found for \"${uiState.searchQuery}\""
                     )
 
                     else -> LazyColumn(
@@ -138,11 +134,11 @@ fun LocationSelectionScreen(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(uiState.locations) { location ->
-                            LocationCard(
-                                location = location,
+                        items(uiState.services, key = { it.slug }) { service ->
+                            ServiceCard(
+                                service = service,
                                 searchQuery = uiState.searchQuery,
-                                onClick = { onLocationClick(location.id) },
+                                onClick = { onServiceClick(service.slug) },
                                 isDark = isDark
                             )
                         }
@@ -154,7 +150,7 @@ fun LocationSelectionScreen(
 }
 
 @Composable
-private fun LocationSearchBar(query: String, onQueryChange: (String) -> Unit, isDark: Boolean) {
+private fun ServiceSearchBar(query: String, onQueryChange: (String) -> Unit, isDark: Boolean) {
     OutlinedTextField(
         value = query,
         onValueChange = onQueryChange,
@@ -162,7 +158,7 @@ private fun LocationSearchBar(query: String, onQueryChange: (String) -> Unit, is
             .fillMaxWidth()
             .padding(16.dp),
         placeholder = {
-            Text("Search Locations", fontFamily = FontFamily.Serif, fontSize = 16.sp)
+            Text("Search services...", fontFamily = FontFamily.Serif, fontSize = 16.sp)
         },
         leadingIcon = {
             Icon(
@@ -182,7 +178,12 @@ private fun LocationSearchBar(query: String, onQueryChange: (String) -> Unit, is
 }
 
 @Composable
-private fun LocationCard(location: LocationItem, searchQuery: String, onClick: () -> Unit, isDark: Boolean) {
+private fun ServiceCard(
+    service: ServiceItem,
+    searchQuery: String,
+    onClick: () -> Unit,
+    isDark: Boolean
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -198,21 +199,14 @@ private fun LocationCard(location: LocationItem, searchQuery: String, onClick: (
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = highlightSearchQuery(location.name, searchQuery, isDark),
-                    fontFamily = FontFamily.Serif,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "${location.count} service partner${if (location.count != 1) "s" else ""} available",
-                    fontFamily = FontFamily.Serif,
-                    fontSize = 14.sp,
-                    color = if (isDark) DarkBrandOrange else BrandRed
-                )
-            }
+            Text(
+                text = highlightSearchQuery(service.name, searchQuery, isDark),
+                fontFamily = FontFamily.Serif,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+                lineHeight = 22.sp,
+                modifier = Modifier.weight(1f)
+            )
             Text(
                 "›", fontSize = 32.sp, fontWeight = FontWeight.Bold,
                 color = if (isDark) DarkBrandOrange else BrandOrange
@@ -222,13 +216,13 @@ private fun LocationCard(location: LocationItem, searchQuery: String, onClick: (
 }
 
 @Composable
-private fun LocationEmptyState(message: String) {
+private fun ServiceEmptyState(message: String) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text("📍", fontSize = 48.sp)
+            Text("🕉️", fontSize = 48.sp)
             Text(
                 text = message,
                 fontFamily = FontFamily.Serif,

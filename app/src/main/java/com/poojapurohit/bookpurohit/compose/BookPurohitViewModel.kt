@@ -1,10 +1,12 @@
 package com.poojapurohit.bookpurohit.compose
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 import com.poojapurohit.bookpurohit.compose.model.PurohitItem
+import com.poojapurohit.bookpurohit.compose.model.ServiceItem
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,12 +19,14 @@ data class LocationItem(
 )
 
 data class BookPurohitUiState(
+    val services: List<ServiceItem> = emptyList(),
     val locations: List<LocationItem> = emptyList(),
     val subLocations: List<LocationItem> = emptyList(),
     val purohits: List<PurohitItem> = emptyList(),
     val searchQuery: String = "",
     val isLoading: Boolean = false,
     val error: String? = null,
+    val selectedServiceSlug: String = "",
     val currentLocationId: String? = null,
     val currentSubLocationId: String? = null
 )
@@ -34,7 +38,7 @@ sealed interface BookPurohitEvent {
 }
 
 private enum class ListenerType {
-    LOCATIONS, SUBLOCATIONS, PUROHITS
+    SERVICES, LOCATIONS, SUBLOCATIONS, PUROHITS
 }
 
 class BookPurohitViewModel : ViewModel() {
@@ -44,17 +48,19 @@ class BookPurohitViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(BookPurohitUiState())
     val uiState: StateFlow<BookPurohitUiState> = _uiState.asStateFlow()
 
+    private var allServices: List<ServiceItem> = emptyList()
     private var allLocations: List<LocationItem> = emptyList()
     private var allSubLocations: List<LocationItem> = emptyList()
     private var allPurohits: List<PurohitItem> = emptyList()
 
+    private var servicesListener: ListenerRegistration? = null
     private var locationsListener: ListenerRegistration? = null
     private var subLocationsListener: ListenerRegistration? = null
     private var purohitsListener: ListenerRegistration? = null
     private val activeListeners = mutableSetOf<ListenerType>()
 
     init {
-        attachLocationsListener()
+        attachServicesListener()
     }
 
     override fun onCleared() {
@@ -63,6 +69,7 @@ class BookPurohitViewModel : ViewModel() {
     }
 
     private fun removeAllListeners() {
+        servicesListener?.remove()
         locationsListener?.remove()
         subLocationsListener?.remove()
         purohitsListener?.remove()
@@ -82,8 +89,15 @@ class BookPurohitViewModel : ViewModel() {
         when {
             _uiState.value.currentSubLocationId != null -> filterPurohits(query)
             _uiState.value.currentLocationId != null -> filterSubLocations(query)
-            else -> filterLocations(query)
+            _uiState.value.selectedServiceSlug.isNotBlank() -> filterLocations(query)
+            else -> filterServices(query)
         }
+    }
+
+    private fun filterServices(query: String) {
+        val filtered = if (query.isBlank()) allServices
+        else allServices.filter { it.name.contains(query, ignoreCase = true) }
+        _uiState.update { it.copy(services = filtered) }
     }
 
     private fun filterLocations(query: String) {
@@ -107,13 +121,57 @@ class BookPurohitViewModel : ViewModel() {
         _uiState.update { it.copy(purohits = filtered) }
     }
 
-    fun attachLocationsListener() {
-        if (activeListeners.contains(ListenerType.LOCATIONS)) return
+    // ── Services ──────────────────────────────────────────────────
+
+    fun attachServicesListener() {
+        if (activeListeners.contains(ListenerType.SERVICES)) return
         _uiState.update { it.copy(isLoading = true, error = null) }
+
+        servicesListener = firestore.collection("services")
+            .whereEqualTo("isActive", true)
+            .orderBy("displayOrder", Query.Direction.ASCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    _uiState.update { it.copy(isLoading = false) }
+                    return@addSnapshotListener
+                }
+
+                val services = snapshot?.documents
+                    ?.mapNotNull { ServiceItem.fromDocument(it) }
+                    ?.filter { it.isActive }
+                    ?.sortedBy { it.displayOrder }
+                    ?: emptyList()
+
+                allServices = services
+                _uiState.update { it.copy(services = services, isLoading = false) }
+
+                servicesListener?.remove()
+                servicesListener = null
+                activeListeners.remove(ListenerType.SERVICES)
+            }
+        activeListeners.add(ListenerType.SERVICES)
+    }
+
+    // ── Locations (scoped to selected service) ────────────────────
+
+    fun attachLocationsListener(serviceSlug: String) {
+        detachLocationsListener()
+        detachSubLocationsListener()
+        detachPurohitsListener()
+
+        _uiState.update {
+            it.copy(
+                isLoading = true, error = null, searchQuery = "",
+                selectedServiceSlug = serviceSlug,
+                locations = emptyList(), subLocations = emptyList(), purohits = emptyList(),
+                currentLocationId = null, currentSubLocationId = null
+            )
+        }
 
         locationsListener = firestore.collection("purohits")
             .whereEqualTo("isVerified", true)
             .whereEqualTo("isAvailable", true)
+            .whereArrayContains("serviceIds", serviceSlug)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     _uiState.update { it.copy(isLoading = false, error = error.message) }
@@ -133,12 +191,12 @@ class BookPurohitViewModel : ViewModel() {
 
                 val locations = cityMap.values.sortedBy { it.name }
                 allLocations = locations
-                _uiState.update {
-                    it.copy(locations = locations, isLoading = false, currentLocationId = null)
-                }
+                _uiState.update { it.copy(locations = locations, isLoading = false) }
             }
         activeListeners.add(ListenerType.LOCATIONS)
     }
+
+    // ── Sub-locations ─────────────────────────────────────────────
 
     fun attachSubLocationsListener(locationId: String) {
         detachSubLocationsListener()
@@ -155,6 +213,7 @@ class BookPurohitViewModel : ViewModel() {
         subLocationsListener = firestore.collection("purohits")
             .whereEqualTo("isVerified", true)
             .whereEqualTo("isAvailable", true)
+            .whereArrayContains("serviceIds", _uiState.value.selectedServiceSlug)
             .whereEqualTo("city", locationId)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
@@ -180,7 +239,17 @@ class BookPurohitViewModel : ViewModel() {
         activeListeners.add(ListenerType.SUBLOCATIONS)
     }
 
+    // ── Purohits ──────────────────────────────────────────────────
+
     fun attachPurohitsListener(locationId: String, subLocationId: String) {
+        val serviceSlug = _uiState.value.selectedServiceSlug
+        if (serviceSlug.isBlank()) {
+            _uiState.update { it.copy(error = "Service not selected. Please go back and reselect.") }
+            return
+        }
+
+        detachLocationsListener()
+        detachSubLocationsListener()
         detachPurohitsListener()
 
         _uiState.update {
@@ -193,35 +262,60 @@ class BookPurohitViewModel : ViewModel() {
         purohitsListener = firestore.collection("purohits")
             .whereEqualTo("isVerified", true)
             .whereEqualTo("isAvailable", true)
+            .whereArrayContains("serviceIds", _uiState.value.selectedServiceSlug)
             .whereEqualTo("city", locationId)
             .whereEqualTo("locality", subLocationId)
             .orderBy("name", Query.Direction.ASCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
+                    Log.e("BookPurohitVM", "attachPurohitsListener failed", error)
                     _uiState.update { it.copy(isLoading = false, error = "Query failed: ${error.message}") }
                     return@addSnapshotListener
                 }
 
-                val items = snapshot?.documents?.mapNotNull { doc ->
-                    PurohitItem.fromDocument(doc)
-                } ?: emptyList()
-
+                val items = snapshot?.documents?.mapNotNull { PurohitItem.fromDocument(it) } ?: emptyList()
                 allPurohits = items
                 _uiState.update { it.copy(purohits = items, isLoading = false) }
             }
         activeListeners.add(ListenerType.PUROHITS)
     }
 
+    // ── Detach helpers ────────────────────────────────────────────
+
+    private fun detachLocationsListener() {
+        locationsListener?.remove()
+        locationsListener = null
+        activeListeners.remove(ListenerType.LOCATIONS)
+        Log.d("BookPurohitVM", "detachLocationsListener: removed")
+    }
+
     private fun detachSubLocationsListener() {
         subLocationsListener?.remove()
         subLocationsListener = null
         activeListeners.remove(ListenerType.SUBLOCATIONS)
+        Log.d("BookPurohitVM", "detachSubLocationsListener: removed")
     }
 
     private fun detachPurohitsListener() {
         purohitsListener?.remove()
         purohitsListener = null
         activeListeners.remove(ListenerType.PUROHITS)
+    }
+
+    // ── Reset helpers ─────────────────────────────────────────────
+
+    fun resetToServices() {
+        detachLocationsListener()
+        detachSubLocationsListener()
+        detachPurohitsListener()
+        _uiState.update {
+            it.copy(
+                locations = emptyList(), subLocations = emptyList(), purohits = emptyList(),
+                searchQuery = "", selectedServiceSlug = "",
+                currentLocationId = null, currentSubLocationId = null,
+                services = allServices
+            )
+        }
     }
 
     fun resetToLocations() {

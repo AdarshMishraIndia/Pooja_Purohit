@@ -21,6 +21,7 @@ import com.poojapurohit.bookpurohit.compose.BookPurohitViewModel
 import com.poojapurohit.bookpurohit.compose.presentation.screens.CheckoutScreen
 import com.poojapurohit.bookpurohit.compose.presentation.screens.LocationSelectionScreen
 import com.poojapurohit.bookpurohit.compose.presentation.screens.PurohitSelectionScreen
+import com.poojapurohit.bookpurohit.compose.presentation.screens.ServiceSelectionScreen
 import com.poojapurohit.bookpurohit.compose.presentation.screens.SubLocationSelectionScreen
 import com.poojapurohit.dashboard.compose.theme.PoojaPurohitTheme
 
@@ -44,7 +45,6 @@ class BookPurohitActivity : ComponentActivity() {
     @Composable
     private fun SetSystemBarsColor() {
         val isDark = isSystemInDarkTheme()
-        // Using the brand colours from your theme setup
         val statusBarColor = Color(if (isDark) 0xFF5E1100 else 0xFF811C01)
 
         DisposableEffect(isDark) {
@@ -65,32 +65,54 @@ fun BookPurohitNavigation(viewModel: BookPurohitViewModel) {
 
     NavHost(
         navController = navController,
-        startDestination = "location_selection"
+        startDestination = "service_selection"
     ) {
-        // 1. Location Selection Screen
-        composable("location_selection") {
-            // Get the context here to finish the activity
+        // 1. Service Selection Screen
+        composable("service_selection") {
             val context = LocalContext.current
 
-            LocationSelectionScreen(
+            ServiceSelectionScreen(
                 viewModel = viewModel,
                 onBackPressed = {
-                    // This will close BookPurohitActivity and take you back to DashActivity
                     (context as? android.app.Activity)?.finish()
                 },
-                onLocationClick = { locationId ->
-                    navController.navigate("sublocation_selection/$locationId")
+                onServiceClick = { serviceSlug ->
+                    navController.navigate("location_selection/$serviceSlug")
                 }
             )
         }
 
-        // 2. Sub-Location Selection Screen
+        // 2. Location Selection Screen
         composable(
-            route = "sublocation_selection/{locationId}",
+            route = "location_selection/{serviceSlug}",
             arguments = listOf(
+                navArgument("serviceSlug") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val serviceSlug = backStackEntry.arguments?.getString("serviceSlug") ?: return@composable
+
+            LocationSelectionScreen(
+                viewModel = viewModel,
+                serviceSlug = serviceSlug,
+                onBackPressed = {
+                    viewModel.resetToServices()
+                    navController.popBackStack()
+                },
+                onLocationClick = { locationId ->
+                    navController.navigate("sublocation_selection/$serviceSlug/$locationId")
+                }
+            )
+        }
+
+        // 3. Sub-Location Selection Screen
+        composable(
+            route = "sublocation_selection/{serviceSlug}/{locationId}",
+            arguments = listOf(
+                navArgument("serviceSlug") { type = NavType.StringType },
                 navArgument("locationId") { type = NavType.StringType }
             )
         ) { backStackEntry ->
+            val serviceSlug = backStackEntry.arguments?.getString("serviceSlug") ?: return@composable
             val locationId = backStackEntry.arguments?.getString("locationId") ?: return@composable
 
             SubLocationSelectionScreen(
@@ -100,15 +122,16 @@ fun BookPurohitNavigation(viewModel: BookPurohitViewModel) {
                     navController.popBackStack()
                 },
                 onSubLocationClick = { locId, subLocId ->
-                    navController.navigate("purohit_selection/$locId/$subLocId")
+                    navController.navigate("purohit_selection/$serviceSlug/$locId/$subLocId")
                 }
             )
         }
 
-        // 3. Purohit Selection Screen
+        // 4. Purohit Selection Screen
         composable(
-            route = "purohit_selection/{locationId}/{subLocationId}",
+            route = "purohit_selection/{serviceSlug}/{locationId}/{subLocationId}",
             arguments = listOf(
+                navArgument("serviceSlug") { type = NavType.StringType },
                 navArgument("locationId") { type = NavType.StringType },
                 navArgument("subLocationId") { type = NavType.StringType }
             )
@@ -129,7 +152,7 @@ fun BookPurohitNavigation(viewModel: BookPurohitViewModel) {
             )
         }
 
-        // 4. Booking Screen (Checkout & Razorpay Stub)
+        // 5. Booking Screen (Checkout & Razorpay Stub)
         composable(
             route = "booking/{purohitId}",
             arguments = listOf(
@@ -144,8 +167,7 @@ fun BookPurohitNavigation(viewModel: BookPurohitViewModel) {
                     navController.popBackStack()
                 },
                 onBookingSuccess = {
-                    // On success, pop all the way back to the start of the flow
-                    navController.popBackStack("location_selection", inclusive = false)
+                    navController.popBackStack("service_selection", inclusive = false)
                 }
             )
         }
