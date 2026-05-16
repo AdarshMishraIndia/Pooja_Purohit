@@ -23,7 +23,6 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
@@ -35,7 +34,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.view.WindowInsetsControllerCompat
 import com.poojapurohit.booking.compose.presentation.screens.BookingsScreen
 import com.poojapurohit.dashboard.compose.presentation.screens.DashboardScreen
 import com.poojapurohit.dashboard.compose.theme.PoojaPurohitTheme
@@ -50,21 +48,8 @@ class DashActivity : ComponentActivity() {
 
         setContent {
             PoojaPurohitTheme {
-                SetSystemBarsStyle()
                 MainNavigationScreen(onExitApp = { finish() })
             }
-        }
-    }
-
-    @Composable
-    private fun SetSystemBarsStyle() {
-        val isDark = isSystemInDarkTheme()
-        val context = LocalContext.current
-        val window = (context as? android.app.Activity)?.window ?: return
-
-        SideEffect {
-            val controller = WindowInsetsControllerCompat(window, window.decorView)
-            controller.isAppearanceLightStatusBars = !isDark
         }
     }
 }
