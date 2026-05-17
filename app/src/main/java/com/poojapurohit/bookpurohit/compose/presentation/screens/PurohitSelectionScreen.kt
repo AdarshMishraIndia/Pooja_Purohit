@@ -2,6 +2,12 @@ package com.poojapurohit.bookpurohit.compose.presentation.screens
 
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -49,17 +55,20 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.poojapurohit.bookpurohit.compose.BookPurohitEvent
 import com.poojapurohit.bookpurohit.compose.BookPurohitViewModel
 import com.poojapurohit.bookpurohit.compose.model.PurohitItem
+import com.poojapurohit.bookpurohit.compose.presentation.components.BookPurohitDecorOverlay
 import com.poojapurohit.bookpurohit.compose.presentation.components.BookPurohitTopBar
 import com.poojapurohit.bookpurohit.compose.presentation.util.highlightSearchQuery
 import com.poojapurohit.dashboard.compose.theme.BrandOrange
-import com.poojapurohit.dashboard.compose.theme.DarkBackgroundGradientCenter
-import com.poojapurohit.dashboard.compose.theme.DarkBackgroundGradientEnd
-import com.poojapurohit.dashboard.compose.theme.DarkBackgroundGradientStart
 import com.poojapurohit.dashboard.compose.theme.DarkBrandOrange
 import com.poojapurohit.dashboard.compose.theme.DarkSurface
-import com.poojapurohit.dashboard.compose.theme.LightBackgroundGradientCenter
-import com.poojapurohit.dashboard.compose.theme.LightBackgroundGradientEnd
-import com.poojapurohit.dashboard.compose.theme.LightBackgroundGradientStart
+
+// Deep Crimson / Maroon — gravitas of final selection
+private val LightBgTop    = Color(0xFFFCE4EC)
+private val LightBgMid    = Color(0xFFEF5350)   // mandala accent light
+private val LightBgBottom = Color(0xFF7B0000)
+private val DarkBgTop     = Color(0xFF1A0000)
+private val DarkBgMid     = Color(0xFFB71C1C)   // mandala accent dark
+private val DarkBgBottom  = Color(0xFF5D0000)
 
 @Composable
 fun PurohitSelectionScreen(
@@ -73,30 +82,37 @@ fun PurohitSelectionScreen(
     val context = LocalContext.current
     val isDark = isSystemInDarkTheme()
 
+    val infiniteTransition = rememberInfiniteTransition(label = "purohitBg")
+
+    // Gradient sweeps bottom → top
+    val sweep by infiniteTransition.animateFloat(
+        initialValue = 0f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(9000, easing = LinearEasing), RepeatMode.Reverse),
+        label = "purohitSweep"
+    )
+
+    // Mandala rotation — 35 s / revolution, starts at 135° offset
+    val mandalaRotation by infiniteTransition.animateFloat(
+        initialValue = 135f, targetValue = 495f,
+        animationSpec = infiniteRepeatable(tween(35000, easing = LinearEasing), RepeatMode.Restart),
+        label = "purohitMandala"
+    )
+
     LaunchedEffect(locationId, subLocationId) {
         viewModel.onEvent(BookPurohitEvent.SubLocationSelected(locationId, subLocationId))
     }
 
     LaunchedEffect(uiState.error) {
-        uiState.error?.let {
-            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
-            viewModel.clearError()
-        }
+        uiState.error?.let { Toast.makeText(context, it, Toast.LENGTH_SHORT).show(); viewModel.clearError() }
     }
 
-    BackHandler {
-        viewModel.resetToSubLocations()
-        onBackPressed()
-    }
+    BackHandler { viewModel.resetToSubLocations(); onBackPressed() }
 
     Scaffold(
         topBar = {
             BookPurohitTopBar(
                 bannerTitle = "Select Purohit",
-                onBackPressed = {
-                    viewModel.resetToSubLocations()
-                    onBackPressed()
-                },
+                onBackPressed = { viewModel.resetToSubLocations(); onBackPressed() },
                 isDark = isDark
             )
         }
@@ -106,53 +122,41 @@ fun PurohitSelectionScreen(
                 .fillMaxSize()
                 .background(
                     brush = Brush.linearGradient(
-                        colors = if (isDark) listOf(
-                            DarkBackgroundGradientStart,
-                            DarkBackgroundGradientCenter,
-                            DarkBackgroundGradientEnd
-                        ) else listOf(
-                            LightBackgroundGradientStart,
-                            LightBackgroundGradientCenter,
-                            LightBackgroundGradientEnd
-                        ),
-                        start = Offset.Zero,
-                        end = Offset.Infinite
+                        colors = if (isDark) listOf(DarkBgTop, DarkBgMid, DarkBgBottom)
+                        else listOf(LightBgTop, LightBgMid, LightBgBottom),
+                        start = Offset(300f + sweep * 200f, 2000f),
+                        end = Offset(700f - sweep * 200f, 0f)
                     )
                 )
                 .padding(paddingValues)
         ) {
+            BookPurohitDecorOverlay(
+                mandalaColor = if (isDark) DarkBgMid else LightBgMid,
+                rotationDegrees = mandalaRotation,
+                isDark = isDark
+            )
+
             Column(modifier = Modifier.fillMaxSize()) {
                 PurohitSearchBar(
                     query = uiState.searchQuery,
                     onQueryChange = { viewModel.onEvent(BookPurohitEvent.SearchQueryChanged(it)) },
                     isDark = isDark
                 )
-
                 when {
-                    uiState.isLoading -> Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
+                    uiState.isLoading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                         CircularProgressIndicator(color = if (isDark) DarkBrandOrange else BrandOrange)
                     }
-
                     uiState.purohits.isEmpty() -> PurohitEmptyState(
                         message = if (uiState.searchQuery.isBlank()) "No service partners available in this area"
                         else "No service partners found for \"${uiState.searchQuery}\""
                     )
-
                     else -> LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         items(uiState.purohits) { purohit ->
-                            PurohitCard(
-                                purohit = purohit,
-                                searchQuery = uiState.searchQuery,
-                                onBookClick = onBookClick,
-                                isDark = isDark
-                            )
+                            PurohitCard(purohit, uiState.searchQuery, onBookClick, isDark)
                         }
                     }
                 }
@@ -164,18 +168,11 @@ fun PurohitSelectionScreen(
 @Composable
 private fun PurohitSearchBar(query: String, onQueryChange: (String) -> Unit, isDark: Boolean) {
     OutlinedTextField(
-        value = query,
-        onValueChange = onQueryChange,
+        value = query, onValueChange = onQueryChange,
         modifier = Modifier.fillMaxWidth().padding(16.dp),
-        placeholder = {
-            Text("Search by name or skills...", fontFamily = FontFamily.Serif, fontSize = 16.sp)
-        },
-        leadingIcon = {
-            Icon(Icons.Default.Search, contentDescription = "Search",
-                tint = if (isDark) DarkBrandOrange else BrandOrange)
-        },
-        singleLine = true,
-        shape = RoundedCornerShape(12.dp),
+        placeholder = { Text("Search by name or skills...", fontFamily = FontFamily.Serif, fontSize = 16.sp) },
+        leadingIcon = { Icon(Icons.Default.Search, null, tint = if (isDark) DarkBrandOrange else BrandOrange) },
+        singleLine = true, shape = RoundedCornerShape(12.dp),
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = if (isDark) DarkBrandOrange else BrandOrange,
             unfocusedBorderColor = MaterialTheme.colorScheme.outline,
@@ -190,50 +187,38 @@ private fun PurohitCard(purohit: PurohitItem, searchQuery: String, onBookClick: 
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = if (isDark) DarkSurface else Color.White),
+        colors = CardDefaults.cardColors(containerColor = if (isDark) DarkSurface else Color.White.copy(alpha = 0.88f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
-            Text(
-                text = highlightSearchQuery(purohit.name, searchQuery, isDark),
-                fontFamily = FontFamily.Serif,
-                fontWeight = FontWeight.Bold,
-                fontSize = 22.sp,
-                lineHeight = 26.sp
-            )
+            Text(highlightSearchQuery(purohit.name, searchQuery, isDark),
+                fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 22.sp, lineHeight = 26.sp)
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(Modifier.height(12.dp))
 
             if (purohit.proficiency.isNotEmpty()) {
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
                     Text("🕉️ ", fontSize = 16.sp)
                     Text(
-                        text = highlightSearchQuery(purohit.proficiency.joinToString(", "), searchQuery, isDark),
-                        fontFamily = FontFamily.Serif,
-                        fontSize = 15.sp,
-                        lineHeight = 20.sp,
-                        modifier = Modifier.weight(1f)
+                        highlightSearchQuery(purohit.proficiency.joinToString(", "), searchQuery, isDark),
+                        fontFamily = FontFamily.Serif, fontSize = 15.sp,
+                        lineHeight = 20.sp, modifier = Modifier.weight(1f)
                     )
                 }
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(Modifier.height(8.dp))
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("📅 ", fontSize = 14.sp)
-                Text(
-                    text = "${purohit.experience} years of experience",
-                    fontFamily = FontFamily.Serif,
-                    fontSize = 14.sp,
-                    color = if (isDark) Color.White.copy(alpha = 0.7f) else Color.Black.copy(alpha = 0.6f)
-                )
+                Text("${purohit.experience} years of experience",
+                    fontFamily = FontFamily.Serif, fontSize = 14.sp,
+                    color = if (isDark) Color.White.copy(alpha = 0.7f) else Color.Black.copy(alpha = 0.6f))
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-            HorizontalDivider(
-                thickness = 1.dp,
-                color = if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.1f)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(Modifier.height(16.dp))
+            HorizontalDivider(thickness = 1.dp,
+                color = if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.1f))
+            Spacer(Modifier.height(16.dp))
 
             Box(
                 modifier = Modifier
@@ -244,13 +229,8 @@ private fun PurohitCard(purohit: PurohitItem, searchQuery: String, onBookClick: 
                     .padding(vertical = 14.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "Book",
-                    fontFamily = FontFamily.Serif,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    color = Color.White
-                )
+                Text("Book", fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp, color = Color.White)
             }
         }
     }
@@ -258,17 +238,12 @@ private fun PurohitCard(purohit: PurohitItem, searchQuery: String, onBookClick: 
 
 @Composable
 private fun PurohitEmptyState(message: String) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    Box(Modifier.fillMaxSize(), Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("🕉️", fontSize = 48.sp)
-            Text(
-                text = message,
-                fontFamily = FontFamily.Serif,
-                fontSize = 16.sp,
+            Text(message, fontFamily = FontFamily.Serif, fontSize = 16.sp,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = 32.dp)
-            )
+                textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 32.dp))
         }
     }
 }

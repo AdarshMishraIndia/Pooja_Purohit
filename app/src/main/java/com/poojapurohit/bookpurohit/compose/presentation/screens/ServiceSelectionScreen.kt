@@ -2,6 +2,12 @@ package com.poojapurohit.bookpurohit.compose.presentation.screens
 
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -45,102 +51,96 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.poojapurohit.bookpurohit.compose.BookPurohitEvent
 import com.poojapurohit.bookpurohit.compose.BookPurohitViewModel
 import com.poojapurohit.bookpurohit.compose.model.ServiceItem
+import com.poojapurohit.bookpurohit.compose.presentation.components.BookPurohitDecorOverlay
 import com.poojapurohit.bookpurohit.compose.presentation.components.BookPurohitTopBar
 import com.poojapurohit.bookpurohit.compose.presentation.util.highlightSearchQuery
 import com.poojapurohit.dashboard.compose.theme.BrandOrange
-import com.poojapurohit.dashboard.compose.theme.DarkBackgroundGradientCenter
-import com.poojapurohit.dashboard.compose.theme.DarkBackgroundGradientEnd
-import com.poojapurohit.dashboard.compose.theme.DarkBackgroundGradientStart
 import com.poojapurohit.dashboard.compose.theme.DarkBrandOrange
 import com.poojapurohit.dashboard.compose.theme.DarkSurface
-import com.poojapurohit.dashboard.compose.theme.LightBackgroundGradientCenter
-import com.poojapurohit.dashboard.compose.theme.LightBackgroundGradientEnd
-import com.poojapurohit.dashboard.compose.theme.LightBackgroundGradientStart
+
+// Golden / Saffron — spiritual entry point
+private val LightBgTop    = Color(0xFFFFF8E8)
+private val LightBgMid    = Color(0xFFFFCC70)   // mandala accent light
+private val LightBgBottom = Color(0xFFFFB347)
+private val DarkBgTop     = Color(0xFF1C1000)
+private val DarkBgMid     = Color(0xFFD4A017)   // mandala accent dark
+private val DarkBgBottom  = Color(0xFF5C3200)
 
 @Composable
 fun ServiceSelectionScreen(
     viewModel: BookPurohitViewModel,
     onBackPressed: () -> Unit,
-    onServiceClick: (String) -> Unit      // passes serviceSlug
+    onServiceClick: (String) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val isDark = isSystemInDarkTheme()
 
-    // Services listener is started in ViewModel.init — no LaunchedEffect needed.
-    // Re-entering this screen after back-press: resetToServices() restores allServices,
-    // so attachServicesListener() guard (activeListeners check) keeps it idempotent.
+    val infiniteTransition = rememberInfiniteTransition(label = "serviceBg")
+
+    // Gradient sweep — top-left to bottom-right
+    val sweep by infiniteTransition.animateFloat(
+        initialValue = 0f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(6000, easing = LinearEasing), RepeatMode.Reverse),
+        label = "serviceSweep"
+    )
+
+    // Mandala rotation — slowest (20 s / revolution)
+    val mandalaRotation by infiniteTransition.animateFloat(
+        initialValue = 0f, targetValue = 360f,
+        animationSpec = infiniteRepeatable(tween(20000, easing = LinearEasing), RepeatMode.Restart),
+        label = "serviceMandala"
+    )
 
     LaunchedEffect(uiState.error) {
-        uiState.error?.let {
-            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
-            viewModel.clearError()
-        }
+        uiState.error?.let { Toast.makeText(context, it, Toast.LENGTH_SHORT).show(); viewModel.clearError() }
     }
 
     BackHandler(onBack = onBackPressed)
 
     Scaffold(
-        topBar = {
-            BookPurohitTopBar(
-                bannerTitle = "Select Service",
-                onBackPressed = onBackPressed,
-                isDark = isDark
-            )
-        }
+        topBar = { BookPurohitTopBar(bannerTitle = "Select Service", onBackPressed = onBackPressed, isDark = isDark) }
     ) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
                     brush = Brush.linearGradient(
-                        colors = if (isDark) listOf(
-                            DarkBackgroundGradientStart,
-                            DarkBackgroundGradientCenter,
-                            DarkBackgroundGradientEnd
-                        ) else listOf(
-                            LightBackgroundGradientStart,
-                            LightBackgroundGradientCenter,
-                            LightBackgroundGradientEnd
-                        ),
-                        start = Offset.Zero,
-                        end = Offset.Infinite
+                        colors = if (isDark) listOf(DarkBgTop, DarkBgMid, DarkBgBottom)
+                        else listOf(LightBgTop, LightBgMid, LightBgBottom),
+                        start = Offset(sweep * 300f, 0f),
+                        end = Offset(1000f - sweep * 300f, 2000f)
                     )
                 )
                 .padding(paddingValues)
         ) {
+            BookPurohitDecorOverlay(
+                mandalaColor = if (isDark) DarkBgMid else LightBgMid,
+                rotationDegrees = mandalaRotation,
+                isDark = isDark
+            )
+
             Column(modifier = Modifier.fillMaxSize()) {
                 ServiceSearchBar(
                     query = uiState.searchQuery,
                     onQueryChange = { viewModel.onEvent(BookPurohitEvent.SearchQueryChanged(it)) },
                     isDark = isDark
                 )
-
                 when {
-                    uiState.isLoading -> Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
+                    uiState.isLoading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                         CircularProgressIndicator(color = if (isDark) DarkBrandOrange else BrandOrange)
                     }
-
                     uiState.services.isEmpty() -> ServiceEmptyState(
                         message = if (uiState.searchQuery.isBlank()) "No services available"
                         else "No services found for \"${uiState.searchQuery}\""
                     )
-
                     else -> LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(uiState.services, key = { it.slug }) { service ->
-                            ServiceCard(
-                                service = service,
-                                searchQuery = uiState.searchQuery,
-                                onClick = { onServiceClick(service.slug) },
-                                isDark = isDark
-                            )
+                            ServiceCard(service, uiState.searchQuery, { onServiceClick(service.slug) }, isDark)
                         }
                     }
                 }
@@ -152,22 +152,11 @@ fun ServiceSelectionScreen(
 @Composable
 private fun ServiceSearchBar(query: String, onQueryChange: (String) -> Unit, isDark: Boolean) {
     OutlinedTextField(
-        value = query,
-        onValueChange = onQueryChange,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        placeholder = {
-            Text("Search services...", fontFamily = FontFamily.Serif, fontSize = 16.sp)
-        },
-        leadingIcon = {
-            Icon(
-                Icons.Default.Search, contentDescription = "Search",
-                tint = if (isDark) DarkBrandOrange else BrandOrange
-            )
-        },
-        singleLine = true,
-        shape = RoundedCornerShape(12.dp),
+        value = query, onValueChange = onQueryChange,
+        modifier = Modifier.fillMaxWidth().padding(16.dp),
+        placeholder = { Text("Search services...", fontFamily = FontFamily.Serif, fontSize = 16.sp) },
+        leadingIcon = { Icon(Icons.Default.Search, null, tint = if (isDark) DarkBrandOrange else BrandOrange) },
+        singleLine = true, shape = RoundedCornerShape(12.dp),
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = if (isDark) DarkBrandOrange else BrandOrange,
             unfocusedBorderColor = MaterialTheme.colorScheme.outline,
@@ -178,59 +167,37 @@ private fun ServiceSearchBar(query: String, onQueryChange: (String) -> Unit, isD
 }
 
 @Composable
-private fun ServiceCard(
-    service: ServiceItem,
-    searchQuery: String,
-    onClick: () -> Unit,
-    isDark: Boolean
-) {
+private fun ServiceCard(service: ServiceItem, searchQuery: String, onClick: () -> Unit, isDark: Boolean) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = if (isDark) DarkSurface else Color.White),
+        colors = CardDefaults.cardColors(containerColor = if (isDark) DarkSurface else Color.White.copy(alpha = 0.88f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
+            modifier = Modifier.fillMaxWidth().padding(20.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = highlightSearchQuery(service.name, searchQuery, isDark),
-                fontFamily = FontFamily.Serif,
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
-                lineHeight = 22.sp,
-                modifier = Modifier.weight(1f)
+                fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 16.sp,
+                lineHeight = 22.sp, modifier = Modifier.weight(1f)
             )
-            Text(
-                "›", fontSize = 32.sp, fontWeight = FontWeight.Bold,
-                color = if (isDark) DarkBrandOrange else BrandOrange
-            )
+            Text("›", fontSize = 32.sp, fontWeight = FontWeight.Bold,
+                color = if (isDark) DarkBrandOrange else BrandOrange)
         }
     }
 }
 
 @Composable
 private fun ServiceEmptyState(message: String) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
+    Box(Modifier.fillMaxSize(), Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("🕉️", fontSize = 48.sp)
-            Text(
-                text = message,
-                fontFamily = FontFamily.Serif,
-                fontSize = 16.sp,
+            Text(message, fontFamily = FontFamily.Serif, fontSize = 16.sp,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = 32.dp)
-            )
+                textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 32.dp))
         }
     }
 }

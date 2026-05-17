@@ -2,6 +2,12 @@ package com.poojapurohit.bookpurohit.compose.presentation.screens
 
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -47,18 +53,21 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.poojapurohit.bookpurohit.compose.BookPurohitEvent
 import com.poojapurohit.bookpurohit.compose.BookPurohitViewModel
 import com.poojapurohit.bookpurohit.compose.LocationItem
+import com.poojapurohit.bookpurohit.compose.presentation.components.BookPurohitDecorOverlay
 import com.poojapurohit.bookpurohit.compose.presentation.components.BookPurohitTopBar
 import com.poojapurohit.bookpurohit.compose.presentation.util.highlightSearchQuery
 import com.poojapurohit.dashboard.compose.theme.BrandOrange
 import com.poojapurohit.dashboard.compose.theme.BrandRed
-import com.poojapurohit.dashboard.compose.theme.DarkBackgroundGradientCenter
-import com.poojapurohit.dashboard.compose.theme.DarkBackgroundGradientEnd
-import com.poojapurohit.dashboard.compose.theme.DarkBackgroundGradientStart
 import com.poojapurohit.dashboard.compose.theme.DarkBrandOrange
 import com.poojapurohit.dashboard.compose.theme.DarkSurface
-import com.poojapurohit.dashboard.compose.theme.LightBackgroundGradientCenter
-import com.poojapurohit.dashboard.compose.theme.LightBackgroundGradientEnd
-import com.poojapurohit.dashboard.compose.theme.LightBackgroundGradientStart
+
+// Orange-Red / Ember — narrowing down, one step closer
+private val LightBgTop    = Color(0xFFFFF3E0)
+private val LightBgMid    = Color(0xFFFF7043)   // mandala accent light
+private val LightBgBottom = Color(0xFFBF360C)
+private val DarkBgTop     = Color(0xFF1A0500)
+private val DarkBgMid     = Color(0xFFD44000)   // mandala accent dark
+private val DarkBgBottom  = Color(0xFF7A1800)
 
 @Composable
 fun SubLocationSelectionScreen(
@@ -71,30 +80,35 @@ fun SubLocationSelectionScreen(
     val context = LocalContext.current
     val isDark = isSystemInDarkTheme()
 
-    LaunchedEffect(locationId) {
-        viewModel.attachSubLocationsListener(locationId)
-    }
+    val infiniteTransition = rememberInfiniteTransition(label = "subLocationBg")
+
+    // Gradient sweeps top-right → bottom-left (opposite diagonal)
+    val sweep by infiniteTransition.animateFloat(
+        initialValue = 0f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(8000, easing = LinearEasing), RepeatMode.Reverse),
+        label = "subLocationSweep"
+    )
+
+    // Mandala rotation — 30 s / revolution, starts at 90° offset
+    val mandalaRotation by infiniteTransition.animateFloat(
+        initialValue = 90f, targetValue = 450f,
+        animationSpec = infiniteRepeatable(tween(30000, easing = LinearEasing), RepeatMode.Restart),
+        label = "subLocationMandala"
+    )
+
+    LaunchedEffect(locationId) { viewModel.attachSubLocationsListener(locationId) }
 
     LaunchedEffect(uiState.error) {
-        uiState.error?.let {
-            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
-            viewModel.clearError()
-        }
+        uiState.error?.let { Toast.makeText(context, it, Toast.LENGTH_SHORT).show(); viewModel.clearError() }
     }
 
-    BackHandler {
-        viewModel.resetToLocations()
-        onBackPressed()
-    }
+    BackHandler { viewModel.resetToLocations(); onBackPressed() }
 
     Scaffold(
         topBar = {
             BookPurohitTopBar(
                 bannerTitle = "Select Area",
-                onBackPressed = {
-                    viewModel.resetToLocations()
-                    onBackPressed()
-                },
+                onBackPressed = { viewModel.resetToLocations(); onBackPressed() },
                 isDark = isDark
             )
         }
@@ -104,41 +118,34 @@ fun SubLocationSelectionScreen(
                 .fillMaxSize()
                 .background(
                     brush = Brush.linearGradient(
-                        colors = if (isDark) listOf(
-                            DarkBackgroundGradientStart,
-                            DarkBackgroundGradientCenter,
-                            DarkBackgroundGradientEnd
-                        ) else listOf(
-                            LightBackgroundGradientStart,
-                            LightBackgroundGradientCenter,
-                            LightBackgroundGradientEnd
-                        ),
-                        start = Offset.Zero,
-                        end = Offset.Infinite
+                        colors = if (isDark) listOf(DarkBgTop, DarkBgMid, DarkBgBottom)
+                        else listOf(LightBgTop, LightBgMid, LightBgBottom),
+                        start = Offset(1000f - sweep * 400f, 0f),
+                        end = Offset(sweep * 300f, 2000f)
                     )
                 )
                 .padding(paddingValues)
         ) {
+            BookPurohitDecorOverlay(
+                mandalaColor = if (isDark) DarkBgMid else LightBgMid,
+                rotationDegrees = mandalaRotation,
+                isDark = isDark
+            )
+
             Column(modifier = Modifier.fillMaxSize()) {
                 SubLocationSearchBar(
                     query = uiState.searchQuery,
                     onQueryChange = { viewModel.onEvent(BookPurohitEvent.SearchQueryChanged(it)) },
                     isDark = isDark
                 )
-
                 when {
-                    uiState.isLoading -> Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
+                    uiState.isLoading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                         CircularProgressIndicator(color = if (isDark) DarkBrandOrange else BrandOrange)
                     }
-
                     uiState.subLocations.isEmpty() -> SubLocationEmptyState(
                         message = if (uiState.searchQuery.isBlank()) "No areas available in this location"
                         else "No areas found for \"${uiState.searchQuery}\""
                     )
-
                     else -> LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(16.dp),
@@ -146,10 +153,8 @@ fun SubLocationSelectionScreen(
                     ) {
                         items(uiState.subLocations) { subLocation ->
                             SubLocationCard(
-                                subLocation = subLocation,
-                                searchQuery = uiState.searchQuery,
-                                onClick = { onSubLocationClick(locationId, subLocation.id) },
-                                isDark = isDark
+                                subLocation, uiState.searchQuery,
+                                { onSubLocationClick(locationId, subLocation.id) }, isDark
                             )
                         }
                     }
@@ -162,18 +167,11 @@ fun SubLocationSelectionScreen(
 @Composable
 private fun SubLocationSearchBar(query: String, onQueryChange: (String) -> Unit, isDark: Boolean) {
     OutlinedTextField(
-        value = query,
-        onValueChange = onQueryChange,
+        value = query, onValueChange = onQueryChange,
         modifier = Modifier.fillMaxWidth().padding(16.dp),
-        placeholder = {
-            Text("Search areas...", fontFamily = FontFamily.Serif, fontSize = 16.sp)
-        },
-        leadingIcon = {
-            Icon(Icons.Default.Search, contentDescription = "Search",
-                tint = if (isDark) DarkBrandOrange else BrandOrange)
-        },
-        singleLine = true,
-        shape = RoundedCornerShape(12.dp),
+        placeholder = { Text("Search areas...", fontFamily = FontFamily.Serif, fontSize = 16.sp) },
+        leadingIcon = { Icon(Icons.Default.Search, null, tint = if (isDark) DarkBrandOrange else BrandOrange) },
+        singleLine = true, shape = RoundedCornerShape(12.dp),
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = if (isDark) DarkBrandOrange else BrandOrange,
             unfocusedBorderColor = MaterialTheme.colorScheme.outline,
@@ -188,7 +186,7 @@ private fun SubLocationCard(subLocation: LocationItem, searchQuery: String, onCl
     Card(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = if (isDark) DarkSurface else Color.White),
+        colors = CardDefaults.cardColors(containerColor = if (isDark) DarkSurface else Color.White.copy(alpha = 0.88f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Row(
@@ -197,17 +195,12 @@ private fun SubLocationCard(subLocation: LocationItem, searchQuery: String, onCl
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
+                Text(highlightSearchQuery(subLocation.name, searchQuery, isDark),
+                    fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Spacer(Modifier.height(4.dp))
                 Text(
-                    text = highlightSearchQuery(subLocation.name, searchQuery, isDark),
-                    fontFamily = FontFamily.Serif,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "${subLocation.count} service partner${if (subLocation.count != 1) "s" else ""} available",
-                    fontFamily = FontFamily.Serif,
-                    fontSize = 14.sp,
+                    "${subLocation.count} service partner${if (subLocation.count != 1) "s" else ""} available",
+                    fontFamily = FontFamily.Serif, fontSize = 14.sp,
                     color = if (isDark) DarkBrandOrange else BrandRed
                 )
             }
@@ -219,17 +212,12 @@ private fun SubLocationCard(subLocation: LocationItem, searchQuery: String, onCl
 
 @Composable
 private fun SubLocationEmptyState(message: String) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    Box(Modifier.fillMaxSize(), Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("🏘️", fontSize = 48.sp)
-            Text(
-                text = message,
-                fontFamily = FontFamily.Serif,
-                fontSize = 16.sp,
+            Text(message, fontFamily = FontFamily.Serif, fontSize = 16.sp,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = 32.dp)
-            )
+                textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 32.dp))
         }
     }
 }
