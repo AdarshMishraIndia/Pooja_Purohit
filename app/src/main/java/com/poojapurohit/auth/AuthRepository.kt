@@ -284,16 +284,26 @@ class AuthRepository(
 
     // ─── Load Services ───────────────────────────────────────────────────────
 
+    /**
+     * Queries the services collection — one doc per service, slug as document ID.
+     * Filters by isActive == true, ordered by displayOrder ascending.
+     * Extracts the human-readable [name] string field from each document.
+     *
+     * Requires composite index: isActive ASC + displayOrder ASC (see composite_indexes).
+     */
     suspend fun loadServices(): Result<List<String>> {
         return try {
             withTimeout(FIRESTORE_TIMEOUT_MS) {
-                val doc =
-                    firestore.collection("services").document("BookAPurohit").get().await()
-                val services =
-                    (doc.get("name") as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+                val snapshot = firestore.collection("services")
+                    .whereEqualTo("isActive", true)
+                    .orderBy("displayOrder")
+                    .get()
+                    .await()
+                val services = snapshot.documents.mapNotNull { it.getString("name") }
                 Result.success(services)
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to load services", e)
             Result.success(emptyList())
         }
     }
