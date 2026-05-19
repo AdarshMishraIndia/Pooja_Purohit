@@ -95,7 +95,9 @@ fun ServicePartnerStep2Screen(
                                 Places.createClient(context)
                                     .fetchPlace(request)
                                     .addOnSuccessListener { result ->
-                                        cityBounds = result.place.viewport as RectangularBounds?
+                                        result.place.viewport?.let {
+                                            cityBounds = RectangularBounds.newInstance(it)
+                                        }
                                     }
                             } catch (_: Exception) {
                                 // Bounds unavailable — locality autocomplete still works unbiased

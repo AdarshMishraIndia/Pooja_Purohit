@@ -1,5 +1,6 @@
 package com.poojapurohit.auth.compose.presentation.components
 
+import android.content.pm.PackageManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -35,21 +36,26 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.android.libraries.places.api.Places
 import com.google.android.libraries.places.api.model.AutocompletePrediction
+import com.google.android.libraries.places.api.model.AutocompleteSessionToken
 import com.google.android.libraries.places.api.model.RectangularBounds
 import com.google.android.libraries.places.api.net.FindAutocompletePredictionsRequest
+import com.google.android.libraries.places.api.net.PlacesClient
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.tasks.await
 
 /**
- * Styled autocomplete field backed by the Places SDK 3.x API.
+ * Styled autocomplete field backed by the Places SDK 4.x new API.
  *
- * TypeFilter was removed in SDK 3.x. Use [typesFilter] with place type
- * collection strings instead:
+ * Requires Places.initializeWithNewPlacesApiEnabled() — not Places.initialize().
+ * Places.isInitialized() is unreliable across SDK versions so we initialize
+ * defensively here using the manifest API key as a fallback.
+ *
+ * typesFilter strings:
  *   - "(cities)"   → cities / towns
  *   - "(regions)"  → administrative regions
  *   - emptyList()  → no filter (surfaces neighbourhoods, localities, etc.)
  *
- * @param typesFilter     Passed directly to FindAutocompletePredictionsRequest.setTypesFilter().
+ * @param typesFilter     Passed to FindAutocompletePredictionsRequest.setTypesFilter().
  * @param locationBias    City viewport bounds to bias locality predictions.
  * @param enabled         False while a prerequisite field (e.g. city) is not yet filled.
  */
@@ -60,35 +66,62 @@ fun PlacesAutocompleteField(
     onValueChange: (String) -> Unit,
     onPlaceSelected: (placeId: String, displayName: String) -> Unit,
     placeholder: String,
+    modifier: Modifier = Modifier,
     typesFilter: List<String> = emptyList(),
     locationBias: RectangularBounds? = null,
-    enabled: Boolean = true,
-    modifier: Modifier = Modifier
+    enabled: Boolean = true
 ) {
     val context = LocalContext.current
+
+    // ── Client — created once, matches MapPinPickerScreen pattern ────────────
+    // Uses initializeWithNewPlacesApiEnabled (new Places API).
+    // Places.isInitialized() is NOT used — it returns false when initialized
+    // via initializeWithNewPlacesApiEnabled in some SDK 4.x builds.
+    val placesClient: PlacesClient = remember(context) {
+        if (!Places.isInitialized()) {
+            val meta = context.packageManager
+                .getApplicationInfo(context.packageName, PackageManager.GET_META_DATA)
+                .metaData
+            val key = meta?.getString("com.google.android.geo.API_KEY") ?: ""
+            Places.initializeWithNewPlacesApiEnabled(context.applicationContext, key)
+        }
+        Places.createClient(context)
+    }
+
+    // Session token groups autocomplete + fetchPlace into one billing event.
+    // Rotated after each completed selection.
+    var sessionToken by remember { mutableStateOf(AutocompleteSessionToken.newInstance()) }
+
     var predictions by remember { mutableStateOf<List<AutocompletePrediction>>(emptyList()) }
     var dropdownVisible by remember { mutableStateOf(false) }
 
+    // Set to true before calling onValueChange from a selection tap so the
+    // resulting LaunchedEffect re-trigger does not fire another network fetch.
+    var suppressNextFetch by remember { mutableStateOf(false) }
+
     // Debounced autocomplete fetch
     LaunchedEffect(value, locationBias) {
+        if (suppressNextFetch) {
+            suppressNextFetch = false
+            return@LaunchedEffect
+        }
         if (value.length < 2) {
             predictions = emptyList()
             dropdownVisible = false
             return@LaunchedEffect
         }
         delay(350)
-        if (!Places.isInitialized()) return@LaunchedEffect
         try {
-            val client = Places.createClient(context)
             val requestBuilder = FindAutocompletePredictionsRequest.builder()
+                .setSessionToken(sessionToken)
                 .setQuery(value)
                 .setCountries("IN")
             if (typesFilter.isNotEmpty()) {
-                requestBuilder.setTypesFilter(typesFilter)
+                requestBuilder.typesFilter = typesFilter
             }
             locationBias?.let { requestBuilder.setLocationBias(it) }
 
-            val response = client.findAutocompletePredictions(requestBuilder.build()).await()
+            val response = placesClient.findAutocompletePredictions(requestBuilder.build()).await()
             predictions = response.autocompletePredictions
             dropdownVisible = predictions.isNotEmpty()
         } catch (_: Exception) {
@@ -174,10 +207,13 @@ fun PlacesAutocompleteField(
                         TextButton(
                             onClick = {
                                 val primary = prediction.getPrimaryText(null).toString()
+                                suppressNextFetch = true
                                 onValueChange(primary)
                                 onPlaceSelected(prediction.placeId, primary)
                                 predictions = emptyList()
                                 dropdownVisible = false
+                                // Rotate token so next search starts a fresh billing session
+                                sessionToken = AutocompleteSessionToken.newInstance()
                             },
                             modifier = Modifier.fillMaxWidth()
                         ) {
