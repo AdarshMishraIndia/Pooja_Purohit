@@ -2,12 +2,6 @@ package com.poojapurohit.bookpurohit.compose.presentation.screens
 
 import android.content.Intent
 import android.widget.Toast
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -32,11 +26,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -83,13 +73,11 @@ import java.util.Date
 import java.util.Locale
 import androidx.core.net.toUri
 
-// Deep Maroon / Sacred — terminal screen, most saturated
-private val LightBgTop    = Color(0xFFF3E5F5)
-private val LightBgMid    = Color(0xFFC62828)   // mandala accent light
-private val LightBgBottom = Color(0xFF4A0010)
-private val DarkBgTop     = Color(0xFF120000)
-private val DarkBgMid     = Color(0xFF8B0000)   // mandala accent dark
-private val DarkBgBottom  = Color(0xFF2D0010)
+// Deep Maroon / Sacred
+private val LightGradTop = Color(0xFFFFFDF8)
+private val LightGradBottom = Color(0xFFFFE8CC)
+private val DarkGradTop = Color(0xFF0E0E0E)
+private val DarkGradBottom = Color(0xFF1C1208)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -103,7 +91,6 @@ fun CheckoutScreen(
     val context = LocalContext.current
     val isDark = isSystemInDarkTheme()
 
-    var expanded by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
     var showMapPicker by remember { mutableStateOf(false) }
@@ -115,21 +102,7 @@ fun CheckoutScreen(
         } ?: ""
     }
 
-    val infiniteTransition = rememberInfiniteTransition(label = "checkoutBg")
-
-    // Gradient sweeps left → right, slowest of all screens
-    val sweep by infiniteTransition.animateFloat(
-        initialValue = 0f, targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(10000, easing = LinearEasing), RepeatMode.Reverse),
-        label = "checkoutSweep"
-    )
-
-    // Mandala rotation — 40 s / revolution, starts at 180° offset (counter-clockwise feel)
-    val mandalaRotation by infiniteTransition.animateFloat(
-        initialValue = 180f, targetValue = -180f,
-        animationSpec = infiniteRepeatable(tween(40000, easing = LinearEasing), RepeatMode.Restart),
-        label = "checkoutMandala"
-    )
+    // Rotation drives overlay symbol drift
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let { Toast.makeText(context, it, Toast.LENGTH_SHORT).show(); viewModel.clearError() }
@@ -160,19 +133,15 @@ fun CheckoutScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
-                    brush = Brush.linearGradient(
-                        colors = if (isDark) listOf(DarkBgTop, DarkBgMid, DarkBgBottom)
-                        else listOf(LightBgTop, LightBgMid, LightBgBottom),
-                        // Left → right sweep
-                        start = Offset(0f, 800f + sweep * 400f),
-                        end = Offset(1200f, 800f - sweep * 400f)
+                    brush = Brush.verticalGradient(
+                        colors = if (isDark) listOf(DarkGradTop, DarkGradBottom)
+                        else listOf(LightGradTop, LightGradBottom)
                     )
                 )
                 .padding(paddingValues)
         ) {
             BookPurohitDecorOverlay(
-                mandalaColor = if (isDark) DarkBgMid else LightBgMid,
-                rotationDegrees = mandalaRotation,
+                accentColor = if (isDark) Color(0xFFFFD090) else BrandOrange,
                 isDark = isDark
             )
 
@@ -188,27 +157,30 @@ fun CheckoutScreen(
                     color = if (isDark) Color.White else Color.Black
                 )
 
-                // Service dropdown
-                ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
-                    OutlinedTextField(
-                        value = uiState.selectedService, onValueChange = {}, readOnly = true,
-                        label = { Text("Select Service") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                        modifier = Modifier.fillMaxWidth().menuAnchor(
-                            type = ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true
-                        ),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = if (isDark) DarkBrandOrange else BrandOrange
+                // Service (read-only — set from Service Selection screen)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            color = if (isDark) Color.White.copy(alpha = 0.06f) else Color.Black.copy(alpha = 0.04f),
+                            shape = RoundedCornerShape(8.dp)
                         )
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "Service",
+                        fontFamily = FontFamily.Serif,
+                        fontSize = 12.sp,
+                        color = if (isDark) DarkBrandOrange else BrandOrange
                     )
-                    ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                        viewModel.availableServices.forEach { option ->
-                            DropdownMenuItem(
-                                text = { Text(option) },
-                                onClick = { viewModel.onServiceChange(option); expanded = false }
-                            )
-                        }
-                    }
+                    Text(
+                        text = uiState.selectedService.ifBlank { "—" },
+                        fontFamily = FontFamily.Serif,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 15.sp,
+                        color = if (isDark) Color.White else Color.Black
+                    )
                 }
 
                 // Date & time

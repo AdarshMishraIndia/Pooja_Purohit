@@ -2,12 +2,6 @@ package com.poojapurohit.bookpurohit.compose.presentation.screens
 
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -42,7 +36,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -62,13 +55,11 @@ import com.poojapurohit.dashboard.compose.theme.BrandOrange
 import com.poojapurohit.dashboard.compose.theme.DarkBrandOrange
 import com.poojapurohit.dashboard.compose.theme.DarkSurface
 
-// Deep Crimson / Maroon — gravitas of final selection
-private val LightBgTop    = Color(0xFFFCE4EC)
-private val LightBgMid    = Color(0xFFEF5350)   // mandala accent light
-private val LightBgBottom = Color(0xFF7B0000)
-private val DarkBgTop     = Color(0xFF1A0000)
-private val DarkBgMid     = Color(0xFFB71C1C)   // mandala accent dark
-private val DarkBgBottom  = Color(0xFF5D0000)
+// Deep Crimson / Maroon
+private val LightGradTop = Color(0xFFFFFDF8)
+private val LightGradBottom = Color(0xFFFFE8CC)
+private val DarkGradTop = Color(0xFF0E0E0E)
+private val DarkGradBottom = Color(0xFF1C1208)
 
 @Composable
 fun PurohitSelectionScreen(
@@ -82,21 +73,7 @@ fun PurohitSelectionScreen(
     val context = LocalContext.current
     val isDark = isSystemInDarkTheme()
 
-    val infiniteTransition = rememberInfiniteTransition(label = "purohitBg")
-
-    // Gradient sweeps bottom → top
-    val sweep by infiniteTransition.animateFloat(
-        initialValue = 0f, targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(9000, easing = LinearEasing), RepeatMode.Reverse),
-        label = "purohitSweep"
-    )
-
-    // Mandala rotation — 35 s / revolution, starts at 135° offset
-    val mandalaRotation by infiniteTransition.animateFloat(
-        initialValue = 135f, targetValue = 495f,
-        animationSpec = infiniteRepeatable(tween(35000, easing = LinearEasing), RepeatMode.Restart),
-        label = "purohitMandala"
-    )
+    // Rotation drives overlay symbol drift
 
     LaunchedEffect(locationId, subLocationId) {
         viewModel.onEvent(BookPurohitEvent.SubLocationSelected(locationId, subLocationId))
@@ -121,18 +98,15 @@ fun PurohitSelectionScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
-                    brush = Brush.linearGradient(
-                        colors = if (isDark) listOf(DarkBgTop, DarkBgMid, DarkBgBottom)
-                        else listOf(LightBgTop, LightBgMid, LightBgBottom),
-                        start = Offset(300f + sweep * 200f, 2000f),
-                        end = Offset(700f - sweep * 200f, 0f)
+                    brush = Brush.verticalGradient(
+                        colors = if (isDark) listOf(DarkGradTop, DarkGradBottom)
+                        else listOf(LightGradTop, LightGradBottom)
                     )
                 )
                 .padding(paddingValues)
         ) {
             BookPurohitDecorOverlay(
-                mandalaColor = if (isDark) DarkBgMid else LightBgMid,
-                rotationDegrees = mandalaRotation,
+                accentColor = if (isDark) Color(0xFFFFD090) else BrandOrange,
                 isDark = isDark
             )
 
@@ -191,33 +165,53 @@ private fun PurohitCard(purohit: PurohitItem, searchQuery: String, onBookClick: 
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
-            Text(highlightSearchQuery(purohit.name, searchQuery, isDark),
-                fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 22.sp, lineHeight = 26.sp)
+
+            // Name
+            Text(
+                highlightSearchQuery(purohit.name, searchQuery, isDark),
+                fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold,
+                fontSize = 22.sp, lineHeight = 26.sp
+            )
 
             Spacer(Modifier.height(12.dp))
+            HorizontalDivider(
+                thickness = 1.dp,
+                color = if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.1f)
+            )
+            Spacer(Modifier.height(12.dp))
 
-            if (purohit.proficiency.isNotEmpty()) {
-                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-                    Text("🕉️ ", fontSize = 16.sp)
+            // Experience + Location in one row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                    Text("📅 ", fontSize = 14.sp)
                     Text(
-                        highlightSearchQuery(purohit.proficiency.joinToString(", "), searchQuery, isDark),
-                        fontFamily = FontFamily.Serif, fontSize = 15.sp,
-                        lineHeight = 20.sp, modifier = Modifier.weight(1f)
+                        "${purohit.experience} yrs",
+                        fontFamily = FontFamily.Serif, fontSize = 14.sp,
+                        color = if (isDark) Color.White.copy(alpha = 0.7f) else Color.Black.copy(alpha = 0.6f)
                     )
                 }
-                Spacer(Modifier.height(8.dp))
-            }
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("📅 ", fontSize = 14.sp)
-                Text("${purohit.experience} years of experience",
-                    fontFamily = FontFamily.Serif, fontSize = 14.sp,
-                    color = if (isDark) Color.White.copy(alpha = 0.7f) else Color.Black.copy(alpha = 0.6f))
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(2f)) {
+                    Text("📍 ", fontSize = 14.sp)
+                    Text(
+                        listOfNotNull(
+                            purohit.locality.takeIf { it.isNotBlank() },
+                            purohit.city.takeIf { it.isNotBlank() }
+                        ).joinToString(", "),
+                        fontFamily = FontFamily.Serif, fontSize = 14.sp,
+                        color = if (isDark) Color.White.copy(alpha = 0.7f) else Color.Black.copy(alpha = 0.6f)
+                    )
+                }
             }
 
             Spacer(Modifier.height(16.dp))
-            HorizontalDivider(thickness = 1.dp,
-                color = if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.1f))
+            HorizontalDivider(
+                thickness = 1.dp,
+                color = if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.1f)
+            )
             Spacer(Modifier.height(16.dp))
 
             Box(

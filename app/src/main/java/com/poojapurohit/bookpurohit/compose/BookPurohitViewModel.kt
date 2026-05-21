@@ -27,6 +27,7 @@ data class BookPurohitUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val selectedServiceSlug: String = "",
+    val selectedServiceName: String = "",
     val currentLocationId: String? = null,
     val currentSubLocationId: String? = null
 )
@@ -159,10 +160,12 @@ class BookPurohitViewModel : ViewModel() {
         detachSubLocationsListener()
         detachPurohitsListener()
 
+        val serviceName = allServices.find { it.slug == serviceSlug }?.name ?: serviceSlug
         _uiState.update {
             it.copy(
                 isLoading = true, error = null, searchQuery = "",
                 selectedServiceSlug = serviceSlug,
+                selectedServiceName = serviceName,
                 locations = emptyList(), subLocations = emptyList(), purohits = emptyList(),
                 currentLocationId = null, currentSubLocationId = null
             )
@@ -311,7 +314,7 @@ class BookPurohitViewModel : ViewModel() {
         _uiState.update {
             it.copy(
                 locations = emptyList(), subLocations = emptyList(), purohits = emptyList(),
-                searchQuery = "", selectedServiceSlug = "",
+                searchQuery = "", selectedServiceSlug = "", selectedServiceName = "",
                 currentLocationId = null, currentSubLocationId = null,
                 services = allServices
             )

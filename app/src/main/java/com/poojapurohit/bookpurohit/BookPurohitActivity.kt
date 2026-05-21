@@ -17,6 +17,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import android.net.Uri
 import com.poojapurohit.bookpurohit.compose.BookPurohitViewModel
 import com.poojapurohit.bookpurohit.compose.presentation.screens.CheckoutScreen
 import com.poojapurohit.bookpurohit.compose.presentation.screens.LocationSelectionScreen
@@ -147,16 +148,18 @@ fun BookPurohitNavigation(viewModel: BookPurohitViewModel) {
                     navController.popBackStack()
                 },
                 onBookClick = { purohit ->
-                    navController.navigate("booking/${purohit.id}")
+                    val serviceName = Uri.encode(viewModel.uiState.value.selectedServiceName)
+                    navController.navigate("booking/${purohit.id}/$serviceName")
                 }
             )
         }
 
         // 5. Booking Screen (Checkout & Razorpay Stub)
         composable(
-            route = "booking/{purohitId}",
+            route = "booking/{purohitId}/{serviceName}",
             arguments = listOf(
-                navArgument("purohitId") { type = NavType.StringType }
+                navArgument("purohitId") { type = NavType.StringType },
+                navArgument("serviceName") { type = NavType.StringType }
             )
         ) { backStackEntry ->
             val purohitId = backStackEntry.arguments?.getString("purohitId") ?: return@composable

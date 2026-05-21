@@ -2,12 +2,6 @@ package com.poojapurohit.bookpurohit.compose.presentation.screens
 
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -40,7 +34,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -61,13 +54,11 @@ import com.poojapurohit.dashboard.compose.theme.BrandRed
 import com.poojapurohit.dashboard.compose.theme.DarkBrandOrange
 import com.poojapurohit.dashboard.compose.theme.DarkSurface
 
-// Orange / Amber — warmth of place
-private val LightBgTop    = Color(0xFFFFF3E0)
-private val LightBgMid    = Color(0xFFFFB74D)   // mandala accent light
-private val LightBgBottom = Color(0xFFE65100)
-private val DarkBgTop     = Color(0xFF1A0800)
-private val DarkBgMid     = Color(0xFFE07820)   // mandala accent dark
-private val DarkBgBottom  = Color(0xFF6E2200)
+// Orange / Amber
+private val LightGradTop = Color(0xFFFFFDF8)
+private val LightGradBottom = Color(0xFFFFE8CC)
+private val DarkGradTop = Color(0xFF0E0E0E)
+private val DarkGradBottom = Color(0xFF1C1208)
 
 @Composable
 fun LocationSelectionScreen(
@@ -80,21 +71,7 @@ fun LocationSelectionScreen(
     val context = LocalContext.current
     val isDark = isSystemInDarkTheme()
 
-    val infiniteTransition = rememberInfiniteTransition(label = "locationBg")
-
-    // Gradient sweeps top → bottom with horizontal drift
-    val sweep by infiniteTransition.animateFloat(
-        initialValue = 0f, targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(7000, easing = LinearEasing), RepeatMode.Reverse),
-        label = "locationSweep"
-    )
-
-    // Mandala rotation — 25 s / revolution, starts at 45° offset vs Service screen
-    val mandalaRotation by infiniteTransition.animateFloat(
-        initialValue = 45f, targetValue = 405f,
-        animationSpec = infiniteRepeatable(tween(25000, easing = LinearEasing), RepeatMode.Restart),
-        label = "locationMandala"
-    )
+    // Rotation drives overlay symbol drift
 
     LaunchedEffect(serviceSlug) { viewModel.attachLocationsListener(serviceSlug) }
 
@@ -111,18 +88,15 @@ fun LocationSelectionScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
-                    brush = Brush.linearGradient(
-                        colors = if (isDark) listOf(DarkBgTop, DarkBgMid, DarkBgBottom)
-                        else listOf(LightBgTop, LightBgMid, LightBgBottom),
-                        start = Offset(200f + sweep * 400f, 0f),
-                        end = Offset(600f - sweep * 200f, 2000f)
+                    brush = Brush.verticalGradient(
+                        colors = if (isDark) listOf(DarkGradTop, DarkGradBottom)
+                        else listOf(LightGradTop, LightGradBottom)
                     )
                 )
                 .padding(paddingValues)
         ) {
             BookPurohitDecorOverlay(
-                mandalaColor = if (isDark) DarkBgMid else LightBgMid,
-                rotationDegrees = mandalaRotation,
+                accentColor = if (isDark) Color(0xFFFFD090) else BrandOrange,
                 isDark = isDark
             )
 

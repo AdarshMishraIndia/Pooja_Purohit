@@ -44,22 +44,10 @@ class CheckoutViewModel(
     private val _uiState = MutableStateFlow(CheckoutUiState())
     val uiState: StateFlow<CheckoutUiState> = _uiState.asStateFlow()
 
-    val availableServices = listOf(
-        "POOJA (Sri Ganesh, Sri Vishwakarma, Sri Satyanarayan, Maa Saraswati)",
-        "DEVI PUJANA (Maa Durga, Maa Kali)",
-        "Rudrabhishek Shivratri",
-        "Janamastami",
-        "Chhat Pooja",
-        "Gruha Pratistha",
-        "Vaahaan Pooja",
-        "Janeyu",
-        "Shraddha",
-        "Other Karma Kaanda",
-        "Antyesthi / Asthi Sangraha"
-    )
-
     init {
         val purohitId = savedStateHandle.get<String>("purohitId") ?: ""
+        val serviceName = savedStateHandle.get<String>("serviceName") ?: ""
+        _uiState.update { it.copy(selectedService = serviceName) }
         if (purohitId.isNotBlank()) prefetchData(purohitId)
     }
 
@@ -82,8 +70,6 @@ class CheckoutViewModel(
             }
         }
     }
-
-    fun onServiceChange(service: String) = _uiState.update { it.copy(selectedService = service) }
 
     fun onAddressChange(address: String) = _uiState.update { it.copy(address = address) }
 
