@@ -1,1066 +1,1183 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Pooja Purohit — Admin Portal</title>
-<link rel="icon" type="image/png" href="Pooja Purohit Logo.png"/>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Sora:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pooja Purohit — Admin Portal</title>
+  <link rel="icon" type="image/png" href="Pooja Purohit Logo.png"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Sora:wght@400;600;700&display=swap" rel="stylesheet"/>
 
-<style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  :root {
-    --saffron: #E8730A;
-    --saffron-light: #FEF3E8;
-    --saffron-dark: #B85A08;
-    --bg: #F7F6F3;
-    --surface: #FFFFFF;
-    --border: #E8E6E0;
-    --text-primary: #1A1A18;
-    --text-secondary: #6B6A65;
-    --text-muted: #A09F9A;
-    --success: #1B7A4A;
-    --success-bg: #EAF5F0;
-    --danger: #C0392B;
-    --danger-bg: #FDEEEC;
-    --warning-bg: #FEF3E8;
-    --radius: 10px;
-    --radius-lg: 14px;
-    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-    --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
-    --shadow-lg: 0 12px 40px rgba(0,0,0,0.14);
-  }
-
-  @media (prefers-color-scheme: dark) {
     :root {
-      --saffron: #F08C2A;
-      --saffron-light: #231508;
-      --saffron-dark: #F5A84A;
-      --bg: #0F0F0E;
-      --surface: #1A1A18;
-      --border: #2E2E2A;
-      --text-primary: #EEECEA;
-      --text-secondary: #908E88;
-      --text-muted: #565450;
-      --success: #2DD47A;
-      --success-bg: #071A0F;
-      --danger: #E86055;
-      --danger-bg: #1A0806;
-      --warning-bg: #1C1005;
-      --shadow: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
-      --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
-      --shadow-lg: 0 12px 40px rgba(0,0,0,0.5);
+      --saffron: #E8730A;
+      --saffron-light: #FEF3E8;
+      --saffron-dark: #B85A08;
+      --bg: #F7F6F3;
+      --surface: #FFFFFF;
+      --border: #E8E6E0;
+      --text-primary: #1A1A18;
+      --text-secondary: #6B6A65;
+      --text-muted: #A09F9A;
+      --success: #1B7A4A;
+      --success-bg: #EAF5F0;
+      --danger: #C0392B;
+      --danger-bg: #FDEEEC;
+      --warning-bg: #FEF3E8;
+      --radius: 10px;
+      --radius-lg: 14px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+      --shadow-lg: 0 12px 40px rgba(0,0,0,0.14);
     }
-  }
 
-  body {
-    font-family: 'DM Sans', sans-serif;
-    background: var(--bg);
-    color: var(--text-primary);
-    font-size: 14px;
-    line-height: 1.6;
-    min-height: 100vh;
-  }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --saffron: #F08C2A;
+        --saffron-light: #231508;
+        --saffron-dark: #F5A84A;
+        --bg: #0F0F0E;
+        --surface: #1A1A18;
+        --border: #2E2E2A;
+        --text-primary: #EEECEA;
+        --text-secondary: #908E88;
+        --text-muted: #565450;
+        --success: #2DD47A;
+        --success-bg: #071A0F;
+        --danger: #E86055;
+        --danger-bg: #1A0806;
+        --warning-bg: #1C1005;
+        --shadow: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
+        --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+        --shadow-lg: 0 12px 40px rgba(0,0,0,0.5);
+      }
+    }
 
-  /* ══════════════════════════════
-     LOGIN
-  ══════════════════════════════ */
-  #login-screen {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--bg);
-    position: relative;
-    overflow: hidden;
-  }
-  #login-screen::before {
-    content: '';
-    position: absolute;
-    top: -120px; right: -120px;
-    width: 400px; height: 400px;
-    border-radius: 50%;
-    background: var(--saffron-light);
-    opacity: 0.7;
-  }
-  #login-screen::after {
-    content: '';
-    position: absolute;
-    bottom: -80px; left: -80px;
-    width: 280px; height: 280px;
-    border-radius: 50%;
-    background: var(--saffron-light);
-    opacity: 0.5;
-  }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text-primary);
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
 
-  .login-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 40px 36px;
-    width: 100%;
-    max-width: 380px;
-    box-shadow: var(--shadow-md);
-    position: relative;
-    z-index: 1;
-  }
+    /* ══════════════════════════════
+       LOGIN
+    ══════════════════════════════ */
+    #login-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg);
+      position: relative;
+      overflow: hidden;
+    }
+    #login-screen::before {
+      content: '';
+      position: absolute;
+      top: -120px; right: -120px;
+      width: 400px; height: 400px;
+      border-radius: 50%;
+      background: var(--saffron-light);
+      opacity: 0.7;
+    }
+    #login-screen::after {
+      content: '';
+      position: absolute;
+      bottom: -80px; left: -80px;
+      width: 280px; height: 280px;
+      border-radius: 50%;
+      background: var(--saffron-light);
+      opacity: 0.5;
+    }
 
-  .login-logo {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 28px;
-  }
-  .login-logo .logo-mark {
-    width: 42px; height: 42px;
-    border-radius: 10px;
-    overflow: hidden;
-    flex-shrink: 0;
-    background: var(--saffron-light);
-    border: 1px solid rgba(232,115,10,0.15);
-    display: flex; align-items: center; justify-content: center;
-  }
-  .login-logo .logo-mark img { width: 100%; height: 100%; object-fit: contain; }
-  .login-logo .logo-text {
-    font-family: 'Sora', sans-serif;
-    font-weight: 600;
-    font-size: 15px;
-    color: var(--text-primary);
-    line-height: 1.2;
-  }
-  .login-logo .logo-text span {
-    display: block;
-    font-size: 11px;
-    font-weight: 400;
-    color: var(--text-muted);
-    letter-spacing: 0.03em;
-  }
+    .login-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 40px 36px;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: var(--shadow-md);
+      position: relative;
+      z-index: 1;
+    }
 
-  .login-card h1 {
-    font-family: 'Sora', sans-serif;
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-bottom: 6px;
-  }
-  .login-card p.subtitle {
-    font-size: 13px;
-    color: var(--text-secondary);
-    margin-bottom: 28px;
-  }
+    .login-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+    .login-logo .logo-mark {
+      width: 42px; height: 42px;
+      border-radius: 10px;
+      overflow: hidden;
+      flex-shrink: 0;
+      background: var(--saffron-light);
+      border: 1px solid rgba(232,115,10,0.15);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .login-logo .logo-mark img { width: 100%; height: 100%; object-fit: contain; }
+    .login-logo .logo-text {
+      font-family: 'Sora', sans-serif;
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--text-primary);
+      line-height: 1.2;
+    }
+    .login-logo .logo-text span {
+      display: block;
+      font-size: 11px;
+      font-weight: 400;
+      color: var(--text-muted);
+      letter-spacing: 0.03em;
+    }
 
-  .field { margin-bottom: 16px; }
-  .field label {
-    display: block;
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--text-secondary);
-    margin-bottom: 6px;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-  }
-  .field input {
-    width: 100%;
-    padding: 10px 13px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 14px;
-    color: var(--text-primary);
-    background: var(--bg);
-    outline: none;
-    transition: border-color 0.15s, box-shadow 0.15s;
-  }
-  .field input:focus {
-    border-color: var(--saffron);
-    box-shadow: 0 0 0 3px rgba(232,115,10,0.12);
-    background: var(--surface);
-  }
+    .login-card h1 {
+      font-family: 'Sora', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+    }
+    .login-card p.subtitle {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 28px;
+    }
 
-  .btn-primary {
-    width: 100%;
-    padding: 11px;
-    background: var(--saffron);
-    color: white;
-    border: none;
-    border-radius: var(--radius);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    margin-top: 8px;
-    transition: background 0.15s, transform 0.1s;
-    letter-spacing: 0.01em;
-  }
-  .btn-primary:hover { background: var(--saffron-dark); }
-  .btn-primary:active { transform: scale(0.99); }
+    .field { margin-bottom: 16px; }
+    .field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+    .field input {
+      width: 100%;
+      padding: 10px 13px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      color: var(--text-primary);
+      background: var(--bg);
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .field input:focus {
+      border-color: var(--saffron);
+      box-shadow: 0 0 0 3px rgba(232,115,10,0.12);
+      background: var(--surface);
+    }
 
-  .error-msg {
-    background: var(--danger-bg);
-    border: 1px solid #F5C6C2;
-    color: var(--danger);
-    border-radius: var(--radius);
-    padding: 10px 13px;
-    font-size: 13px;
-    margin-bottom: 14px;
-    display: none;
-  }
+    .btn-primary {
+      width: 100%;
+      padding: 11px;
+      background: var(--saffron);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background 0.15s, transform 0.1s;
+      letter-spacing: 0.01em;
+    }
+    .btn-primary:hover { background: var(--saffron-dark); }
+    .btn-primary:active { transform: scale(0.99); }
 
-  /* ══════════════════════════════
-     DASHBOARD
-  ══════════════════════════════ */
-  #dashboard-screen { display: none; min-height: 100vh; }
+    .error-msg {
+      background: var(--danger-bg);
+      border: 1px solid #F5C6C2;
+      color: var(--danger);
+      border-radius: var(--radius);
+      padding: 10px 13px;
+      font-size: 13px;
+      margin-bottom: 14px;
+      display: none;
+    }
 
-  .topbar {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 0 28px;
-    height: 58px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-  }
-  .topbar-left {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  .topbar-logo {
-    width: 30px; height: 30px;
-    border-radius: 7px;
-    overflow: hidden;
-    background: var(--saffron-light);
-    border: 1px solid rgba(232,115,10,0.15);
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-  }
-  .topbar-logo img { width: 100%; height: 100%; object-fit: contain; }
-  .topbar-title {
-    font-family: 'Sora', sans-serif;
-    font-weight: 600;
-    font-size: 15px;
-  }
-  .topbar-right {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
+    /* ══════════════════════════════
+       DASHBOARD
+    ══════════════════════════════ */
+    #dashboard-screen { display: none; min-height: 100vh; }
 
-  /* Services button in topbar */
-  .btn-manage-services {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--saffron-dark);
-    background: var(--saffron-light);
-    border: 1px solid rgba(232,115,10,0.3);
-    border-radius: 7px;
-    padding: 5px 12px;
-    cursor: pointer;
-    font-family: 'DM Sans', sans-serif;
-    transition: background 0.15s, border-color 0.15s;
-  }
-  .btn-manage-services:hover {
-    background: #FDE8CC;
-    border-color: rgba(232,115,10,0.5);
-  }
-  .btn-manage-services svg { flex-shrink: 0; }
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 28px;
+      height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .topbar-logo {
+      width: 30px; height: 30px;
+      border-radius: 7px;
+      overflow: hidden;
+      background: var(--saffron-light);
+      border: 1px solid rgba(232,115,10,0.15);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .topbar-logo img { width: 100%; height: 100%; object-fit: contain; }
+    .topbar-title {
+      font-family: 'Sora', sans-serif;
+      font-weight: 600;
+      font-size: 15px;
+    }
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
 
-  .admin-badge {
-    font-size: 12px;
-    color: var(--text-secondary);
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 4px 12px;
-  }
-  .btn-logout {
-    font-size: 12px;
-    color: var(--text-secondary);
-    background: none;
-    border: 1px solid var(--border);
-    border-radius: 7px;
-    padding: 5px 12px;
-    cursor: pointer;
-    font-family: 'DM Sans', sans-serif;
-    transition: color 0.15s, border-color 0.15s;
-  }
-  .btn-logout:hover { color: var(--danger); border-color: #F5C6C2; }
+    /* Services button in topbar */
+    .btn-manage-services {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--saffron-dark);
+      background: var(--saffron-light);
+      border: 1px solid rgba(232,115,10,0.3);
+      border-radius: 7px;
+      padding: 5px 12px;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .btn-manage-services:hover {
+      background: #FDE8CC;
+      border-color: rgba(232,115,10,0.5);
+    }
+    .btn-manage-services svg { flex-shrink: 0; }
 
-  .main-content {
-    max-width: 960px;
-    margin: 0 auto;
-    padding: 28px 24px 40px;
-  }
+    .admin-badge {
+      font-size: 12px;
+      color: var(--text-secondary);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 12px;
+    }
+    .btn-logout {
+      font-size: 12px;
+      color: var(--text-secondary);
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 5px 12px;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .btn-logout:hover { color: var(--danger); border-color: #F5C6C2; }
 
-  .page-header { margin-bottom: 24px; }
-  .page-header h2 {
-    font-family: 'Sora', sans-serif;
-    font-size: 20px;
-    font-weight: 700;
-    margin-bottom: 3px;
-  }
-  .page-header p { font-size: 13px; color: var(--text-secondary); }
+    .main-content {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 28px 24px 40px;
+    }
 
-  /* Stats */
-  .stats-row {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 14px;
-    margin-bottom: 28px;
-  }
-  .stat-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 18px 20px;
-    box-shadow: var(--shadow);
-  }
-  .stat-label {
-    font-size: 11px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--text-muted);
-    margin-bottom: 8px;
-  }
-  .stat-value {
-    font-family: 'Sora', sans-serif;
-    font-size: 28px;
-    font-weight: 700;
-    color: var(--text-primary);
-    line-height: 1;
-  }
-  .stat-card.highlight { border-color: var(--saffron); background: var(--saffron-light); }
-  .stat-card.highlight .stat-value { color: var(--saffron-dark); }
-  .stat-card.verified { border-color: #C0E8D5; background: var(--success-bg); }
-  .stat-card.verified .stat-value { color: var(--success); }
+    .page-header { margin-bottom: 24px; }
+    .page-header h2 {
+      font-family: 'Sora', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 3px;
+    }
+    .page-header p { font-size: 13px; color: var(--text-secondary); }
 
-  /* Filter bar */
-  .filter-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 14px;
-    gap: 12px;
-  }
-  .filter-tabs {
-    display: flex;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 3px;
-    gap: 2px;
-  }
-  .tab-btn {
-    padding: 6px 14px;
-    border: none;
-    background: none;
-    border-radius: 7px;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .tab-btn.active { background: var(--saffron); color: white; }
-  .search-input {
-    padding: 8px 13px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    background: var(--surface);
-    color: var(--text-primary);
-    outline: none;
-    width: 220px;
-    transition: border-color 0.15s;
-  }
-  .search-input:focus { border-color: var(--saffron); }
+    /* Stats */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px 20px;
+      box-shadow: var(--shadow);
+    }
+    .stat-label {
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+    .stat-value {
+      font-family: 'Sora', sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1;
+    }
+    .stat-card.highlight { border-color: var(--saffron); background: var(--saffron-light); }
+    .stat-card.highlight .stat-value { color: var(--saffron-dark); }
+    .stat-card.verified { border-color: #C0E8D5; background: var(--success-bg); }
+    .stat-card.verified .stat-value { color: var(--success); }
 
-  /* Purohit list */
-  .purohit-list { display: flex; flex-direction: column; gap: 10px; }
+    /* Filter bar */
+    .filter-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      gap: 12px;
+    }
+    .filter-tabs {
+      display: flex;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 3px;
+      gap: 2px;
+    }
+    .tab-btn {
+      padding: 6px 14px;
+      border: none;
+      background: none;
+      border-radius: 7px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .tab-btn.active { background: var(--saffron); color: white; }
+    .search-input {
+      padding: 8px 13px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      background: var(--surface);
+      color: var(--text-primary);
+      outline: none;
+      width: 220px;
+      transition: border-color 0.15s;
+    }
+    .search-input:focus { border-color: var(--saffron); }
 
-  .purohit-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 16px 18px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    box-shadow: var(--shadow);
-    transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
-    cursor: pointer;
-  }
-  .purohit-card:hover {
-    border-color: var(--saffron);
-    box-shadow: var(--shadow-md);
-    transform: translateY(-1px);
-  }
+    /* Purohit list */
+    .purohit-list { display: flex; flex-direction: column; gap: 10px; }
 
-  .avatar {
-    width: 40px; height: 40px;
-    border-radius: 50%;
-    background: var(--saffron-light);
-    color: var(--saffron-dark);
-    font-family: 'Sora', sans-serif;
-    font-weight: 600;
-    font-size: 14px;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-    border: 1px solid rgba(232,115,10,0.2);
-  }
+    .purohit-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 16px 18px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: var(--shadow);
+      transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+      cursor: pointer;
+    }
+    .purohit-card:hover {
+      border-color: var(--saffron);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-1px);
+    }
 
-  .purohit-info { flex: 1; min-width: 0; }
-  .purohit-name {
-    font-weight: 500;
-    font-size: 14px;
-    color: var(--text-primary);
-    margin-bottom: 2px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .purohit-meta {
-    font-size: 12px;
-    color: var(--text-secondary);
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-  .purohit-meta span { white-space: nowrap; }
+    .avatar {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: var(--saffron-light);
+      color: var(--saffron-dark);
+      font-family: 'Sora', sans-serif;
+      font-weight: 600;
+      font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      border: 1px solid rgba(232,115,10,0.2);
+    }
 
-  .badge {
-    font-size: 11px;
-    font-weight: 500;
-    padding: 3px 10px;
-    border-radius: 20px;
-    flex-shrink: 0;
-  }
-  .badge-unverified { background: var(--warning-bg); color: var(--saffron-dark); border: 1px solid rgba(232,115,10,0.25); }
-  .badge-verified { background: var(--success-bg); color: var(--success); border: 1px solid #C0E8D5; }
+    .purohit-info { flex: 1; min-width: 0; }
+    .purohit-name {
+      font-weight: 500;
+      font-size: 14px;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .purohit-meta {
+      font-size: 12px;
+      color: var(--text-secondary);
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .purohit-meta span { white-space: nowrap; }
 
-  .action-btn {
-    padding: 7px 14px;
-    border-radius: 8px;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.15s;
-    border: 1px solid;
-    flex-shrink: 0;
-    white-space: nowrap;
-  }
-  .btn-verify { background: var(--success-bg); color: var(--success); border-color: #C0E8D5; }
-  .btn-verify:hover { background: #D4EDDF; }
-  .btn-unverify { background: var(--danger-bg); color: var(--danger); border-color: #F5C6C2; }
-  .btn-unverify:hover { background: #FAD9D6; }
+    .badge {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 20px;
+      flex-shrink: 0;
+    }
+    .badge-unverified { background: var(--warning-bg); color: var(--saffron-dark); border: 1px solid rgba(232,115,10,0.25); }
+    .badge-verified { background: var(--success-bg); color: var(--success); border: 1px solid #C0E8D5; }
 
-  /* Loading/empty */
-  .loading-state, .empty-state {
-    text-align: center;
-    padding: 48px 20px;
-    color: var(--text-muted);
-    font-size: 13px;
-  }
-  .spinner {
-    width: 28px; height: 28px;
-    border: 2.5px solid var(--border);
-    border-top-color: var(--saffron);
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-    margin: 0 auto 12px;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
+    .action-btn {
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      border: 1px solid;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+    .btn-verify { background: var(--success-bg); color: var(--success); border-color: #C0E8D5; }
+    .btn-verify:hover { background: #D4EDDF; }
+    .btn-unverify { background: var(--danger-bg); color: var(--danger); border-color: #F5C6C2; }
+    .btn-unverify:hover { background: #FAD9D6; }
 
-  .toast {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    background: var(--text-primary);
-    color: white;
-    padding: 10px 18px;
-    border-radius: var(--radius);
-    font-size: 13px;
-    font-weight: 500;
-    z-index: 200;
-    opacity: 0;
-    transform: translateY(8px);
-    transition: opacity 0.2s, transform 0.2s;
-    pointer-events: none;
-  }
-  .toast.show { opacity: 1; transform: translateY(0); }
+    /* Loading/empty */
+    .loading-state, .empty-state {
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+    .spinner {
+      width: 28px; height: 28px;
+      border: 2.5px solid var(--border);
+      border-top-color: var(--saffron);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-  .refresh-btn {
-    padding: 7px 13px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: border-color 0.15s, color 0.15s;
-  }
-  .refresh-btn:hover { border-color: var(--saffron); color: var(--saffron-dark); }
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #1C1C1A;
+      color: #F5F4F1;
+      border: 1px solid #3A3A37;
+      padding: 10px 18px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-weight: 500;
+      z-index: 200;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.2s, transform 0.2s;
+      pointer-events: none;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
 
-  /* ══════════════════════════════
-     SERVICES OVERLAY
-     Full-screen panel over dashboard
-  ══════════════════════════════ */
-  #services-overlay {
-    position: fixed;
-    inset: 0;
-    background: var(--bg);
-    z-index: 50;
-    display: none;
-    flex-direction: column;
-    animation: overlayIn 0.22s ease;
-  }
-  #services-overlay.open { display: flex; }
+    .refresh-btn {
+      padding: 7px 13px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .refresh-btn:hover { border-color: var(--saffron); color: var(--saffron-dark); }
 
-  @keyframes overlayIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
+    /* ══════════════════════════════
+       SERVICES OVERLAY
+       Full-screen panel over dashboard
+    ══════════════════════════════ */
+    #services-overlay {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      z-index: 50;
+      display: none;
+      flex-direction: column;
+      animation: overlayIn 0.22s ease;
+    }
+    #services-overlay.open { display: flex; }
 
-  .svc-topbar {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 0 28px;
-    height: 58px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-shrink: 0;
-  }
-  .svc-topbar-left {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  .btn-close-overlay {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px; height: 32px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: none;
-    cursor: pointer;
-    color: var(--text-secondary);
-    transition: border-color 0.15s, color 0.15s;
-  }
-  .btn-close-overlay:hover { border-color: var(--saffron); color: var(--saffron); }
-  .svc-title {
-    font-family: 'Sora', sans-serif;
-    font-weight: 600;
-    font-size: 15px;
-    color: var(--text-primary);
-  }
-  .svc-subtitle {
-    font-size: 12px;
-    color: var(--text-muted);
-  }
+    @keyframes overlayIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
 
-  .btn-add-service {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 7px 14px;
-    background: var(--saffron);
-    color: white;
-    border: none;
-    border-radius: var(--radius);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.15s;
-  }
-  .btn-add-service:hover { background: var(--saffron-dark); }
+    .svc-topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 28px;
+      height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .svc-topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .btn-close-overlay {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px; height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: none;
+      cursor: pointer;
+      color: var(--text-secondary);
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .btn-close-overlay:hover { border-color: var(--saffron); color: var(--saffron); }
+    .svc-title {
+      font-family: 'Sora', sans-serif;
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--text-primary);
+    }
+    .svc-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
 
-  .svc-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 28px 28px 40px;
-    max-width: 960px;
-    width: 100%;
-    margin: 0 auto;
-    /* apply box-sizing to the overlay body's pseudo-full-width */
-    align-self: center;
-    width: 100%;
-  }
+    .btn-add-service {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      background: var(--saffron);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-add-service:hover { background: var(--saffron-dark); }
 
-  /* New service add form (top of grid, shown inline) */
-  .svc-add-form {
-    display: none;
-    background: var(--surface);
-    border: 1.5px dashed var(--saffron);
-    border-radius: var(--radius-lg);
-    padding: 16px 18px;
-    margin-bottom: 16px;
-    gap: 10px;
-    align-items: center;
-  }
-  .svc-add-form.visible { display: flex; }
-  .svc-add-input {
-    flex: 1;
-    padding: 9px 13px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 14px;
-    color: var(--text-primary);
-    background: var(--bg);
-    outline: none;
-    transition: border-color 0.15s, box-shadow 0.15s;
-  }
-  .svc-add-input:focus {
-    border-color: var(--saffron);
-    box-shadow: 0 0 0 3px rgba(232,115,10,0.12);
-    background: var(--surface);
-  }
-  .svc-add-input::placeholder { color: var(--text-muted); }
-  .btn-svc-save {
-    padding: 8px 16px;
-    background: var(--saffron);
-    color: white;
-    border: none;
-    border-radius: var(--radius);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: background 0.15s;
-  }
-  .btn-svc-save:hover { background: var(--saffron-dark); }
-  .btn-svc-save:disabled { opacity: 0.6; cursor: not-allowed; }
-  .btn-svc-cancel {
-    padding: 8px 14px;
-    background: none;
-    color: var(--text-secondary);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    cursor: pointer;
-    transition: border-color 0.15s, color 0.15s;
-  }
-  .btn-svc-cancel:hover { border-color: var(--danger); color: var(--danger); }
+    .svc-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px 28px 40px;
+      max-width: 960px;
+      width: 100%;
+      margin: 0 auto;
+      /* apply box-sizing to the overlay body's pseudo-full-width */
+      align-self: center;
+      width: 100%;
+    }
 
-  /* Service cards grid */
-  .svc-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 12px;
-  }
+    /* New service add form (top of grid, shown inline) */
+    .svc-add-form {
+      display: none;
+      background: var(--surface);
+      border: 1.5px dashed var(--saffron);
+      border-radius: var(--radius-lg);
+      padding: 16px 18px;
+      margin-bottom: 16px;
+      gap: 10px;
+      align-items: center;
+    }
+    .svc-add-form.visible { display: flex; }
+    .svc-add-input {
+      flex: 1;
+      padding: 9px 13px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      color: var(--text-primary);
+      background: var(--bg);
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .svc-add-input:focus {
+      border-color: var(--saffron);
+      box-shadow: 0 0 0 3px rgba(232,115,10,0.12);
+      background: var(--surface);
+    }
+    .svc-add-input::placeholder { color: var(--text-muted); }
+    .btn-svc-save {
+      padding: 8px 16px;
+      background: var(--saffron);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+    .btn-svc-save:hover { background: var(--saffron-dark); }
+    .btn-svc-save:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-svc-cancel {
+      padding: 8px 14px;
+      background: none;
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .btn-svc-cancel:hover { border-color: var(--danger); color: var(--danger); }
 
-  .svc-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 16px 18px;
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    box-shadow: var(--shadow);
-    transition: border-color 0.15s;
-  }
-  .svc-card:hover { border-color: #D0CFC9; }
+    /* Service cards grid */
+    .svc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px;
+    }
 
-  .svc-order-badge {
-    width: 26px; height: 26px;
-    border-radius: 6px;
-    background: var(--saffron-light);
-    color: var(--saffron-dark);
-    font-family: 'Sora', sans-serif;
-    font-size: 11px;
-    font-weight: 600;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-    border: 1px solid rgba(232,115,10,0.2);
-  }
-  .svc-card-name {
-    flex: 1;
-    min-width: 0;
-    font-size: 13.5px;
-    font-weight: 500;
-    color: var(--text-primary);
-    line-height: 1.45;
-    word-break: break-word;
-    white-space: normal;
-  }
-  .svc-card-slug {
-    font-size: 10px;
-    color: var(--text-muted);
-    font-family: monospace;
-    margin-top: 3px;
-    display: block;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+    .svc-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 16px 18px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      box-shadow: var(--shadow);
+      transition: border-color 0.15s;
+    }
+    .svc-card:hover { border-color: #D0CFC9; }
 
-  /* Inline edit mode for service card */
-  .svc-card.editing {
-    border-color: var(--saffron);
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-  }
-  .svc-edit-row {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-  }
-  .svc-edit-input {
-    flex: 1;
-    padding: 8px 12px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13.5px;
-    color: var(--text-primary);
-    background: var(--bg);
-    outline: none;
-    transition: border-color 0.15s, box-shadow 0.15s;
-  }
-  .svc-edit-input:focus {
-    border-color: var(--saffron);
-    box-shadow: 0 0 0 3px rgba(232,115,10,0.12);
-    background: var(--surface);
-  }
-  .btn-edit-icon {
-    display: flex; align-items: center; justify-content: center;
-    width: 30px; height: 30px;
-    border: 1px solid var(--border);
-    border-radius: 7px;
-    background: none;
-    cursor: pointer;
-    color: var(--text-muted);
-    flex-shrink: 0;
-    transition: border-color 0.15s, color 0.15s, background 0.15s;
-  }
-  .btn-edit-icon:hover {
-    border-color: var(--saffron);
-    color: var(--saffron);
-    background: var(--saffron-light);
-  }
+    .svc-order-badge {
+      width: 26px; height: 26px;
+      border-radius: 6px;
+      background: var(--saffron-light);
+      color: var(--saffron-dark);
+      font-family: 'Sora', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      border: 1px solid rgba(232,115,10,0.2);
+    }
+    .svc-card-name {
+      flex: 1;
+      min-width: 0;
+      font-size: 13.5px;
+      font-weight: 500;
+      color: var(--text-primary);
+      line-height: 1.45;
+      word-break: break-word;
+      white-space: normal;
+    }
+    .svc-card-slug {
+      font-size: 10px;
+      color: var(--text-muted);
+      font-family: monospace;
+      margin-top: 3px;
+      display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .svc-card-price {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--saffron-dark);
+      margin-top: 5px;
+      display: block;
+    }
+    .svc-price-input {
+      width: 100%;
+      min-width: 0;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13.5px;
+      color: var(--text-primary);
+      background: var(--bg);
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .svc-price-input:focus {
+      border-color: var(--saffron);
+      box-shadow: 0 0 0 3px rgba(232,115,10,0.12);
+      background: var(--surface);
+    }
+    .svc-price-input::placeholder { color: var(--text-muted); }
+    .svc-add-price-input {
+      width: 120px;
+      flex-shrink: 0;
+      padding: 9px 13px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      color: var(--text-primary);
+      background: var(--bg);
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .svc-add-price-input:focus {
+      border-color: var(--saffron);
+      box-shadow: 0 0 0 3px rgba(232,115,10,0.12);
+      background: var(--surface);
+    }
+    .svc-add-price-input::placeholder { color: var(--text-muted); }
 
-  .svc-loading {
-    text-align: center;
-    padding: 48px 20px;
-    color: var(--text-muted);
-    font-size: 13px;
-    grid-column: 1 / -1;
-  }
+    /* Inline edit mode for service card */
+    .svc-card.editing {
+      border-color: var(--saffron);
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+    }
+    .svc-edit-row {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .svc-edit-name-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .svc-edit-input {
+      flex: 1;
+      min-width: 0;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13.5px;
+      color: var(--text-primary);
+      background: var(--bg);
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .svc-edit-input:focus {
+      border-color: var(--saffron);
+      box-shadow: 0 0 0 3px rgba(232,115,10,0.12);
+      background: var(--surface);
+    }
+    .btn-edit-icon {
+      display: flex; align-items: center; justify-content: center;
+      width: 30px; height: 30px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      background: none;
+      cursor: pointer;
+      color: var(--text-muted);
+      flex-shrink: 0;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+    }
+    .btn-edit-icon:hover {
+      border-color: var(--saffron);
+      color: var(--saffron);
+      background: var(--saffron-light);
+    }
 
-  /* ══════════════════════════════
-     PUROHIT DETAIL MODAL
-  ══════════════════════════════ */
-  #purohit-modal-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.45);
-    backdrop-filter: blur(3px);
-    z-index: 60;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    animation: backdropIn 0.2s ease;
-  }
-  #purohit-modal-backdrop.open { display: flex; }
+    /* Waiting-for-connection state (Firestore write buffered offline) */
+    .svc-save-waiting {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--warning-bg);
+      border: 1px solid rgba(232,115,10,0.35);
+      border-radius: var(--radius);
+      padding: 9px 13px;
+      font-size: 12px;
+      color: var(--saffron-dark);
+      line-height: 1.4;
+    }
+    .svc-save-waiting-body { flex: 1; min-width: 0; }
+    .svc-save-waiting-title { font-weight: 600; margin-bottom: 1px; }
+    .svc-save-waiting-desc  { color: var(--text-secondary); font-size: 11px; }
 
-  @keyframes backdropIn {
-    from { opacity: 0; }
-    to   { opacity: 1; }
-  }
+    /* Inline save-error / retry state inside an editing card */
+    .svc-save-error {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--danger-bg);
+      border: 1px solid #F5C6C2;
+      border-radius: var(--radius);
+      padding: 9px 13px;
+      font-size: 12px;
+      color: var(--danger);
+      line-height: 1.4;
+    }
+    .svc-save-error-icon { font-size: 15px; flex-shrink: 0; }
+    .svc-save-error-body { flex: 1; min-width: 0; }
+    .svc-save-error-title { font-weight: 600; margin-bottom: 1px; }
+    .svc-save-error-desc { color: var(--text-secondary); font-size: 11px; }
+    .btn-retry-inline {
+      padding: 5px 11px;
+      border: 1px solid var(--danger);
+      background: none;
+      color: var(--danger);
+      border-radius: 6px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.15s, color 0.15s;
+    }
+    .btn-retry-inline:hover { background: var(--danger); color: white; }
+    .btn-retry-inline:disabled { opacity: 0.55; cursor: not-allowed; }
+    .svc-save-retrying {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-muted);
+      padding: 4px 0;
+    }
+    .spinner-sm {
+      width: 14px; height: 14px;
+      border: 2px solid var(--border);
+      border-top-color: var(--saffron);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--text-muted);
+      font-size: 13px;
+      grid-column: 1 / -1;
+    }
 
-  .purohit-modal {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 18px;
-    width: 100%;
-    max-width: 520px;
-    max-height: 88vh;
-    display: flex;
-    flex-direction: column;
-    box-shadow: var(--shadow-lg);
-    animation: modalSlideUp 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-  }
+    /* ══════════════════════════════
+       PUROHIT DETAIL MODAL
+    ══════════════════════════════ */
+    #purohit-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      backdrop-filter: blur(3px);
+      z-index: 60;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      animation: backdropIn 0.2s ease;
+    }
+    #purohit-modal-backdrop.open { display: flex; }
 
-  @keyframes modalSlideUp {
-    from { opacity: 0; transform: translateY(24px) scale(0.97); }
-    to   { opacity: 1; transform: translateY(0) scale(1); }
-  }
+    @keyframes backdropIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
 
-  .modal-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 18px 22px;
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-  }
-  .modal-header-title {
-    font-family: 'Sora', sans-serif;
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--text-primary);
-  }
-  .btn-modal-close {
-    display: flex; align-items: center; justify-content: center;
-    width: 30px; height: 30px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: none;
-    cursor: pointer;
-    color: var(--text-secondary);
-    transition: border-color 0.15s, color 0.15s;
-  }
-  .btn-modal-close:hover { border-color: var(--danger); color: var(--danger); }
+    .purohit-modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      width: 100%;
+      max-width: 520px;
+      max-height: 88vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--shadow-lg);
+      animation: modalSlideUp 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
 
-  .modal-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 22px;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
-  }
-  .modal-body::-webkit-scrollbar { width: 5px; }
-  .modal-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+    @keyframes modalSlideUp {
+      from { opacity: 0; transform: translateY(24px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
 
-  /* Purohit profile hero */
-  .modal-profile-hero {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 22px;
-    padding-bottom: 22px;
-    border-bottom: 1px solid var(--border);
-  }
-  .modal-avatar-wrap {
-    position: relative;
-    flex-shrink: 0;
-  }
-  .modal-avatar {
-    width: 68px; height: 68px;
-    border-radius: 50%;
-    background: var(--saffron-light);
-    color: var(--saffron-dark);
-    font-family: 'Sora', sans-serif;
-    font-weight: 700;
-    font-size: 22px;
-    display: flex; align-items: center; justify-content: center;
-    border: 2px solid rgba(232,115,10,0.25);
-    overflow: hidden;
-  }
-  .modal-avatar img {
-    width: 100%; height: 100%;
-    object-fit: cover;
-  }
-  .modal-avail-dot {
-    position: absolute;
-    bottom: 2px; right: 2px;
-    width: 14px; height: 14px;
-    border-radius: 50%;
-    border: 2px solid var(--surface);
-  }
-  .modal-avail-dot.available { background: var(--success); }
-  .modal-avail-dot.unavailable { background: var(--text-muted); }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .modal-header-title {
+      font-family: 'Sora', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .btn-modal-close {
+      display: flex; align-items: center; justify-content: center;
+      width: 30px; height: 30px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: none;
+      cursor: pointer;
+      color: var(--text-secondary);
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .btn-modal-close:hover { border-color: var(--danger); color: var(--danger); }
 
-  .modal-profile-info { flex: 1; min-width: 0; }
-  .modal-profile-name {
-    font-family: 'Sora', sans-serif;
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-bottom: 6px;
-    word-break: break-word;
-  }
-  .modal-badges {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-    margin-bottom: 6px;
-  }
-  .modal-id {
-    font-size: 11px;
-    color: var(--text-muted);
-    font-family: monospace;
-    word-break: break-all;
-  }
+    .modal-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 22px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+    .modal-body::-webkit-scrollbar { width: 5px; }
+    .modal-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
 
-  /* Detail sections */
-  .modal-section {
-    margin-bottom: 18px;
-  }
-  .modal-section-label {
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--text-muted);
-    margin-bottom: 10px;
-  }
-  .modal-fields-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
-  .modal-field {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 10px 12px;
-  }
-  .modal-field.full { grid-column: 1 / -1; }
-  .modal-field-label {
-    font-size: 10px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-muted);
-    margin-bottom: 3px;
-  }
-  .modal-field-value {
-    font-size: 13.5px;
-    color: var(--text-primary);
-    font-weight: 500;
-    word-break: break-word;
-  }
-  .modal-field-value.mono { font-family: monospace; font-size: 12px; }
-  .modal-field-value.muted { color: var(--text-muted); font-weight: 400; font-style: italic; }
+    /* Purohit profile hero */
+    .modal-profile-hero {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 22px;
+      padding-bottom: 22px;
+      border-bottom: 1px solid var(--border);
+    }
+    .modal-avatar-wrap {
+      position: relative;
+      flex-shrink: 0;
+    }
+    .modal-avatar {
+      width: 68px; height: 68px;
+      border-radius: 50%;
+      background: var(--saffron-light);
+      color: var(--saffron-dark);
+      font-family: 'Sora', sans-serif;
+      font-weight: 700;
+      font-size: 22px;
+      display: flex; align-items: center; justify-content: center;
+      border: 2px solid rgba(232,115,10,0.25);
+      overflow: hidden;
+    }
+    .modal-avatar img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+    }
+    .modal-avail-dot {
+      position: absolute;
+      bottom: 2px; right: 2px;
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      border: 2px solid var(--surface);
+    }
+    .modal-avail-dot.available { background: var(--success); }
+    .modal-avail-dot.unavailable { background: var(--text-muted); }
 
-  /* Tags (proficiency, serviceIds) */
-  .modal-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-top: 4px;
-  }
-  .modal-tag {
-    font-size: 11.5px;
-    font-weight: 500;
-    padding: 3px 10px;
-    border-radius: 20px;
-    background: var(--saffron-light);
-    color: var(--saffron-dark);
-    border: 1px solid rgba(232,115,10,0.2);
-  }
-  .modal-tag.service {
-    background: var(--success-bg);
-    color: var(--success);
-    border-color: #C0E8D5;
-  }
+    .modal-profile-info { flex: 1; min-width: 0; }
+    .modal-profile-name {
+      font-family: 'Sora', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+      word-break: break-word;
+    }
+    .modal-badges {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 6px;
+    }
+    .modal-id {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: monospace;
+      word-break: break-all;
+    }
 
-  /* Metric chips */
-  .modal-metrics {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-  }
-  .modal-metric {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 12px;
-    text-align: center;
-  }
-  .modal-metric-value {
-    font-family: 'Sora', sans-serif;
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--text-primary);
-    line-height: 1;
-    margin-bottom: 4px;
-  }
-  .modal-metric-label {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-muted);
-    font-weight: 500;
-  }
+    /* Detail sections */
+    .modal-section {
+      margin-bottom: 18px;
+    }
+    .modal-section-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+    .modal-fields-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .modal-field {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 12px;
+    }
+    .modal-field.full { grid-column: 1 / -1; }
+    .modal-field-label {
+      font-size: 10px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 3px;
+    }
+    .modal-field-value {
+      font-size: 13.5px;
+      color: var(--text-primary);
+      font-weight: 500;
+      word-break: break-word;
+    }
+    .modal-field-value.mono { font-family: monospace; font-size: 12px; }
+    .modal-field-value.muted { color: var(--text-muted); font-weight: 400; font-style: italic; }
 
-  .modal-footer {
-    padding: 16px 22px;
-    border-top: 1px solid var(--border);
-    flex-shrink: 0;
-    display: flex;
-    gap: 10px;
-    align-items: center;
-  }
-  .modal-footer-info {
-    flex: 1;
-    font-size: 11.5px;
-    color: var(--text-muted);
-  }
-  .btn-modal-verify {
-    padding: 9px 20px;
-    border-radius: var(--radius);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    border: 1px solid;
-    transition: all 0.15s;
-    white-space: nowrap;
-  }
-  .btn-modal-verify.verify { background: var(--success-bg); color: var(--success); border-color: #C0E8D5; }
-  .btn-modal-verify.verify:hover { background: #D4EDDF; }
-  .btn-modal-verify.unverify { background: var(--danger-bg); color: var(--danger); border-color: #F5C6C2; }
-  .btn-modal-verify.unverify:hover { background: #FAD9D6; }
-  .btn-modal-verify:disabled { opacity: 0.6; cursor: not-allowed; }
+    /* Tags (proficiency, serviceIds) */
+    .modal-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .modal-tag {
+      font-size: 11.5px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 20px;
+      background: var(--saffron-light);
+      color: var(--saffron-dark);
+      border: 1px solid rgba(232,115,10,0.2);
+    }
+    .modal-tag.service {
+      background: var(--success-bg);
+      color: var(--success);
+      border-color: #C0E8D5;
+    }
 
-  /* Admin Portal badge — topbar, login, services header */
-  .portal-badge {
-    display: inline-flex;
-    align-items: center;
-    font-size: 9.5px;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: white;
-    background: var(--saffron);
-    border-radius: 4px;
-    padding: 2px 7px;
-    vertical-align: middle;
-    flex-shrink: 0;
-    line-height: 1.5;
-  }
+    /* Metric chips */
+    .modal-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .modal-metric {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px;
+      text-align: center;
+    }
+    .modal-metric-value {
+      font-family: 'Sora', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .modal-metric-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
 
-  /* Responsive */
-  @media (max-width: 600px) {
-    .stats-row { grid-template-columns: 1fr; }
-    .purohit-meta { gap: 6px; }
-    .search-input { width: 140px; }
-    .topbar { padding: 0 14px; }
-    .main-content { padding: 20px 14px 32px; }
-    .svc-topbar { padding: 0 14px; }
-    .svc-body { padding: 16px 14px 32px; }
-    .svc-grid { grid-template-columns: 1fr; }
-    .modal-fields-grid { grid-template-columns: 1fr; }
-    .modal-field.full { grid-column: 1; }
-    .modal-metrics { grid-template-columns: repeat(3, 1fr); }
-    .btn-manage-services span { display: none; }
-  }
-</style>
+    .modal-footer {
+      padding: 16px 22px;
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .modal-footer-info {
+      flex: 1;
+      font-size: 11.5px;
+      color: var(--text-muted);
+    }
+    .btn-modal-verify {
+      padding: 9px 20px;
+      border-radius: var(--radius);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .btn-modal-verify.verify { background: var(--success-bg); color: var(--success); border-color: #C0E8D5; }
+    .btn-modal-verify.verify:hover { background: #D4EDDF; }
+    .btn-modal-verify.unverify { background: var(--danger-bg); color: var(--danger); border-color: #F5C6C2; }
+    .btn-modal-verify.unverify:hover { background: #FAD9D6; }
+    .btn-modal-verify:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* Admin Portal badge — topbar, login, services header */
+    .portal-badge {
+      display: inline-flex;
+      align-items: center;
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: white;
+      background: var(--saffron);
+      border-radius: 4px;
+      padding: 2px 7px;
+      vertical-align: middle;
+      flex-shrink: 0;
+      line-height: 1.5;
+    }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      .stats-row { grid-template-columns: 1fr; }
+      .purohit-meta { gap: 6px; }
+      .search-input { width: 140px; }
+      .topbar { padding: 0 14px; }
+      .main-content { padding: 20px 14px 32px; }
+      .svc-topbar { padding: 0 14px; }
+      .svc-body { padding: 16px 14px 32px; }
+      .svc-grid { grid-template-columns: 1fr; }
+      .modal-fields-grid { grid-template-columns: 1fr; }
+      .modal-field.full { grid-column: 1; }
+      .modal-metrics { grid-template-columns: repeat(3, 1fr); }
+      .btn-manage-services span { display: none; }
+    }
+  </style>
 </head>
 <body>
 
@@ -1178,11 +1295,19 @@
     <!-- Inline add-service form -->
     <div class="svc-add-form" id="svc-add-form">
       <input
-        class="svc-add-input"
-        id="svc-add-input"
-        type="text"
-        placeholder="Service name, e.g. Maha Shivratri Pooja"
-        maxlength="120"
+              class="svc-add-input"
+              id="svc-add-input"
+              type="text"
+              placeholder="Service name, e.g. Maha Shivratri Pooja"
+              maxlength="120"
+      />
+      <input
+              class="svc-add-price-input"
+              id="svc-add-price-input"
+              type="number"
+              min="0"
+              step="1"
+              placeholder="Price (₹)"
       />
       <button class="btn-svc-save" id="svc-add-submit-btn">Add</button>
       <button class="btn-svc-cancel" id="svc-add-cancel-btn">Cancel</button>
@@ -1231,609 +1356,757 @@
 <script src="pooja-purohit-admin-portal-config.js"></script>
 
 <script>
-/* ════════════════════════════════════════════════════════
-   BOOTSTRAP — config guard
-═════════════════════════════════════════════════════════ */
-if (typeof FIREBASE_CONFIG === "undefined") {
-  document.body.innerHTML =
-    '<div style="font-family:monospace;padding:40px;color:#C0392B;">' +
-    '<strong>Config file missing.</strong><br><br>' +
-    'Create <code>pooja-purohit-admin-portal-config.js</code> next to this HTML file.<br>' +
-    'See the included <code>.template</code> file for the required format.</div>';
-  throw new Error("FIREBASE_CONFIG not found.");
-}
-
-/* ════════════════════════════════════════════════════════
-   CONSTANTS & STATE
-═════════════════════════════════════════════════════════ */
-const ADMIN_USERNAME = "admin";
-const ADMIN_PASSWORD = "admin#123";
-
-firebase.initializeApp(FIREBASE_CONFIG);
-const db = firebase.firestore();
-
-/** @type {Array<Object>} */  let allPurohits  = [];
-/** @type {string} */         let activeFilter = "all";
-/** @type {string|null} */    let activePurohitId = null;
-/** @type {Array<Object>} */  let allServices  = [];   // { id (slug), name, displayOrder, isActive, createdAt }
-
-/* ════════════════════════════════════════════════════════
-   UTILITIES
-═════════════════════════════════════════════════════════ */
-function escHtml(str) {
-  return String(str ?? "")
-    .replace(/&/g,"&amp;").replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-}
-
-function formatTs(val) {
-  if (!val) return null;
-  let date;
-  if (val && typeof val.toDate === "function") date = val.toDate();
-  else if (typeof val === "string") date = new Date(val);
-  else return String(val);
-  if (isNaN(date)) return String(val);
-  return date.toLocaleString("en-IN", {
-    day: "2-digit", month: "short", year: "numeric",
-    hour: "2-digit", minute: "2-digit", hour12: true
-  });
-}
-
-function generateSlug(name) {
-  return name
-    .trim()
-    .toLowerCase()
-    .replace(/[^\w\s]/g, "")   // remove special chars
-    .replace(/\s+/g, "_")      // spaces → underscores
-    .replace(/_+/g, "_")       // collapse multiple underscores
-    .replace(/^_|_$/g, "");    // trim edge underscores
-}
-
-let toastTimer;
-function showToast(msg) {
-  const t = document.getElementById("toast");
-  t.textContent = msg;
-  t.classList.add("show");
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove("show"), 2800);
-}
-
-function showLoading() {
-  document.getElementById("purohit-list").innerHTML =
-    '<div class="loading-state"><div class="spinner"></div>Loading purohits…</div>';
-}
-
-/* ════════════════════════════════════════════════════════
-   AUTH
-═════════════════════════════════════════════════════════ */
-document.getElementById("login-btn").addEventListener("click", handleLogin);
-["username", "password"].forEach(id => {
-  document.getElementById(id).addEventListener("keydown", e => { if (e.key === "Enter") handleLogin(); });
-});
-
-function handleLogin() {
-  const u   = document.getElementById("username").value.trim();
-  const p   = document.getElementById("password").value;
-  const err = document.getElementById("login-error");
-  if (u === ADMIN_USERNAME && p === ADMIN_PASSWORD) {
-    err.style.display = "none";
-    document.getElementById("login-screen").style.display = "none";
-    document.getElementById("dashboard-screen").style.display = "block";
-    loadPurohits();
-  } else {
-    err.style.display = "block";
-    document.getElementById("password").value = "";
+  /* ════════════════════════════════════════════════════════
+     BOOTSTRAP — config guard
+  ═════════════════════════════════════════════════════════ */
+  if (typeof FIREBASE_CONFIG === "undefined") {
+    document.body.innerHTML =
+      '<div style="font-family:monospace;padding:40px;color:#C0392B;">' +
+      '<strong>Config file missing.</strong><br><br>' +
+      'Create <code>pooja-purohit-admin-portal-config.js</code> next to this HTML file.<br>' +
+      'See the included <code>.template</code> file for the required format.</div>';
+    throw new Error("FIREBASE_CONFIG not found.");
   }
-}
 
-document.getElementById("logout-btn").addEventListener("click", () => {
-  document.getElementById("dashboard-screen").style.display = "none";
-  document.getElementById("login-screen").style.display = "flex";
-  document.getElementById("username").value = "";
-  document.getElementById("password").value = "";
-  allPurohits = [];
-  allServices = [];
-  closePurohitModal();
-  closeServicesOverlay();
-});
+  /* ════════════════════════════════════════════════════════
+     CONSTANTS & STATE
+  ═════════════════════════════════════════════════════════ */
+  const ADMIN_USERNAME = "admin";
+  const ADMIN_PASSWORD = "admin#123";
 
-/* ════════════════════════════════════════════════════════
-   PUROHITS — load, filter, render
-═════════════════════════════════════════════════════════ */
-async function loadPurohits() {
-  showLoading();
-  try {
-    const snap = await db.collection("purohits").get();
-    allPurohits = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    updateStats();
-    renderList();
-  } catch (e) {
-    document.getElementById("purohit-list").innerHTML =
-      `<div class="empty-state">⚠ Failed to load data.<br><small>${escHtml(e.message)}</small></div>`;
+  firebase.initializeApp(FIREBASE_CONFIG);
+  const db = firebase.firestore();
+
+  /** @type {Array<Object>} */  let allPurohits  = [];
+  /** @type {string} */         let activeFilter = "all";
+  /** @type {string|null} */    let activePurohitId = null;
+  /** @type {Array<Object>} */  let allServices  = [];   // { id (slug), name, displayOrder, isActive, createdAt }
+
+  /* ════════════════════════════════════════════════════════
+     UTILITIES
+  ═════════════════════════════════════════════════════════ */
+  function escHtml(str) {
+    return String(str ?? "")
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
   }
-}
 
-document.getElementById("refresh-btn").addEventListener("click", loadPurohits);
-
-function updateStats() {
-  const total      = allPurohits.length;
-  const verified   = allPurohits.filter(p => p.isVerified === true).length;
-  const unverified = total - verified;
-  document.getElementById("stat-total").textContent     = total;
-  document.getElementById("stat-verified").textContent  = verified;
-  document.getElementById("stat-unverified").textContent= unverified;
-}
-
-document.querySelectorAll(".tab-btn").forEach(btn => {
-  btn.addEventListener("click", () => {
-    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    activeFilter = btn.dataset.filter;
-    renderList();
-  });
-});
-
-document.getElementById("search-input").addEventListener("input", renderList);
-
-function getFiltered() {
-  const q = document.getElementById("search-input").value.toLowerCase();
-  return allPurohits.filter(p => {
-    const matchFilter =
-      activeFilter === "all" ||
-      (activeFilter === "verified"   && p.isVerified === true) ||
-      (activeFilter === "unverified" && p.isVerified !== true);
-    const matchSearch = !q ||
-      (p.name  || "").toLowerCase().includes(q) ||
-      (p.city  || "").toLowerCase().includes(q) ||
-      (p.email || "").toLowerCase().includes(q);
-    return matchFilter && matchSearch;
-  });
-}
-
-function renderList() {
-  const list     = document.getElementById("purohit-list");
-  const filtered = getFiltered();
-  if (filtered.length === 0) {
-    list.innerHTML = '<div class="empty-state">No purohits found matching your filter.</div>';
-    return;
-  }
-  list.innerHTML = filtered.map(p => {
-    const initials   = (p.name || "?").split(" ").map(w => w[0]).join("").substring(0, 2).toUpperCase();
-    const isVerified = p.isVerified === true;
-    const profSnip   = Array.isArray(p.proficiency)
-      ? p.proficiency.slice(0, 2).join(", ")
-      : (p.proficiency || "—");
-    const rating = (typeof p.rating === "number" && p.rating > 0) ? `★ ${p.rating.toFixed(1)}` : "";
-    return `
-      <div class="purohit-card" id="card-${p.id}" onclick="openPurohitModal('${p.id}')">
-        <div class="avatar">${escHtml(initials)}</div>
-        <div class="purohit-info">
-          <div class="purohit-name">${escHtml(p.name || "Unnamed")}</div>
-          <div class="purohit-meta">
-            ${p.city    ? `<span>📍 ${escHtml(p.city)}</span>`             : ""}
-            ${p.phone   ? `<span>${escHtml(p.phone)}</span>`               : ""}
-            ${profSnip  ? `<span>${escHtml(profSnip)}</span>`              : ""}
-            ${rating    ? `<span>${rating}</span>`                         : ""}
-            ${typeof p.experience === "number" ? `<span>${p.experience} yrs exp</span>` : ""}
-          </div>
-        </div>
-        <span class="badge ${isVerified ? "badge-verified" : "badge-unverified"}">
-          ${isVerified ? "Verified" : "Unverified"}
-        </span>
-        ${isVerified
-          ? `<button class="action-btn btn-unverify" onclick="event.stopPropagation(); toggleVerify('${p.id}', false)">Unverify</button>`
-          : `<button class="action-btn btn-verify"   onclick="event.stopPropagation(); toggleVerify('${p.id}', true)">Verify</button>`
-        }
-      </div>
-    `;
-  }).join("");
-}
-
-/* ════════════════════════════════════════════════════════
-   VERIFY / UNVERIFY
-═════════════════════════════════════════════════════════ */
-async function toggleVerify(id, value) {
-  // Update both list card button and modal button
-  const listBtn  = document.querySelector(`#card-${id} .action-btn`);
-  const modalBtn = document.getElementById("modal-verify-btn");
-
-  [listBtn, modalBtn].forEach(b => {
-    if (b) { b.disabled = true; b.textContent = "Saving…"; }
-  });
-
-  try {
-    await db.collection("purohits").doc(id).update({ isVerified: value, isAvailable: value });
-    const p = allPurohits.find(x => x.id === id);
-    if (p) { p.isVerified = value; p.isAvailable = value; }
-    updateStats();
-    renderList();
-    showToast(value ? "Purohit verified ✓" : "Marked as unverified");
-
-    // Refresh modal if it's open for this purohit
-    if (activePurohitId === id && document.getElementById("purohit-modal-backdrop").classList.contains("open")) {
-      renderPurohitModal(allPurohits.find(x => x.id === id));
-    }
-  } catch (e) {
-    showToast("Error: " + e.message);
-    [listBtn, modalBtn].forEach(b => {
-      if (b) { b.disabled = false; b.textContent = value ? "Verify" : "Unverify"; }
+  function formatTs(val) {
+    if (!val) return null;
+    let date;
+    if (val && typeof val.toDate === "function") date = val.toDate();
+    else if (typeof val === "string") date = new Date(val);
+    else return String(val);
+    if (isNaN(date)) return String(val);
+    return date.toLocaleString("en-IN", {
+      day: "2-digit", month: "short", year: "numeric",
+      hour: "2-digit", minute: "2-digit", hour12: true
     });
   }
-}
 
-/* ════════════════════════════════════════════════════════
-   PUROHIT DETAIL MODAL
-═════════════════════════════════════════════════════════ */
-function openPurohitModal(id) {
-  const p = allPurohits.find(x => x.id === id);
-  if (!p) return;
-  activePurohitId = id;
-  renderPurohitModal(p);
-  document.getElementById("purohit-modal-backdrop").classList.add("open");
-  document.body.style.overflow = "hidden";
-}
-
-function closePurohitModal() {
-  document.getElementById("purohit-modal-backdrop").classList.remove("open");
-  document.body.style.overflow = "";
-  activePurohitId = null;
-}
-
-document.getElementById("close-purohit-modal-btn").addEventListener("click", closePurohitModal);
-
-// Close on backdrop click
-document.getElementById("purohit-modal-backdrop").addEventListener("click", function(e) {
-  if (e.target === this) closePurohitModal();
-});
-
-// Escape key
-document.addEventListener("keydown", e => {
-  if (e.key === "Escape") {
-    if (document.getElementById("purohit-modal-backdrop").classList.contains("open")) closePurohitModal();
-    if (document.getElementById("services-overlay").classList.contains("open")) closeServicesOverlay();
+  function generateSlug(name) {
+    return name
+      .trim()
+      .toLowerCase()
+      .replace(/[^\w\s]/g, "")   // remove special chars
+      .replace(/\s+/g, "_")      // spaces → underscores
+      .replace(/_+/g, "_")       // collapse multiple underscores
+      .replace(/^_|_$/g, "");    // trim edge underscores
   }
-});
 
-function renderPurohitModal(p) {
-  if (!p) return;
-  const isVerified  = p.isVerified === true;
-  const isAvailable = p.isAvailable === true;
-  const initials    = (p.name || "?").split(" ").map(w => w[0]).join("").substring(0, 2).toUpperCase();
-  const photoURL    = p.photoURL || null;
+  let toastTimer;
+  function showToast(msg) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove("show"), 2800);
+  }
 
-  // Build proficiency tags
-  const profTags = Array.isArray(p.proficiency) && p.proficiency.length
-    ? p.proficiency.map(t => `<span class="modal-tag">${escHtml(t)}</span>`).join("")
-    : '<span class="modal-tag" style="opacity:0.5">—</span>';
+  function showLoading() {
+    document.getElementById("purohit-list").innerHTML =
+      '<div class="loading-state"><div class="spinner"></div>Loading purohits…</div>';
+  }
 
-  // Build serviceIds tags (map to service name if loaded, else show slug)
-  const svcTags = Array.isArray(p.serviceIds) && p.serviceIds.length
-    ? p.serviceIds.map(slug => {
-        const svc = allServices.find(s => s.id === slug);
-        return `<span class="modal-tag service">${escHtml(svc ? svc.name : slug)}</span>`;
-      }).join("")
-    : '<span style="font-size:13px;color:var(--text-muted);font-style:italic">None assigned</span>';
+  /* ════════════════════════════════════════════════════════
+     AUTH
+  ═════════════════════════════════════════════════════════ */
+  document.getElementById("login-btn").addEventListener("click", handleLogin);
+  ["username", "password"].forEach(id => {
+    document.getElementById(id).addEventListener("keydown", e => { if (e.key === "Enter") handleLogin(); });
+  });
 
-  // Footer info
-  document.getElementById("modal-footer-info").textContent =
-    `ID: ${p.id}`;
+  function handleLogin() {
+    const u   = document.getElementById("username").value.trim();
+    const p   = document.getElementById("password").value;
+    const err = document.getElementById("login-error");
+    if (u === ADMIN_USERNAME && p === ADMIN_PASSWORD) {
+      err.style.display = "none";
+      document.getElementById("login-screen").style.display = "none";
+      document.getElementById("dashboard-screen").style.display = "block";
+      loadPurohits();
+    } else {
+      err.style.display = "block";
+      document.getElementById("password").value = "";
+    }
+  }
 
-  // Verify button in modal footer
-  const modalVerifyBtn = document.getElementById("modal-verify-btn");
-  modalVerifyBtn.disabled = false;                           // always reset — toggleVerify may have left it disabled
-  modalVerifyBtn.className = "btn-modal-verify " + (isVerified ? "unverify" : "verify");
-  modalVerifyBtn.textContent = isVerified ? "Unverify" : "Verify";
-  modalVerifyBtn.onclick = () => toggleVerify(p.id, !isVerified);
+  document.getElementById("logout-btn").addEventListener("click", () => {
+    document.getElementById("dashboard-screen").style.display = "none";
+    document.getElementById("login-screen").style.display = "flex";
+    document.getElementById("username").value = "";
+    document.getElementById("password").value = "";
+    allPurohits = [];
+    allServices = [];
+    closePurohitModal();
+    closeServicesOverlay();
+  });
 
-  // Render body
-  document.getElementById("purohit-modal-body").innerHTML = `
-    <!-- Profile Hero -->
-    <div class="modal-profile-hero">
-      <div class="modal-avatar-wrap">
-        <div class="modal-avatar" id="modal-avatar-el">
-          ${photoURL
-            ? `<img src="${escHtml(photoURL)}" alt="${escHtml(p.name || "")}" onerror="this.parentElement.textContent='${escHtml(initials)}'">`
-            : escHtml(initials)
+  /* ════════════════════════════════════════════════════════
+     PUROHITS — load, filter, render
+  ═════════════════════════════════════════════════════════ */
+  async function loadPurohits() {
+    showLoading();
+    try {
+      const snap = await db.collection("purohits").get();
+      allPurohits = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      updateStats();
+      renderList();
+    } catch (e) {
+      document.getElementById("purohit-list").innerHTML =
+        `<div class="empty-state">⚠ Failed to load data.<br><small>${escHtml(e.message)}</small></div>`;
+    }
+  }
+
+  document.getElementById("refresh-btn").addEventListener("click", loadPurohits);
+
+  function updateStats() {
+    const total      = allPurohits.length;
+    const verified   = allPurohits.filter(p => p.isVerified === true).length;
+    const unverified = total - verified;
+    document.getElementById("stat-total").textContent     = total;
+    document.getElementById("stat-verified").textContent  = verified;
+    document.getElementById("stat-unverified").textContent= unverified;
+  }
+
+  document.querySelectorAll(".tab-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      activeFilter = btn.dataset.filter;
+      renderList();
+    });
+  });
+
+  document.getElementById("search-input").addEventListener("input", renderList);
+
+  function getFiltered() {
+    const q = document.getElementById("search-input").value.toLowerCase();
+    return allPurohits.filter(p => {
+      const matchFilter =
+        activeFilter === "all" ||
+        (activeFilter === "verified"   && p.isVerified === true) ||
+        (activeFilter === "unverified" && p.isVerified !== true);
+      const matchSearch = !q ||
+        (p.name  || "").toLowerCase().includes(q) ||
+        (p.city  || "").toLowerCase().includes(q) ||
+        (p.email || "").toLowerCase().includes(q);
+      return matchFilter && matchSearch;
+    });
+  }
+
+  function renderList() {
+    const list     = document.getElementById("purohit-list");
+    const filtered = getFiltered();
+    if (filtered.length === 0) {
+      list.innerHTML = '<div class="empty-state">No purohits found matching your filter.</div>';
+      return;
+    }
+    list.innerHTML = filtered.map(p => {
+      const initials   = (p.name || "?").split(" ").map(w => w[0]).join("").substring(0, 2).toUpperCase();
+      const isVerified = p.isVerified === true;
+      const profSnip   = Array.isArray(p.proficiency)
+        ? p.proficiency.slice(0, 2).join(", ")
+        : (p.proficiency || "—");
+      const rating = (typeof p.rating === "number" && p.rating > 0) ? `★ ${p.rating.toFixed(1)}` : "";
+      return `
+        <div class="purohit-card" id="card-${p.id}" onclick="openPurohitModal('${p.id}')">
+          <div class="avatar">${escHtml(initials)}</div>
+          <div class="purohit-info">
+            <div class="purohit-name">${escHtml(p.name || "Unnamed")}</div>
+            <div class="purohit-meta">
+              ${p.city    ? `<span>📍 ${escHtml(p.city)}</span>`             : ""}
+              ${p.phone   ? `<span>${escHtml(p.phone)}</span>`               : ""}
+              ${profSnip  ? `<span>${escHtml(profSnip)}</span>`              : ""}
+              ${rating    ? `<span>${rating}</span>`                         : ""}
+              ${typeof p.experience === "number" ? `<span>${p.experience} yrs exp</span>` : ""}
+            </div>
+          </div>
+          <span class="badge ${isVerified ? "badge-verified" : "badge-unverified"}">
+            ${isVerified ? "Verified" : "Unverified"}
+          </span>
+          ${isVerified
+            ? `<button class="action-btn btn-unverify" onclick="event.stopPropagation(); toggleVerify('${p.id}', false)">Unverify</button>`
+            : `<button class="action-btn btn-verify"   onclick="event.stopPropagation(); toggleVerify('${p.id}', true)">Verify</button>`
           }
         </div>
-        <div class="modal-avail-dot ${isAvailable ? "available" : "unavailable"}" title="${isAvailable ? "Available" : "Unavailable"}"></div>
-        ${!photoURL ? `<div style="font-size:9.5px;color:var(--text-muted);text-align:center;margin-top:5px;line-height:1.35;max-width:72px;">No photo —<br>write photoURL<br>to Firestore</div>` : ""}
-      </div>
-      <div class="modal-profile-info">
-        <div class="modal-profile-name" id="modal-purohit-name">${escHtml(p.name || "Unnamed")}</div>
-        <div class="modal-badges">
-          <span class="badge ${isVerified ? "badge-verified" : "badge-unverified"}">${isVerified ? "Verified" : "Unverified"}</span>
-          <span class="badge" style="background:var(--bg);border:1px solid var(--border);color:var(--text-secondary);">
-            ${isAvailable ? "🟢 Available" : "⚫ Unavailable"}
-          </span>
-        </div>
-        <div class="modal-id">${escHtml(p.purohitId || p.id)}</div>
-      </div>
-    </div>
+      `;
+    }).join("");
+  }
 
-    <!-- Contact -->
-    <div class="modal-section">
-      <div class="modal-section-label">Contact</div>
-      <div class="modal-fields-grid">
-        <div class="modal-field">
-          <div class="modal-field-label">Phone</div>
-          <div class="modal-field-value ${p.phone ? "" : "muted"}">${escHtml(p.phone || "—")}</div>
+  /* ════════════════════════════════════════════════════════
+     VERIFY / UNVERIFY
+  ═════════════════════════════════════════════════════════ */
+  async function toggleVerify(id, value) {
+    // Update both list card button and modal button
+    const listBtn  = document.querySelector(`#card-${id} .action-btn`);
+    const modalBtn = document.getElementById("modal-verify-btn");
+
+    [listBtn, modalBtn].forEach(b => {
+      if (b) { b.disabled = true; b.textContent = "Saving…"; }
+    });
+
+    try {
+      await db.collection("purohits").doc(id).update({ isVerified: value, isAvailable: value });
+      const p = allPurohits.find(x => x.id === id);
+      if (p) { p.isVerified = value; p.isAvailable = value; }
+      updateStats();
+      renderList();
+      showToast(value ? "Purohit verified ✓" : "Marked as unverified");
+
+      // Refresh modal if it's open for this purohit
+      if (activePurohitId === id && document.getElementById("purohit-modal-backdrop").classList.contains("open")) {
+        renderPurohitModal(allPurohits.find(x => x.id === id));
+      }
+    } catch (e) {
+      showToast("Error: " + e.message);
+      [listBtn, modalBtn].forEach(b => {
+        if (b) { b.disabled = false; b.textContent = value ? "Verify" : "Unverify"; }
+      });
+    }
+  }
+
+  /* ════════════════════════════════════════════════════════
+     PUROHIT DETAIL MODAL
+  ═════════════════════════════════════════════════════════ */
+  function openPurohitModal(id) {
+    const p = allPurohits.find(x => x.id === id);
+    if (!p) return;
+    activePurohitId = id;
+    renderPurohitModal(p);
+    document.getElementById("purohit-modal-backdrop").classList.add("open");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closePurohitModal() {
+    document.getElementById("purohit-modal-backdrop").classList.remove("open");
+    document.body.style.overflow = "";
+    activePurohitId = null;
+  }
+
+  document.getElementById("close-purohit-modal-btn").addEventListener("click", closePurohitModal);
+
+  // Close on backdrop click
+  document.getElementById("purohit-modal-backdrop").addEventListener("click", function(e) {
+    if (e.target === this) closePurohitModal();
+  });
+
+  // Escape key
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape") {
+      if (document.getElementById("purohit-modal-backdrop").classList.contains("open")) closePurohitModal();
+      if (document.getElementById("services-overlay").classList.contains("open")) closeServicesOverlay();
+    }
+  });
+
+  function renderPurohitModal(p) {
+    if (!p) return;
+    const isVerified  = p.isVerified === true;
+    const isAvailable = p.isAvailable === true;
+    const initials    = (p.name || "?").split(" ").map(w => w[0]).join("").substring(0, 2).toUpperCase();
+    const photoURL    = p.photoURL || null;
+
+    // Build proficiency tags
+    const profTags = Array.isArray(p.proficiency) && p.proficiency.length
+      ? p.proficiency.map(t => `<span class="modal-tag">${escHtml(t)}</span>`).join("")
+      : '<span class="modal-tag" style="opacity:0.5">—</span>';
+
+    // Build serviceIds tags (map to service name if loaded, else show slug)
+    const svcTags = Array.isArray(p.serviceIds) && p.serviceIds.length
+      ? p.serviceIds.map(slug => {
+          const svc = allServices.find(s => s.id === slug);
+          return `<span class="modal-tag service">${escHtml(svc ? svc.name : slug)}</span>`;
+        }).join("")
+      : '<span style="font-size:13px;color:var(--text-muted);font-style:italic">None assigned</span>';
+
+    // Footer info
+    document.getElementById("modal-footer-info").textContent =
+      `ID: ${p.id}`;
+
+    // Verify button in modal footer
+    const modalVerifyBtn = document.getElementById("modal-verify-btn");
+    modalVerifyBtn.disabled = false;                           // always reset — toggleVerify may have left it disabled
+    modalVerifyBtn.className = "btn-modal-verify " + (isVerified ? "unverify" : "verify");
+    modalVerifyBtn.textContent = isVerified ? "Unverify" : "Verify";
+    modalVerifyBtn.onclick = () => toggleVerify(p.id, !isVerified);
+
+    // Render body
+    document.getElementById("purohit-modal-body").innerHTML = `
+      <!-- Profile Hero -->
+      <div class="modal-profile-hero">
+        <div class="modal-avatar-wrap">
+          <div class="modal-avatar" id="modal-avatar-el">
+            ${photoURL
+              ? `<img src="${escHtml(photoURL)}" alt="${escHtml(p.name || "")}" onerror="this.parentElement.textContent='${escHtml(initials)}'">`
+              : escHtml(initials)
+            }
+          </div>
+          <div class="modal-avail-dot ${isAvailable ? "available" : "unavailable"}" title="${isAvailable ? "Available" : "Unavailable"}"></div>
+          ${!photoURL ? `<div style="font-size:9.5px;color:var(--text-muted);text-align:center;margin-top:5px;line-height:1.35;max-width:72px;">No photo —<br>write photoURL<br>to Firestore</div>` : ""}
         </div>
-        <div class="modal-field">
-          <div class="modal-field-label">Email</div>
-          <div class="modal-field-value ${p.email ? "" : "muted"}">${escHtml(p.email || "—")}</div>
+        <div class="modal-profile-info">
+          <div class="modal-profile-name" id="modal-purohit-name">${escHtml(p.name || "Unnamed")}</div>
+          <div class="modal-badges">
+            <span class="badge ${isVerified ? "badge-verified" : "badge-unverified"}">${isVerified ? "Verified" : "Unverified"}</span>
+            <span class="badge" style="background:var(--bg);border:1px solid var(--border);color:var(--text-secondary);">
+              ${isAvailable ? "🟢 Available" : "⚫ Unavailable"}
+            </span>
+          </div>
+          <div class="modal-id">${escHtml(p.purohitId || p.id)}</div>
         </div>
       </div>
-    </div>
 
-    <!-- Location -->
-    <div class="modal-section">
-      <div class="modal-section-label">Location</div>
-      <div class="modal-fields-grid">
-        <div class="modal-field">
-          <div class="modal-field-label">City</div>
-          <div class="modal-field-value ${p.city ? "" : "muted"}">${escHtml(p.city || "—")}</div>
-        </div>
-        <div class="modal-field">
-          <div class="modal-field-label">Locality</div>
-          <div class="modal-field-value ${p.locality ? "" : "muted"}">${escHtml(p.locality || "—")}</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Expertise -->
-    <div class="modal-section">
-      <div class="modal-section-label">Expertise</div>
-      <div class="modal-fields-grid">
-        <div class="modal-field">
-          <div class="modal-field-label">Experience</div>
-          <div class="modal-field-value">
-            ${typeof p.experience === "number" ? `${p.experience} years` : '<span class="muted">—</span>'}
+      <!-- Contact -->
+      <div class="modal-section">
+        <div class="modal-section-label">Contact</div>
+        <div class="modal-fields-grid">
+          <div class="modal-field">
+            <div class="modal-field-label">Phone</div>
+            <div class="modal-field-value ${p.phone ? "" : "muted"}">${escHtml(p.phone || "—")}</div>
+          </div>
+          <div class="modal-field">
+            <div class="modal-field-label">Email</div>
+            <div class="modal-field-value ${p.email ? "" : "muted"}">${escHtml(p.email || "—")}</div>
           </div>
         </div>
-        <div class="modal-field">
-          <div class="modal-field-label">Proficiency</div>
-          <div class="modal-tags">${profTags}</div>
+      </div>
+
+      <!-- Location -->
+      <div class="modal-section">
+        <div class="modal-section-label">Location</div>
+        <div class="modal-fields-grid">
+          <div class="modal-field">
+            <div class="modal-field-label">City</div>
+            <div class="modal-field-value ${p.city ? "" : "muted"}">${escHtml(p.city || "—")}</div>
+          </div>
+          <div class="modal-field">
+            <div class="modal-field-label">Locality</div>
+            <div class="modal-field-value ${p.locality ? "" : "muted"}">${escHtml(p.locality || "—")}</div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Services -->
-    <div class="modal-section">
-      <div class="modal-section-label">Services Offered</div>
-      <div class="modal-tags">${svcTags}</div>
-    </div>
-
-    <!-- Metrics -->
-    <div class="modal-section">
-      <div class="modal-section-label">Performance Metrics</div>
-      <div class="modal-metrics">
-        <div class="modal-metric">
-          <div class="modal-metric-value">${typeof p.rating === "number" ? p.rating.toFixed(1) : "—"}</div>
-          <div class="modal-metric-label">Rating</div>
-        </div>
-        <div class="modal-metric">
-          <div class="modal-metric-value">${typeof p.totalBookings === "number" ? p.totalBookings : "—"}</div>
-          <div class="modal-metric-label">Bookings</div>
-        </div>
-        <div class="modal-metric">
-          <div class="modal-metric-value">${typeof p.trustIndex === "number" ? p.trustIndex.toFixed(1) : "—"}</div>
-          <div class="modal-metric-label">Trust Index</div>
+      <!-- Expertise -->
+      <div class="modal-section">
+        <div class="modal-section-label">Expertise</div>
+        <div class="modal-fields-grid">
+          <div class="modal-field">
+            <div class="modal-field-label">Experience</div>
+            <div class="modal-field-value">
+              ${typeof p.experience === "number" ? `${p.experience} years` : '<span class="muted">—</span>'}
+            </div>
+          </div>
+          <div class="modal-field">
+            <div class="modal-field-label">Proficiency</div>
+            <div class="modal-tags">${profTags}</div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Timestamps -->
-    <div class="modal-section">
-      <div class="modal-section-label">Timestamps</div>
-      <div class="modal-fields-grid">
-        <div class="modal-field">
-          <div class="modal-field-label">Registered</div>
-          <div class="modal-field-value" style="font-size:12.5px">${escHtml(formatTs(p.createdAt) || "—")}</div>
-        </div>
-        <div class="modal-field">
-          <div class="modal-field-label">Last Updated</div>
-          <div class="modal-field-value" style="font-size:12.5px">${escHtml(formatTs(p.updatedAt) || "—")}</div>
+      <!-- Services -->
+      <div class="modal-section">
+        <div class="modal-section-label">Services Offered</div>
+        <div class="modal-tags">${svcTags}</div>
+      </div>
+
+      <!-- Metrics -->
+      <div class="modal-section">
+        <div class="modal-section-label">Performance Metrics</div>
+        <div class="modal-metrics">
+          <div class="modal-metric">
+            <div class="modal-metric-value">${typeof p.rating === "number" ? p.rating.toFixed(1) : "—"}</div>
+            <div class="modal-metric-label">Rating</div>
+          </div>
+          <div class="modal-metric">
+            <div class="modal-metric-value">${typeof p.totalBookings === "number" ? p.totalBookings : "—"}</div>
+            <div class="modal-metric-label">Bookings</div>
+          </div>
+          <div class="modal-metric">
+            <div class="modal-metric-value">${typeof p.trustIndex === "number" ? p.trustIndex.toFixed(1) : "—"}</div>
+            <div class="modal-metric-label">Trust Index</div>
+          </div>
         </div>
       </div>
-    </div>
-  `;
-}
 
-/* ════════════════════════════════════════════════════════
-   SERVICES OVERLAY
-═════════════════════════════════════════════════════════ */
-document.getElementById("open-services-btn").addEventListener("click", openServicesOverlay);
-document.getElementById("close-services-btn").addEventListener("click", closeServicesOverlay);
-
-function openServicesOverlay() {
-  document.getElementById("services-overlay").classList.add("open");
-  document.body.style.overflow = "hidden";
-  loadServices();
-}
-
-function closeServicesOverlay() {
-  document.getElementById("services-overlay").classList.remove("open");
-  document.body.style.overflow = "";
-  // Hide add form
-  document.getElementById("svc-add-form").classList.remove("visible");
-  document.getElementById("svc-add-input").value = "";
-}
-
-/* Load services from Firestore */
-async function loadServices() {
-  document.getElementById("svc-grid").innerHTML =
-    '<div class="svc-loading"><div class="spinner"></div>Loading services…</div>';
-  document.getElementById("svc-count-label").textContent = "Loading…";
-  try {
-    const snap = await db.collection("services").orderBy("displayOrder", "asc").get();
-    allServices = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    renderServicesGrid();
-  } catch (e) {
-    document.getElementById("svc-grid").innerHTML =
-      `<div class="svc-loading">⚠ Failed to load services.<br><small>${escHtml(e.message)}</small></div>`;
-    document.getElementById("svc-count-label").textContent = "Error";
-  }
-}
-
-function renderServicesGrid() {
-  const active = allServices.filter(s => s.isActive !== false);
-  document.getElementById("svc-count-label").textContent =
-    `${active.length} active service${active.length !== 1 ? "s" : ""}`;
-
-  if (!allServices.length) {
-    document.getElementById("svc-grid").innerHTML =
-      '<div class="svc-loading">No services found. Add one above.</div>';
-    return;
-  }
-
-  document.getElementById("svc-grid").innerHTML = allServices.map(svc => `
-    <div class="svc-card" id="svc-card-${svc.id}">
-      <div class="svc-order-badge">${svc.displayOrder ?? "?"}</div>
-      <div class="svc-card-name">
-        ${escHtml(svc.name)}
-        <span class="svc-card-slug">${escHtml(svc.id)}</span>
+      <!-- Timestamps -->
+      <div class="modal-section">
+        <div class="modal-section-label">Timestamps</div>
+        <div class="modal-fields-grid">
+          <div class="modal-field">
+            <div class="modal-field-label">Registered</div>
+            <div class="modal-field-value" style="font-size:12.5px">${escHtml(formatTs(p.createdAt) || "—")}</div>
+          </div>
+          <div class="modal-field">
+            <div class="modal-field-label">Last Updated</div>
+            <div class="modal-field-value" style="font-size:12.5px">${escHtml(formatTs(p.updatedAt) || "—")}</div>
+          </div>
+        </div>
       </div>
-      <button class="btn-edit-icon" onclick="enterServiceEditMode('${svc.id}')" title="Edit service name">
-        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M11.5 2.5a2.121 2.121 0 013 3L5 15H1v-4L11.5 2.5z"/>
-        </svg>
-      </button>
-    </div>
-  `).join("");
-}
-
-/* Enter inline edit mode for a service card */
-function enterServiceEditMode(slug) {
-  const svc  = allServices.find(s => s.id === slug);
-  const card = document.getElementById("svc-card-" + slug);
-  if (!svc || !card) return;
-
-  card.classList.add("editing");
-  card.innerHTML = `
-    <div class="svc-edit-row">
-      <div class="svc-order-badge">${svc.displayOrder ?? "?"}</div>
-      <input
-        class="svc-edit-input"
-        id="svc-edit-input-${slug}"
-        value="${escHtml(svc.name)}"
-        maxlength="120"
-        autocomplete="off"
-      />
-    </div>
-    <div style="display:flex; gap:8px; justify-content:flex-end;">
-      <button class="btn-svc-cancel" onclick="cancelServiceEdit('${slug}')">Cancel</button>
-      <button class="btn-svc-save" id="svc-save-${slug}" onclick="saveServiceName('${slug}')">Save</button>
-    </div>
-  `;
-  const input = document.getElementById("svc-edit-input-" + slug);
-  input.focus();
-  input.select();
-  input.addEventListener("keydown", e => {
-    if (e.key === "Enter")  saveServiceName(slug);
-    if (e.key === "Escape") cancelServiceEdit(slug);
-  });
-}
-
-function cancelServiceEdit(slug) {
-  renderServicesGrid();
-}
-
-async function saveServiceName(slug) {
-  const input   = document.getElementById("svc-edit-input-" + slug);
-  const saveBtn = document.getElementById("svc-save-" + slug);
-  if (!input) return;
-
-  const newName = input.value.trim();
-  if (!newName) { showToast("Name cannot be empty."); input.focus(); return; }
-  if (newName === allServices.find(s => s.id === slug)?.name) {
-    cancelServiceEdit(slug);
-    return;
+    `;
   }
 
-  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = "Saving…"; }
+  let activeEditSlug = null; // enforces one-edit-at-a-time
 
-  try {
-    await db.collection("services").doc(slug).update({ name: newName });
-    const svc = allServices.find(s => s.id === slug);
-    if (svc) svc.name = newName;
-    renderServicesGrid();
-    showToast("Service updated ✓");
-  } catch (e) {
-    showToast("Error: " + e.message);
-    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = "Save"; }
+  /* ════════════════════════════════════════════════════════
+     SERVICES OVERLAY
+  ═════════════════════════════════════════════════════════ */
+  document.getElementById("open-services-btn").addEventListener("click", openServicesOverlay);
+  document.getElementById("close-services-btn").addEventListener("click", closeServicesOverlay);
+
+  function openServicesOverlay() {
+    document.getElementById("services-overlay").classList.add("open");
+    document.body.style.overflow = "hidden";
+    loadServices();
   }
-}
 
-/* Add new service */
-document.getElementById("show-add-service-btn").addEventListener("click", () => {
-  const form = document.getElementById("svc-add-form");
-  form.classList.add("visible");
-  document.getElementById("svc-add-input").focus();
-});
-
-document.getElementById("svc-add-cancel-btn").addEventListener("click", () => {
-  document.getElementById("svc-add-form").classList.remove("visible");
-  document.getElementById("svc-add-input").value = "";
-});
-
-document.getElementById("svc-add-input").addEventListener("keydown", e => {
-  if (e.key === "Enter")  submitAddService();
-  if (e.key === "Escape") {
+  function closeServicesOverlay() {
+    document.getElementById("services-overlay").classList.remove("open");
+    document.body.style.overflow = "";
+    // Hide add form
     document.getElementById("svc-add-form").classList.remove("visible");
     document.getElementById("svc-add-input").value = "";
-  }
-});
-
-document.getElementById("svc-add-submit-btn").addEventListener("click", submitAddService);
-
-async function submitAddService() {
-  const input   = document.getElementById("svc-add-input");
-  const addBtn  = document.getElementById("svc-add-submit-btn");
-  const name    = input.value.trim();
-
-  if (!name) { showToast("Enter a service name."); input.focus(); return; }
-
-  const slug = generateSlug(name);
-  if (!slug) { showToast("Could not generate a valid slug from that name. Use alphanumeric characters."); return; }
-
-  // Check slug collision
-  const collision = allServices.some(s => s.id === slug);
-  if (collision) {
-    showToast(`A service with slug "${slug}" already exists.`);
-    return;
+    document.getElementById("svc-add-price-input").value = "";
   }
 
-  const maxOrder = allServices.reduce((m, s) => Math.max(m, s.displayOrder ?? 0), 0);
-  const displayOrder = maxOrder + 1;
+  /* Load services from Firestore */
+  async function loadServices() {
+    document.getElementById("svc-grid").innerHTML =
+      '<div class="svc-loading"><div class="spinner"></div>Loading services…</div>';
+    document.getElementById("svc-count-label").textContent = "Loading…";
+    try {
+      const snap = await db.collection("services").orderBy("displayOrder", "asc").get();
+      allServices = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderServicesGrid();
+    } catch (e) {
+      document.getElementById("svc-grid").innerHTML =
+        `<div class="svc-loading">⚠ Failed to load services.<br><small>${escHtml(e.message)}</small></div>`;
+      document.getElementById("svc-count-label").textContent = "Error";
+    }
+  }
 
-  addBtn.disabled = true; addBtn.textContent = "Adding…";
+  function renderServicesGrid() {
+    const active = allServices.filter(s => s.isActive !== false);
+    document.getElementById("svc-count-label").textContent =
+      `${active.length} active service${active.length !== 1 ? "s" : ""}`;
 
-  try {
-    const docRef  = db.collection("services").doc(slug);
-    const newData = {
-      name,
-      slug,
-      displayOrder,
-      isActive: true,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    };
-    await docRef.set(newData);
+    if (!allServices.length) {
+      document.getElementById("svc-grid").innerHTML =
+        '<div class="svc-loading">No services found. Add one above.</div>';
+      return;
+    }
 
-    // Optimistically add to local state (serverTimestamp resolves async, use client date for display)
-    allServices.push({ id: slug, ...newData, createdAt: new Date().toISOString() });
-    allServices.sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+    document.getElementById("svc-grid").innerHTML = allServices.map(svc => {
+      const isEditing   = activeEditSlug !== null;
+      const thisEditing = activeEditSlug === svc.id;
+      if (thisEditing) return ""; // card is managed by enterServiceEditMode, skip re-render
+      return `
+      <div class="svc-card" id="svc-card-${svc.id}">
+        <div class="svc-order-badge">${svc.displayOrder ?? "?"}</div>
+        <div class="svc-card-name">
+          ${escHtml(svc.name)}
+          <span class="svc-card-slug">${escHtml(svc.id)}</span>
+          <span class="svc-card-price">${typeof svc.price === "number" ? `₹${svc.price.toLocaleString("en-IN")}` : '<span style="color:var(--text-muted);font-weight:400">No price set</span>'}</span>
+        </div>
+        <button class="btn-edit-icon"
+          onclick="enterServiceEditMode('${svc.id}')"
+          title="${isEditing ? 'Finish the current edit first' : 'Edit service'}"
+          ${isEditing ? 'disabled style="opacity:0.35;cursor:not-allowed;"' : ''}
+        >
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11.5 2.5a2.121 2.121 0 013 3L5 15H1v-4L11.5 2.5z"/>
+          </svg>
+        </button>
+      </div>
+    `}).join("");
+  }
 
-    input.value = "";
-    document.getElementById("svc-add-form").classList.remove("visible");
+  /* Enter inline edit mode for a service card */
+  function enterServiceEditMode(slug) {
+    // ── One edit at a time ────────────────────────────────
+    if (activeEditSlug !== null) {
+      if (activeEditSlug === slug) return; // already editing this one
+      showToast("Finish editing the current service first.");
+      // Pulse the active card so the user knows where to look
+      const activeCard = document.getElementById("svc-card-" + activeEditSlug);
+      if (activeCard) {
+        activeCard.style.transition = "box-shadow 0.15s";
+        activeCard.style.boxShadow = "0 0 0 3px rgba(232,115,10,0.45)";
+        setTimeout(() => { activeCard.style.boxShadow = ""; }, 900);
+      }
+      return;
+    }
+
+    const svc  = allServices.find(s => s.id === slug);
+    const card = document.getElementById("svc-card-" + slug);
+    if (!svc || !card) return;
+
+    activeEditSlug = slug;
+    card.classList.add("editing");
+    card.innerHTML = `
+      <div class="svc-edit-row">
+        <div class="svc-edit-name-row">
+          <div class="svc-order-badge">${svc.displayOrder ?? "?"}</div>
+          <input
+            class="svc-edit-input"
+            id="svc-edit-input-${slug}"
+            value="${escHtml(svc.name)}"
+            maxlength="120"
+            autocomplete="off"
+            placeholder="Service name"
+          />
+        </div>
+        <input
+          class="svc-price-input"
+          id="svc-price-input-${slug}"
+          type="number"
+          min="0"
+          step="1"
+          value="${typeof svc.price === "number" ? svc.price : ""}"
+          placeholder="Price (₹) — optional"
+        />
+      </div>
+      <div id="svc-save-feedback-${slug}"></div>
+      <div style="display:flex; gap:8px; justify-content:flex-end;">
+        <button class="btn-svc-cancel" id="svc-cancel-${slug}" onclick="cancelServiceEdit('${slug}')">Cancel</button>
+        <button class="btn-svc-save"   id="svc-save-${slug}"   onclick="saveServiceEdit('${slug}')">Save</button>
+      </div>
+    `;
+    const input = document.getElementById("svc-edit-input-" + slug);
+    input.focus();
+    input.select();
+    input.addEventListener("keydown", e => {
+      if (e.key === "Enter")  saveServiceEdit(slug);
+      if (e.key === "Escape") cancelServiceEdit(slug);
+    });
+    const priceInput = document.getElementById("svc-price-input-" + slug);
+    priceInput.addEventListener("keydown", e => {
+      if (e.key === "Enter")  saveServiceEdit(slug);
+      if (e.key === "Escape") cancelServiceEdit(slug);
+    });
+  }
+
+  function cancelServiceEdit(slug) {
+    activeEditSlug = null;
     renderServicesGrid();
-    showToast(`Service "${name}" added ✓`);
-  } catch (e) {
-    showToast("Error: " + e.message);
-  } finally {
-    addBtn.disabled = false; addBtn.textContent = "Add";
   }
-}
+
+  async function saveServiceEdit(slug) {
+    const input      = document.getElementById("svc-edit-input-" + slug);
+    const priceInput = document.getElementById("svc-price-input-" + slug);
+    const saveBtn    = document.getElementById("svc-save-" + slug);
+    const cancelBtn  = document.getElementById("svc-cancel-" + slug);
+    const feedback   = document.getElementById("svc-save-feedback-" + slug);
+    if (!input) return;
+
+    const newName  = input.value.trim();
+    const priceRaw = priceInput ? priceInput.value.trim() : "";
+    const newPrice = priceRaw !== "" ? parseInt(priceRaw, 10) : null;
+
+    if (!newName) { showToast("Name cannot be empty."); input.focus(); return; }
+    if (newPrice !== null && (isNaN(newPrice) || newPrice < 0)) {
+      showToast("Enter a valid price (≥ 0)."); priceInput.focus(); return;
+    }
+
+    const svc = allServices.find(s => s.id === slug);
+    const nameUnchanged  = newName === svc?.name;
+    const priceUnchanged = newPrice === (typeof svc?.price === "number" ? svc.price : null) ||
+                           (newPrice === null && svc?.price === undefined);
+    if (nameUnchanged && priceUnchanged) { cancelServiceEdit(slug); return; }
+
+    // ── Lock full UI ──────────────────────────────────────
+    const lockAll = (locked, saveBtnLabel = "Saving…") => {
+      [input, priceInput, saveBtn, cancelBtn].forEach(el => { if (el) el.disabled = locked; });
+      if (saveBtn) saveBtn.textContent = locked ? saveBtnLabel : "Save";
+    };
+    lockAll(true);
+    if (feedback) feedback.innerHTML = "";
+
+    const updates = { name: newName };
+    if (newPrice !== null) updates.price = newPrice;
+    else updates.price = firebase.firestore.FieldValue.delete();
+
+    // ── Fire the write. Firestore SDK buffers it if offline —
+    //    the promise stays PENDING (never rejects) until acknowledged.
+    const writePromise = db.collection("services").doc(slug).update(updates);
+
+    // ── Timeout sentinel: if write hasn't resolved in 5s, assume offline ──
+    const OFFLINE_THRESHOLD_MS = 5000;
+    let offlineTimerId = null;
+    const offlineSentinel = new Promise(resolve => {
+      offlineTimerId = setTimeout(() => resolve("__OFFLINE__"), OFFLINE_THRESHOLD_MS);
+    });
+
+    const raceResult = await Promise.race([
+      writePromise.then(() => "__SUCCESS__").catch(e => e),
+      offlineSentinel
+    ]);
+
+    // ── Case 1: resolved within threshold ────────────────
+    if (raceResult !== "__OFFLINE__") {
+      clearTimeout(offlineTimerId);
+      if (raceResult === "__SUCCESS__") {
+        // committed immediately — update local state and close
+        if (svc) {
+          svc.name = newName;
+          if (newPrice !== null) svc.price = newPrice; else delete svc.price;
+        }
+        activeEditSlug = null;
+        renderServicesGrid();
+        showToast("Service updated ✓");
+      } else {
+        // hard error (permission denied, invalid data, etc.)
+        lockAll(false);
+        const err = raceResult;
+        if (feedback) feedback.innerHTML = `
+          <div class="svc-save-error">
+            <span class="svc-save-error-icon">⚠</span>
+            <div class="svc-save-error-body">
+              <div class="svc-save-error-title">Update failed</div>
+              <div class="svc-save-error-desc">${escHtml(err?.message ?? "Unexpected error. Try again or reload.")}</div>
+            </div>
+            <button class="btn-retry-inline" onclick="saveServiceEdit('${slug}')">Retry</button>
+          </div>`;
+      }
+      return;
+    }
+
+    // ── Case 2: timed out — write is buffered offline ────
+    // Show waiting banner. Keep the card locked (write will auto-commit on reconnect).
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = "Queued…"; }
+    if (feedback) feedback.innerHTML = `
+      <div class="svc-save-waiting">
+        <div class="spinner-sm"></div>
+        <div class="svc-save-waiting-body">
+          <div class="svc-save-waiting-title">No connection — change queued</div>
+          <div class="svc-save-waiting-desc">Your edit is saved locally and will sync automatically when the connection is restored.</div>
+        </div>
+      </div>`;
+
+    // Continue awaiting the write silently in background
+    try {
+      await writePromise;
+      clearTimeout(offlineTimerId); // already fired, but clean up
+      if (svc) {
+        svc.name = newName;
+        if (newPrice !== null) svc.price = newPrice; else delete svc.price;
+      }
+      activeEditSlug = null;
+      renderServicesGrid();
+      showToast("Service synced ✓");
+    } catch (e) {
+      // Hard error after reconnect (rare)
+      lockAll(false);
+      if (feedback) feedback.innerHTML = `
+        <div class="svc-save-error">
+          <span class="svc-save-error-icon">⚠</span>
+          <div class="svc-save-error-body">
+            <div class="svc-save-error-title">Sync failed</div>
+            <div class="svc-save-error-desc">${escHtml(e?.message ?? "The queued write was rejected by the server.")}</div>
+          </div>
+          <button class="btn-retry-inline" onclick="saveServiceEdit('${slug}')">Retry</button>
+        </div>`;
+    }
+  }
+
+  /* Add new service */
+  document.getElementById("show-add-service-btn").addEventListener("click", () => {
+    const form = document.getElementById("svc-add-form");
+    form.classList.add("visible");
+    document.getElementById("svc-add-input").focus();
+  });
+
+  document.getElementById("svc-add-cancel-btn").addEventListener("click", () => {
+    document.getElementById("svc-add-form").classList.remove("visible");
+    document.getElementById("svc-add-input").value = "";
+    document.getElementById("svc-add-price-input").value = "";
+  });
+
+  document.getElementById("svc-add-input").addEventListener("keydown", e => {
+    if (e.key === "Enter")  submitAddService();
+    if (e.key === "Escape") {
+      document.getElementById("svc-add-form").classList.remove("visible");
+      document.getElementById("svc-add-input").value = "";
+      document.getElementById("svc-add-price-input").value = "";
+    }
+  });
+
+  document.getElementById("svc-add-submit-btn").addEventListener("click", submitAddService);
+
+  async function submitAddService() {
+    const input      = document.getElementById("svc-add-input");
+    const priceInput = document.getElementById("svc-add-price-input");
+    const addBtn     = document.getElementById("svc-add-submit-btn");
+    const name       = input.value.trim();
+    const priceRaw   = priceInput ? priceInput.value.trim() : "";
+    const price      = priceRaw !== "" ? parseInt(priceRaw, 10) : null;
+
+    if (!name) { showToast("Enter a service name."); input.focus(); return; }
+    if (price !== null && (isNaN(price) || price < 0)) {
+      showToast("Enter a valid price (≥ 0)."); priceInput.focus(); return;
+    }
+
+    const slug = generateSlug(name);
+    if (!slug) { showToast("Could not generate a valid slug from that name. Use alphanumeric characters."); return; }
+
+    // Check slug collision
+    const collision = allServices.some(s => s.id === slug);
+    if (collision) {
+      showToast(`A service with slug "${slug}" already exists.`);
+      return;
+    }
+
+    const maxOrder = allServices.reduce((m, s) => Math.max(m, s.displayOrder ?? 0), 0);
+    const displayOrder = maxOrder + 1;
+
+    addBtn.disabled = true; addBtn.textContent = "Adding…";
+
+    try {
+      const docRef  = db.collection("services").doc(slug);
+      const newData = {
+        name,
+        slug,
+        displayOrder,
+        isActive: true,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      if (price !== null) newData.price = price;
+      await docRef.set(newData);
+
+      // Optimistically add to local state (serverTimestamp resolves async, use client date for display)
+      allServices.push({ id: slug, ...newData, createdAt: new Date().toISOString() });
+      allServices.sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+
+      input.value = "";
+      if (priceInput) priceInput.value = "";
+      document.getElementById("svc-add-form").classList.remove("visible");
+      renderServicesGrid();
+      showToast(`Service "${name}" added ✓`);
+    } catch (e) {
+      showToast("Error: " + e.message);
+    } finally {
+      addBtn.disabled = false; addBtn.textContent = "Add";
+    }
+  }
 </script>
 </body>
 </html>

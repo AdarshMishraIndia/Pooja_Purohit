@@ -70,9 +70,13 @@
         "fields": {
           "name": "POOJA (Sri Ganesh, Sri Vishwakarma, Sri Satyanarayan, Maa Saraswati)",
           "slug": "pooja_ganesh_vishwakarma_satyanarayan_saraswati",
+          "price": 1500,
           "displayOrder": 1,
           "isActive": true,
           "createdAt": "2026-05-16T00:00:00Z"
+        },
+        "field_notes": {
+          "price": "Service base price in INR (integer). Optional — if absent, treated as unset. Editable from admin portal. Surfaced on service cards and booking flow in Android app."
         }
       },
       "all_slugs": [

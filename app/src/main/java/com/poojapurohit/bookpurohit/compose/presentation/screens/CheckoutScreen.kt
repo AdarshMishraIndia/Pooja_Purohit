@@ -258,7 +258,10 @@ fun CheckoutScreen(
                     if (uiState.isLoading) {
                         CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
                     } else {
-                        Text("Proceed to Pay ₹1500", fontFamily = FontFamily.Serif,
+                        Text(
+                            text = if (uiState.amount > 0) "Proceed to Pay ₹${"%,d".format(uiState.amount)}"
+                            else "Proceed to Pay",
+                            fontFamily = FontFamily.Serif,
                             fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color.White)
                     }
                 }

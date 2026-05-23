@@ -149,17 +149,19 @@ fun BookPurohitNavigation(viewModel: BookPurohitViewModel) {
                 },
                 onBookClick = { purohit ->
                     val serviceName = Uri.encode(viewModel.uiState.value.selectedServiceName)
-                    navController.navigate("booking/${purohit.id}/$serviceName")
+                    val servicePrice = viewModel.uiState.value.selectedServicePrice ?: 0
+                    navController.navigate("booking/${purohit.id}/$serviceName/$servicePrice")
                 }
             )
         }
 
         // 5. Booking Screen (Checkout & Razorpay Stub)
         composable(
-            route = "booking/{purohitId}/{serviceName}",
+            route = "booking/{purohitId}/{serviceName}/{servicePrice}",
             arguments = listOf(
                 navArgument("purohitId") { type = NavType.StringType },
-                navArgument("serviceName") { type = NavType.StringType }
+                navArgument("serviceName") { type = NavType.StringType },
+                navArgument("servicePrice") { type = NavType.IntType; defaultValue = 0 }
             )
         ) { backStackEntry ->
             val purohitId = backStackEntry.arguments?.getString("purohitId") ?: return@composable

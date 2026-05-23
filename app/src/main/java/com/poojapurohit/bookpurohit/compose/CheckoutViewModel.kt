@@ -25,6 +25,9 @@ data class CheckoutUiState(
     val scheduledDateMillis: Long? = null,
     val completedBookingId: String? = null,
 
+    // Service price from nav arg (set by admin in portal)
+    val amount: Long = 0L,
+
     // Map pin — mandatory before payment can proceed
     val coordinates: LatLng? = null,
 
@@ -47,7 +50,8 @@ class CheckoutViewModel(
     init {
         val purohitId = savedStateHandle.get<String>("purohitId") ?: ""
         val serviceName = savedStateHandle.get<String>("serviceName") ?: ""
-        _uiState.update { it.copy(selectedService = serviceName) }
+        val servicePrice = savedStateHandle.get<Int>("servicePrice")?.toLong() ?: 0L
+        _uiState.update { it.copy(selectedService = serviceName, amount = servicePrice) }
         if (purohitId.isNotBlank()) prefetchData(purohitId)
     }
 
@@ -145,7 +149,7 @@ class CheckoutViewModel(
                     "purohitName" to state.cachedPurohitName,
                     "userPhone" to state.cachedUserPhone,
                     "serviceName" to state.selectedService,
-                    "amount" to 1500L,
+                    "amount" to state.amount,
                     "status" to status,
                     "razorpayOrderId" to "order_stub_${bookingId.takeLast(8)}",
                     "razorpayPaymentId" to if (status == "PAYMENT_DONE") {

@@ -7,7 +7,8 @@ data class ServiceItem(
     val name: String = "",
     val slug: String = "",
     val displayOrder: Int = 0,
-    val isActive: Boolean = true
+    val isActive: Boolean = true,
+    val price: Int? = null          // INR; null = not set by admin
 ) {
     companion object {
         fun fromDocument(doc: DocumentSnapshot): ServiceItem? {
@@ -18,7 +19,8 @@ data class ServiceItem(
                 name = doc.getString("name") ?: return null,
                 slug = doc.getString("slug") ?: doc.id,
                 displayOrder = (doc.getLong("displayOrder") ?: 0L).toInt(),
-                isActive = isActive
+                isActive = isActive,
+                price = doc.getLong("price")?.toInt()
             )
         }
     }

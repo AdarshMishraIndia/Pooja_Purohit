@@ -153,11 +153,22 @@ private fun ServiceCard(service: ServiceItem, searchQuery: String, onClick: () -
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = highlightSearchQuery(service.name, searchQuery, isDark),
-                fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 16.sp,
-                lineHeight = 22.sp, modifier = Modifier.weight(1f)
-            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = highlightSearchQuery(service.name, searchQuery, isDark),
+                    fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 16.sp,
+                    lineHeight = 22.sp
+                )
+                if (service.price != null) {
+                    Text(
+                        text = "₹${"%,d".format(service.price)}",
+                        fontFamily = FontFamily.Serif,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = if (isDark) DarkBrandOrange else BrandOrange
+                    )
+                }
+            }
             Text("›", fontSize = 32.sp, fontWeight = FontWeight.Bold,
                 color = if (isDark) DarkBrandOrange else BrandOrange)
         }

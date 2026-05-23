@@ -28,6 +28,7 @@ data class BookPurohitUiState(
     val error: String? = null,
     val selectedServiceSlug: String = "",
     val selectedServiceName: String = "",
+    val selectedServicePrice: Int? = null,
     val currentLocationId: String? = null,
     val currentSubLocationId: String? = null
 )
@@ -143,8 +144,28 @@ class BookPurohitViewModel : ViewModel() {
                     ?.sortedBy { it.displayOrder }
                     ?: emptyList()
 
-                allServices = services
-                _uiState.update { it.copy(services = services, isLoading = false) }
+                // One-time fetch: collect all serviceIds offered by verified+available purohits,
+                // then filter the services list to only those with at least one purohit.
+                firestore.collection("purohits")
+                    .whereEqualTo("isVerified", true)
+                    .whereEqualTo("isAvailable", true)
+                    .get()
+                    .addOnSuccessListener { purohitSnapshot ->
+                        val offeredSlugs = purohitSnapshot.documents
+                            .flatMap { doc ->
+                                (doc.get("serviceIds") as? List<*>)
+                                    ?.filterIsInstance<String>() ?: emptyList()
+                            }
+                            .toSet()
+                        val filtered = services.filter { it.slug in offeredSlugs }
+                        allServices = filtered
+                        _uiState.update { it.copy(services = filtered, isLoading = false) }
+                    }
+                    .addOnFailureListener {
+                        // Purohit query failed — fall back to showing all active services
+                        allServices = services
+                        _uiState.update { it.copy(services = services, isLoading = false) }
+                    }
 
                 servicesListener?.remove()
                 servicesListener = null
@@ -161,11 +182,13 @@ class BookPurohitViewModel : ViewModel() {
         detachPurohitsListener()
 
         val serviceName = allServices.find { it.slug == serviceSlug }?.name ?: serviceSlug
+        val servicePrice = allServices.find { it.slug == serviceSlug }?.price
         _uiState.update {
             it.copy(
                 isLoading = true, error = null, searchQuery = "",
                 selectedServiceSlug = serviceSlug,
                 selectedServiceName = serviceName,
+                selectedServicePrice = servicePrice,
                 locations = emptyList(), subLocations = emptyList(), purohits = emptyList(),
                 currentLocationId = null, currentSubLocationId = null
             )
@@ -315,6 +338,7 @@ class BookPurohitViewModel : ViewModel() {
             it.copy(
                 locations = emptyList(), subLocations = emptyList(), purohits = emptyList(),
                 searchQuery = "", selectedServiceSlug = "", selectedServiceName = "",
+                selectedServicePrice = null,
                 currentLocationId = null, currentSubLocationId = null,
                 services = allServices
             )
