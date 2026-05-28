@@ -5,6 +5,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- Required on Android 13+ (API 33) to show push notifications -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <queries>
         <package android:name="com.google.android.gms" />
@@ -25,6 +27,33 @@
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="${MAPS_API_KEY}"/>
+
+        <!-- FCM default notification icon — used when app is in background/killed state -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/logo" />
+
+        <!-- Accent colour applied to the notification icon on Android 5+ -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/ic_launcher_background" />
+
+
+        <!--
+            FCM Messaging Service.
+            Handles two cases:
+              - onNewToken: token rotation → updates Firestore fcmTokens[]
+              - onMessageReceived: foreground push display
+            Background/killed state is handled automatically by the FCM SDK
+            using the `notification` block sent by the Cloud Function.
+        -->
+        <service
+            android:name=".notification.PoojaMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
 
         <activity
             android:name=".splash.SplashActivity"

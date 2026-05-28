@@ -11,13 +11,16 @@
             "<notification_id>": {
               "metadata": {
                 "description": "Individual notification entry for the stakeholder.",
-                "type": "subcollection"
+                "type": "collection"
               },
               "fields": {
-                "title": "dummy_title",
-                "body": "dummy_body",
-                "isRead": false,
-                "timestamp": "2026-03-15T17:42:16Z"
+                "title": "string",
+                "body": "string",
+                "isRead": "boolean",
+                "isActive": "boolean",
+                "timestamp": "timestamp",
+                "type": "string",
+                "deepLinkUrl": "string"
               }
             }
           }
@@ -27,71 +30,45 @@
     "purohits": {
       "<purohit_id>": {
         "metadata": {
-          "description": "Profiles for service providers (Purohits) including credentials, ratings, and service scope.",
+          "description": "Profiles for service providers (Purohits).",
           "type": "collection"
         },
         "fields": {
-          "purohitId": "<purohit_id>",
-          "name": "dummy_name",
-          "phone": "dummy_phone",
-          "email": "dummy_email",
-          "city": "dummy_city",
-          "locality": "dummy_locality",
-          "experience": 10,
-          "proficiency": ["dummy_proficiency_p0"],
-          "serviceIds": [
-            "pooja_ganesh_vishwakarma_satyanarayan_saraswati",
-            "rudrabhishek_shivratri"
-          ],
-          "isVerified": false,
-          "isAvailable": false,
-          "rating": 0.0,
-          "totalBookings": 0,
-          "trustIndex": 0.0,
-          "createdAt": "2026-03-12T22:49:24Z",
-          "updatedAt": "2026-05-16T00:00:00Z"
-        },
-        "field_notes": {
-          "serviceIds": "Array of service slugs this purohit offers. Matches slug field in services/<slug> docs. Used for whereArrayContains queries. Backfilled from proficiency[] via migrate_services.js.",
-          "updatedAt": "Added during serviceIds backfill migration."
+          "purohitId": "string",
+          "name": "string",
+          "phone": "string",
+          "email": "string",
+          "city": "string",
+          "locality": "string",
+          "experience": "number",
+          "proficiency": ["string"],
+          "serviceIds": ["string"],
+          "fcmTokens": ["string"],
+          "isVerified": "boolean",
+          "isAvailable": "boolean",
+          "rating": "number",
+          "totalBookings": "number",
+          "createdAt": "timestamp",
+          "updatedAt": "timestamp"
         }
       }
     },
     "services": {
-      "metadata": {
-        "description": "One document per service. Replaces old flat services/BookAPurohit array doc. Fed by admin portal. Queried by isActive + displayOrder.",
-        "migration": "Old services/BookAPurohit doc deleted by migrate_services.js. New docs created with slug as document ID."
-      },
       "<slug>": {
         "metadata": {
-          "description": "Individual service document. Document ID is the slug — used as the key in purohit.serviceIds[].",
+          "description": "Individual service document.",
           "type": "collection"
         },
         "fields": {
-          "name": "POOJA (Sri Ganesh, Sri Vishwakarma, Sri Satyanarayan, Maa Saraswati)",
-          "slug": "pooja_ganesh_vishwakarma_satyanarayan_saraswati",
-          "price": 1500,
-          "displayOrder": 1,
-          "isActive": true,
-          "createdAt": "2026-05-16T00:00:00Z"
-        },
-        "field_notes": {
-          "price": "Service base price in INR (integer). Optional — if absent, treated as unset. Editable from admin portal. Surfaced on service cards and booking flow in Android app."
+          "name": "string",
+          "slug": "string",
+          "price": "number",
+          "displayOrder": "number",
+          "isActive": "boolean",
+          "createdAt": "timestamp",
+          "updatedAt": "timestamp"
         }
-      },
-      "all_slugs": [
-        "pooja_ganesh_vishwakarma_satyanarayan_saraswati",
-        "devi_pujana_durga_kali",
-        "rudrabhishek_shivratri",
-        "janamastami",
-        "chhat_pooja",
-        "gruha_pratistha",
-        "vaahaan_pooja",
-        "janeyu",
-        "shraddha",
-        "other_karma_kaanda",
-        "antyesthi_asthi_sangraha"
-      ]
+      }
     },
     "users": {
       "<user_id>": {
@@ -100,108 +77,38 @@
           "type": "collection"
         },
         "fields": {
-          "userId": "<user_id>",
-          "name": "dummy_name",
-          "phone": "dummy_phone",
-          "email": "dummy_email",
-          "createdAt": "2026-03-12T23:52:54Z"
+          "userId": "string",
+          "name": "string",
+          "phone": "string",
+          "email": "string",
+          "fcmTokens": ["string"],
+          "createdAt": "timestamp"
         }
       }
     },
     "bookings": {
-      "_metadata": {
-        "status": "ACTIVE",
-        "description": "Core transaction record linking users, purohits, payments and booking states.",
-        "status_values": [
-          "PENDING_PAYMENT",
-          "PAYMENT_DONE",
-          "ACCEPTED",
-          "REJECTED",
-          "COMPLETED",
-          "CANCELLED",
-          "REFUNDED",
-          "AUTO_CANCELLED"
-        ]
-      },
       "<booking_id>": {
         "metadata": {
-          "description": "Deterministic booking ID: {userId}_{purohitId}_{scheduledDateMillis/60000}. Upsert via .set() — idempotent, no duplicates.",
+          "description": "Transaction record.",
           "type": "collection"
         },
         "fields": {
-          "bookingId": "<booking_id>",
-          "userId": "<user_id>",
-          "purohitId": "<purohit_id>",
-          "purohitName": "dummy_purohit_name",
-          "userPhone": "dummy_user_phone",
-          "serviceName": "dummy_service_name",
-          "amount": 1500,
-          "status": "PENDING_PAYMENT",
-          "razorpayOrderId": "dummy_razorpay_order_id",
-          "razorpayPaymentId": "dummy_razorpay_payment_id",
-          "scheduledDate": "2026-03-15T10:00:00Z",
-          "address": "dummy_address",
-          "coordinates": {
-            "latitude": 0.0,
-            "longitude": 0.0
-          },
-          "remarks": "dummy_remarks",
-          "createdAt": "2026-03-15T17:42:16Z",
-          "updatedAt": "2026-03-15T17:42:16Z"
+          "bookingId": "string",
+          "userId": "string",
+          "purohitId": "string",
+          "purohitName": "string",
+          "userPhone": "string",
+          "serviceName": "string",
+          "amount": "number",
+          "status": "string",
+          "razorpayOrderId": "string",
+          "razorpayPaymentId": "string",
+          "scheduledDate": "timestamp",
+          "address": "string",
+          "createdAt": "timestamp",
+          "updatedAt": "timestamp"
         }
       }
-    },
-    "composite_indexes": {
-      "description": "All required Firestore composite indexes. Create via Firebase Console → Firestore → Indexes → Composite.",
-      "indexes": [
-        {
-          "collection": "services",
-          "fields": [
-            { "field": "isActive", "order": "ASCENDING" },
-            { "field": "displayOrder", "order": "ASCENDING" }
-          ],
-          "used_by": "attachServicesListener"
-        },
-        {
-          "collection": "purohits",
-          "fields": [
-            { "field": "isVerified", "order": "ASCENDING" },
-            { "field": "isAvailable", "order": "ASCENDING" },
-            { "field": "serviceIds", "order": "ARRAY_CONTAINS" }
-          ],
-          "used_by": "attachLocationsListener"
-        },
-        {
-          "collection": "purohits",
-          "fields": [
-            { "field": "isVerified", "order": "ASCENDING" },
-            { "field": "isAvailable", "order": "ASCENDING" },
-            { "field": "serviceIds", "order": "ARRAY_CONTAINS" },
-            { "field": "city", "order": "ASCENDING" }
-          ],
-          "used_by": "attachSubLocationsListener"
-        },
-        {
-          "collection": "purohits",
-          "fields": [
-            { "field": "isVerified", "order": "ASCENDING" },
-            { "field": "isAvailable", "order": "ASCENDING" },
-            { "field": "serviceIds", "order": "ARRAY_CONTAINS" },
-            { "field": "city", "order": "ASCENDING" },
-            { "field": "locality", "order": "ASCENDING" },
-            { "field": "name", "order": "ASCENDING" }
-          ],
-          "used_by": "attachPurohitsListener"
-        },
-        {
-          "collection": "bookings",
-          "fields": [
-            { "field": "userId", "order": "ASCENDING" },
-            { "field": "createdAt", "order": "DESCENDING" }
-          ],
-          "used_by": "user booking history queries"
-        }
-      ]
     }
   }
 }

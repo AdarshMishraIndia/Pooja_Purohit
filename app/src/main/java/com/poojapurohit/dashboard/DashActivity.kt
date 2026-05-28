@@ -40,11 +40,20 @@ import com.poojapurohit.dashboard.compose.theme.PoojaPurohitTheme
 import kotlinx.coroutines.launch
 import dagger.hilt.android.AndroidEntryPoint
 import androidx.activity.ComponentActivity
+import android.Manifest
+import android.os.Build
 
 @AndroidEntryPoint
 class DashActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Request notification permission on Android 13+ (API 33).
+        // DashActivity is the correct place — user is fully authenticated and
+        // understands the app context by this point.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 0)
+        }
 
         setContent {
             PoojaPurohitTheme {
