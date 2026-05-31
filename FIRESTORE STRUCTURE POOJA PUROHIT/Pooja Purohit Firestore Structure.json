@@ -106,7 +106,8 @@
           "scheduledDate": "timestamp",
           "address": "string",
           "createdAt": "timestamp",
-          "updatedAt": "timestamp"
+          "updatedAt": "timestamp",
+          "comments": "string"
         }
       }
     }

@@ -65,11 +65,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.google.firebase.Timestamp
 import com.poojapurohit.booking.compose.BookingsEffect
 import com.poojapurohit.booking.compose.BookingsUiState
 import com.poojapurohit.booking.compose.BookingsViewModel
 import com.poojapurohit.booking.compose.components.BookingCard
 import com.poojapurohit.booking.model.Booking
+import com.poojapurohit.booking.model.BookingStatus
 import com.poojapurohit.bookpurohit.compose.presentation.screens.RazorpayStubDialog
 import com.poojapurohit.dashboard.compose.theme.BrandOrange
 import com.poojapurohit.dashboard.compose.theme.BrandRed
@@ -176,8 +178,6 @@ fun BookingsScreen(
     var pendingReject         by remember { mutableStateOf<Booking?>(null) }
     var pendingComplete       by remember { mutableStateOf<Booking?>(null) }
     var pendingPaymentBooking by remember { mutableStateOf<Booking?>(null) }
-    var pendingPurohitCancel  by remember { mutableStateOf<Booking?>(null) }
-
     // ── Back: dismiss detail before popping activity ──────────────────────────
     BackHandler(enabled = selectedBookingId != null) { selectedBookingId = null }
 
@@ -187,27 +187,25 @@ fun BookingsScreen(
     val onReject:          (Booking) -> Unit = { pendingReject = it }
     val onComplete:        (Booking) -> Unit = { pendingComplete = it }
     val onCancel:          (Booking) -> Unit = { pendingCancel = it }
-    val onPurohitCancel:   (Booking) -> Unit = { pendingPurohitCancel = it }
+    val onEditBooking: (Booking, String, Timestamp, com.poojapurohit.booking.model.Coordinates?) -> Unit =
+        { booking, addr, date, coords -> viewModel.updateBookingAddressAndTime(booking, addr, date, coords) }
 
     // ── Dialogs ───────────────────────────────────────────────────────────────
     BookingDialogs(
-        isDark                 = isDark,
-        pendingPaymentBooking  = pendingPaymentBooking,
-        pendingCancel          = pendingCancel,
-        pendingReject          = pendingReject,
-        pendingComplete        = pendingComplete,
-        pendingPurohitCancel   = pendingPurohitCancel,
-        onDismissPayment       = { pendingPaymentBooking = null },
-        onSimulateSuccess      = { b -> viewModel.processPaymentStub(b, true);  pendingPaymentBooking = null },
-        onSimulateFailure      = { b -> viewModel.processPaymentStub(b, false); pendingPaymentBooking = null },
-        onConfirmCancel        = { b -> viewModel.cancelBooking(b);   pendingCancel = null },
-        onDismissCancel        = { pendingCancel = null },
-        onConfirmReject        = { b -> viewModel.rejectBooking(b);   pendingReject = null },
-        onDismissReject        = { pendingReject = null },
-        onConfirmComplete      = { b -> viewModel.completeBooking(b); pendingComplete = null },
-        onDismissComplete      = { pendingComplete = null },
-        onConfirmPurohitCancel = { b, r -> viewModel.cancelBookingAsPurohit(b, r); pendingPurohitCancel = null },
-        onDismissPurohitCancel = { pendingPurohitCancel = null }
+        isDark                = isDark,
+        pendingPaymentBooking = pendingPaymentBooking,
+        pendingCancel         = pendingCancel,
+        pendingReject         = pendingReject,
+        pendingComplete       = pendingComplete,
+        onDismissPayment      = { pendingPaymentBooking = null },
+        onSimulateSuccess     = { b -> viewModel.processPaymentStub(b, true);  pendingPaymentBooking = null },
+        onSimulateFailure     = { b -> viewModel.processPaymentStub(b, false); pendingPaymentBooking = null },
+        onConfirmCancel       = { b -> viewModel.cancelBooking(b);   pendingCancel = null },
+        onDismissCancel       = { pendingCancel = null },
+        onConfirmRejectWithRemarks = { b, r -> viewModel.rejectBookingWithRemarks(b, r); pendingReject = null },
+        onDismissReject       = { pendingReject = null },
+        onConfirmComplete     = { b -> viewModel.completeBooking(b); pendingComplete = null },
+        onDismissComplete     = { pendingComplete = null }
     )
 
     // ── Animated list ↔ detail ────────────────────────────────────────────────
@@ -234,7 +232,7 @@ fun BookingsScreen(
                 onReject          = onReject,
                 onComplete        = onComplete,
                 onCancel          = onCancel,
-                onPurohitCancel   = onPurohitCancel
+                onEditBooking     = { addr, date, coords -> onEditBooking(activeBooking, addr, date, coords) }
             )
         } else {
             BookingListContent(
@@ -252,8 +250,7 @@ fun BookingsScreen(
                 onAccept            = onAccept,
                 onReject            = onReject,
                 onComplete          = onComplete,
-                onCancel            = onCancel,
-                onPurohitCancel     = onPurohitCancel
+                onCancel            = onCancel
             )
         }
     }
@@ -263,23 +260,20 @@ fun BookingsScreen(
 
 @Composable
 private fun BookingDialogs(
-    isDark                : Boolean,
-    pendingPaymentBooking : Booking?,
-    pendingCancel         : Booking?,
-    pendingReject         : Booking?,
-    pendingComplete       : Booking?,
-    pendingPurohitCancel  : Booking?,
-    onDismissPayment      : () -> Unit,
-    onSimulateSuccess     : (Booking) -> Unit,
-    onSimulateFailure     : (Booking) -> Unit,
-    onConfirmCancel       : (Booking) -> Unit,
-    onDismissCancel       : () -> Unit,
-    onConfirmReject       : (Booking) -> Unit,
-    onDismissReject       : () -> Unit,
-    onConfirmComplete     : (Booking) -> Unit,
-    onDismissComplete     : () -> Unit,
-    onConfirmPurohitCancel: (Booking, String) -> Unit,
-    onDismissPurohitCancel: () -> Unit
+    isDark                    : Boolean,
+    pendingPaymentBooking     : Booking?,
+    pendingCancel             : Booking?,
+    pendingReject             : Booking?,
+    pendingComplete           : Booking?,
+    onDismissPayment          : () -> Unit,
+    onSimulateSuccess         : (Booking) -> Unit,
+    onSimulateFailure         : (Booking) -> Unit,
+    onConfirmCancel           : (Booking) -> Unit,
+    onDismissCancel           : () -> Unit,
+    onConfirmRejectWithRemarks: (Booking, String) -> Unit,
+    onDismissReject           : () -> Unit,
+    onConfirmComplete         : (Booking) -> Unit,
+    onDismissComplete         : () -> Unit
 ) {
     pendingPaymentBooking?.let { booking ->
         RazorpayStubDialog(
@@ -315,24 +309,58 @@ private fun BookingDialogs(
     }
 
     pendingReject?.let { booking ->
+        // All purohit rejections require a reason — regardless of status
+        var remarks by rememberSaveable { mutableStateOf("") }
+        val isAccepted = booking.status == BookingStatus.ACCEPTED
         AlertDialog(
             onDismissRequest = onDismissReject,
-            title   = { Text("Reject Booking?", fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold) },
-            text    = {
+            title = {
                 Text(
-                    "Reject the booking for ${booking.serviceName}? The user will be notified.",
-                    fontFamily = FontFamily.Serif
+                    if (isAccepted) "Reject Accepted Booking?" else "Reject Booking?",
+                    fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold
                 )
+            },
+            text = {
+                Column {
+                    Text(
+                        if (isAccepted)
+                            "You have already accepted this booking. Please provide a reason — the customer will see it."
+                        else
+                            "Please provide a reason for rejecting this booking — the customer will be notified.",
+                        fontFamily = FontFamily.Serif, fontSize = 13.sp
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value         = remarks,
+                        onValueChange = { remarks = it },
+                        label         = { Text("Reason for rejection", fontFamily = FontFamily.Serif, fontSize = 13.sp) },
+                        placeholder   = { Text("e.g. Unavailable on this date", fontFamily = FontFamily.Serif, fontSize = 12.sp) },
+                        isError        = remarks.isNotEmpty() && remarks.isBlank(),
+                        supportingText = if (remarks.isNotEmpty() && remarks.isBlank()) {
+                            { Text("Reason cannot be blank.", fontFamily = FontFamily.Serif, fontSize = 11.sp) }
+                        } else null,
+                        minLines = 3,
+                        maxLines = 5,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors   = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = if (isDark) DarkBrandOrange else BrandOrange,
+                            focusedLabelColor  = if (isDark) DarkBrandOrange else BrandOrange,
+                            errorBorderColor   = DeleteRed,
+                            errorLabelColor    = DeleteRed
+                        )
+                    )
+                }
             },
             confirmButton = {
                 Button(
-                    onClick = { onConfirmReject(booking) },
-                    colors  = ButtonDefaults.buttonColors(containerColor = DeleteRed)
-                ) { Text("Reject", color = Color.White, fontFamily = FontFamily.Serif) }
+                    onClick  = { if (remarks.isNotBlank()) onConfirmRejectWithRemarks(booking, remarks) },
+                    enabled  = remarks.isNotBlank(),
+                    colors   = ButtonDefaults.buttonColors(containerColor = DeleteRed)
+                ) { Text("Confirm Reject", color = Color.White, fontFamily = FontFamily.Serif) }
             },
             dismissButton = {
                 TextButton(onClick = onDismissReject) {
-                    Text("Cancel", fontFamily = FontFamily.Serif)
+                    Text("Go Back", fontFamily = FontFamily.Serif)
                 }
             }
         )
@@ -363,57 +391,6 @@ private fun BookingDialogs(
             }
         )
     }
-
-    pendingPurohitCancel?.let { booking ->
-        var remarks by rememberSaveable { mutableStateOf("") }
-        AlertDialog(
-            onDismissRequest = onDismissPurohitCancel,
-            title   = { Text("Cancel Booking", fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold) },
-            text    = {
-                Column {
-                    Text(
-                        "Please provide a reason for cancelling ${booking.serviceName}. The user will be able to see this.",
-                        fontFamily = FontFamily.Serif, fontSize = 13.sp
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    OutlinedTextField(
-                        value         = remarks,
-                        onValueChange = { remarks = it },
-                        label         = { Text("Reason", fontFamily = FontFamily.Serif, fontSize = 13.sp) },
-                        placeholder   = {
-                            Text("e.g. Unavailable on the scheduled date",
-                                fontFamily = FontFamily.Serif, fontSize = 12.sp)
-                        },
-                        isError        = remarks.isNotEmpty() && remarks.isBlank(),
-                        supportingText = if (remarks.isNotEmpty() && remarks.isBlank()) {
-                            { Text("Reason cannot be blank.", fontFamily = FontFamily.Serif, fontSize = 11.sp) }
-                        } else null,
-                        minLines = 3,
-                        maxLines = 5,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors   = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = if (isDark) DarkBrandOrange else BrandOrange,
-                            focusedLabelColor  = if (isDark) DarkBrandOrange else BrandOrange,
-                            errorBorderColor   = DeleteRed,
-                            errorLabelColor    = DeleteRed
-                        )
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick  = { if (remarks.isNotBlank()) onConfirmPurohitCancel(booking, remarks) },
-                    enabled  = remarks.isNotBlank(),
-                    colors   = ButtonDefaults.buttonColors(containerColor = DeleteRed)
-                ) { Text("Confirm Cancel", color = Color.White, fontFamily = FontFamily.Serif) }
-            },
-            dismissButton = {
-                TextButton(onClick = onDismissPurohitCancel) {
-                    Text("Go Back", fontFamily = FontFamily.Serif)
-                }
-            }
-        )
-    }
 }
 
 // ── List content ──────────────────────────────────────────────────────────────
@@ -435,8 +412,7 @@ private fun BookingListContent(
     onAccept           : (Booking) -> Unit,
     onReject           : (Booking) -> Unit,
     onComplete         : (Booking) -> Unit,
-    onCancel           : (Booking) -> Unit,
-    onPurohitCancel    : (Booking) -> Unit
+    onCancel           : (Booking) -> Unit
 ) {
     Scaffold(snackbarHost = { SnackbarHost(hostState = snackbarHost) }) { scaffoldPadding ->
         Column(
@@ -526,7 +502,6 @@ private fun BookingListContent(
                             onReject             = onReject,
                             onComplete           = onComplete,
                             onCancel             = onCancel,
-                            onPurohitCancel      = onPurohitCancel,
                             onHighlightConsumed  = onHighlightConsumed
                         )
                     }
@@ -549,7 +524,6 @@ private fun BookingList(
     onReject            : (Booking) -> Unit,
     onComplete          : (Booking) -> Unit,
     onCancel            : (Booking) -> Unit,
-    onPurohitCancel     : (Booking) -> Unit,
     onHighlightConsumed : () -> Unit
 ) {
     val listState = rememberLazyListState()
@@ -592,8 +566,7 @@ private fun BookingList(
                             onAccept          = onAccept,
                             onReject          = onReject,
                             onComplete        = onComplete,
-                            onCancel          = onCancel,
-                            onPurohitCancel   = onPurohitCancel
+                            onCancel          = onCancel
                         )
                     }
                 }

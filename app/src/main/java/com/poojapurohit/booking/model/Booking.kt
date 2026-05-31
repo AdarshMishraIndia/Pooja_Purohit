@@ -51,6 +51,11 @@ val BookingStatus.displayLabel: String
         BookingStatus.AUTO_CANCELLED -> "Auto Cancelled"
     }
 
+data class Coordinates(
+    val latitude : Double = 0.0,
+    val longitude: Double = 0.0
+)
+
 data class Booking(
     val bookingId: String = "",
 
@@ -70,12 +75,13 @@ data class Booking(
     val razorpayPaymentId: String = "",
 
     val scheduledDate: Timestamp? = null,
-    val address: String = "",
+    val address    : String = "",
+    val coordinates: Coordinates? = null,
 
     val createdAt: Timestamp? = null,
     val updatedAt: Timestamp? = null,
 
-    val remarks: String? = null
+    val comments: String? = null
 ) {
     companion object {
         fun fromDocument(doc: DocumentSnapshot): Booking {
@@ -99,11 +105,17 @@ data class Booking(
 
                 scheduledDate = doc.getTimestamp("scheduledDate"),
                 address = doc.getString("address") ?: "",
+                coordinates = (doc.get("coordinates") as? Map<*, *>)?.let { map ->
+                    Coordinates(
+                        latitude  = (map["latitude"]  as? Double) ?: 0.0,
+                        longitude = (map["longitude"] as? Double) ?: 0.0
+                    )
+                },
 
                 createdAt = doc.getTimestamp("createdAt"),
                 updatedAt = doc.getTimestamp("updatedAt"),
 
-                remarks = doc.getString("remarks")
+                comments = doc.getString("comments")
             )
         }
     }

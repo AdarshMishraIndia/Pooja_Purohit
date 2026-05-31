@@ -17,18 +17,15 @@ import javax.inject.Singleton
 @Singleton
 class BookingsRepository @Inject constructor(
     private val firestore: FirebaseFirestore,
-    private val auth: FirebaseAuth
+    private val auth     : FirebaseAuth
 ) {
-
     fun currentUserId(): String? = auth.currentUser?.uid
 
     fun observeUserBookings(): Flow<Result<List<Booking>>> {
         val uid = auth.currentUser?.uid
             ?: return flowOf(Result.failure(IllegalStateException("User not authenticated")))
-
         return callbackFlow {
-            val listener = firestore
-                .collection("bookings")
+            val listener = firestore.collection("bookings")
                 .whereEqualTo("userId", uid)
                 .orderBy("createdAt", Query.Direction.DESCENDING)
                 .addSnapshotListener { snapshot, error ->
@@ -45,10 +42,8 @@ class BookingsRepository @Inject constructor(
     fun observePurohitBookings(): Flow<Result<List<Booking>>> {
         val uid = auth.currentUser?.uid
             ?: return flowOf(Result.failure(IllegalStateException("User not authenticated")))
-
         return callbackFlow {
-            val listener = firestore
-                .collection("bookings")
+            val listener = firestore.collection("bookings")
                 .whereEqualTo("purohitId", uid)
                 .orderBy("createdAt", Query.Direction.DESCENDING)
                 .addSnapshotListener { snapshot, error ->
@@ -62,42 +57,78 @@ class BookingsRepository @Inject constructor(
         }
     }
 
-    /**
-     * Generic status update — used for accept, reject, complete, user-cancel,
-     * and payment flows where no remarks are needed.
-     */
+    /** Generic status update — accept, complete, user-cancel, payment flows. */
     suspend fun updateBookingStatus(
         bookingId: String,
         newStatus: BookingStatus
     ): Result<Unit> = runCatching {
-        firestore.collection("bookings")
-            .document(bookingId)
-            .update(
-                mapOf(
-                    "status" to newStatus.name,
-                    "updatedAt" to Timestamp.now()
-                )
-            )
+        firestore.collection("bookings").document(bookingId)
+            .update(mapOf("status" to newStatus.name, "updatedAt" to Timestamp.now()))
             .await()
     }
 
     /**
-     * Purohit-cancel path — writes status + remarks atomically in one document update.
-     * [remarks] must be non-blank (enforced by the VM before calling this).
+     * Reject with remarks — used for ALL purohit rejections (PAYMENT_DONE and ACCEPTED).
+     * Writes status=REJECTED + remarks atomically.
      */
-    suspend fun cancelBookingWithRemarks(
+    suspend fun rejectBookingWithRemarks(
         bookingId: String,
-        remarks: String
+        remarks  : String
     ): Result<Unit> = runCatching {
-        firestore.collection("bookings")
-            .document(bookingId)
-            .update(
-                mapOf(
-                    "status" to BookingStatus.CANCELLED.name,
-                    "remarks" to remarks.trim(),
-                    "updatedAt" to Timestamp.now()
-                )
+        firestore.collection("bookings").document(bookingId)
+            .update(mapOf(
+                "status"    to BookingStatus.REJECTED.name,
+                "comments"   to remarks.trim(),
+                "updatedAt" to Timestamp.now()
+            )).await()
+    }
+
+    /**
+     * Customer edit: updates address + scheduledDate on the booking document,
+     * then writes a notification to the purohit's notification subcollection.
+     *
+     * Firestore path for notification:
+     *   notifications/{purohitId}/items/{auto-id}
+     */
+    suspend fun updateBookingAddressAndTime(
+        booking         : Booking,
+        newAddress      : String,
+        newScheduledDate: Timestamp,
+        newCoordinates  : com.poojapurohit.booking.model.Coordinates? = null
+    ): Result<Unit> = runCatching {
+        val batch = firestore.batch()
+
+        val bookingFields = mutableMapOf<String, Any>(
+            "address"       to newAddress.trim(),
+            "scheduledDate" to newScheduledDate,
+            "updatedAt"     to Timestamp.now()
+        )
+        // Only write coordinates if the caller provided new ones
+        if (newCoordinates != null) {
+            bookingFields["coordinates"] = mapOf(
+                "latitude"  to newCoordinates.latitude,
+                "longitude" to newCoordinates.longitude
             )
-            .await()
+        }
+
+        val bookingRef = firestore.collection("bookings").document(booking.bookingId)
+        batch.update(bookingRef, bookingFields)
+
+        val notifRef = firestore
+            .collection("notifications")
+            .document(booking.purohitId)
+            .collection("items")
+            .document()
+        batch.set(notifRef, mapOf(
+            "title"       to "Booking Updated",
+            "body"        to "The customer has updated the schedule or address for \"${booking.serviceName}\".",
+            "isRead"      to false,
+            "isActive"    to true,
+            "timestamp"   to Timestamp.now(),
+            "type"        to "BOOKING_UPDATED",
+            "deepLinkUrl" to "poojapurohit://bookings/${booking.bookingId}"
+        ))
+
+        batch.commit().await()
     }
 }

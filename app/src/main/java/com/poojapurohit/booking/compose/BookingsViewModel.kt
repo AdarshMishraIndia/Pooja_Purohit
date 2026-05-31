@@ -21,17 +21,17 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class BookingsUiState(
-    val activeBookings: List<Booking> = emptyList(),
-    val cancelledBookings: List<Booking> = emptyList(),
-    val completedBookings: List<Booking> = emptyList(),
-    val isLoading: Boolean = true,
-    val error: String? = null,
-    val highlightedBookingId: String? = null,
-    val requestedTabIndex: Int = 0
+    val activeBookings    : List<Booking> = emptyList(),
+    val cancelledBookings : List<Booking> = emptyList(),
+    val completedBookings : List<Booking> = emptyList(),
+    val isLoading         : Boolean       = true,
+    val error             : String?       = null,
+    val highlightedBookingId: String?     = null,
+    val requestedTabIndex : Int           = 0
 )
 
 sealed interface BookingsEffect {
-    data class ShowToast(val message: String) : BookingsEffect
+    data class ShowToast   (val message: String) : BookingsEffect
     data class ShowSnackbar(val message: String) : BookingsEffect
 }
 
@@ -46,7 +46,7 @@ class BookingsViewModel @Inject constructor(
     private val _effect = MutableSharedFlow<BookingsEffect>(extraBufferCapacity = 1)
     val effect: SharedFlow<BookingsEffect> = _effect.asSharedFlow()
 
-    private val userBookings = MutableStateFlow<List<Booking>>(emptyList())
+    private val userBookings    = MutableStateFlow<List<Booking>>(emptyList())
     private val purohitBookings = MutableStateFlow<List<Booking>>(emptyList())
 
     init {
@@ -60,7 +60,7 @@ class BookingsViewModel @Inject constructor(
             repository.observeUserBookings().collect { result ->
                 result
                     .onSuccess { list -> userBookings.value = list }
-                    .onFailure { error -> _uiState.update { it.copy(error = error.message) } }
+                    .onFailure { e   -> _uiState.update { it.copy(error = e.message) } }
             }
         }
     }
@@ -70,7 +70,7 @@ class BookingsViewModel @Inject constructor(
             repository.observePurohitBookings().collect { result ->
                 result
                     .onSuccess { list -> purohitBookings.value = list }
-                    .onFailure { error -> _uiState.update { it.copy(error = error.message) } }
+                    .onFailure { e   -> _uiState.update { it.copy(error = e.message) } }
             }
         }
     }
@@ -85,11 +85,11 @@ class BookingsViewModel @Inject constructor(
                 val grouped = merged.groupBy { it.status.category }
                 _uiState.update { state ->
                     state.copy(
-                        activeBookings = grouped[BookingCategory.ACTIVE] ?: emptyList(),
+                        activeBookings    = grouped[BookingCategory.ACTIVE]    ?: emptyList(),
                         cancelledBookings = grouped[BookingCategory.CANCELLED] ?: emptyList(),
                         completedBookings = grouped[BookingCategory.COMPLETED] ?: emptyList(),
-                        isLoading = false,
-                        error = null
+                        isLoading         = false,
+                        error             = null
                     )
                 }
             }
@@ -102,7 +102,7 @@ class BookingsViewModel @Inject constructor(
         if (bookingId.isBlank()) return
         val current = _uiState.value
         val tabIndex = when {
-            current.activeBookings.any { it.bookingId == bookingId } -> 0
+            current.activeBookings.any    { it.bookingId == bookingId } -> 0
             current.cancelledBookings.any { it.bookingId == bookingId } -> 1
             current.completedBookings.any { it.bookingId == bookingId } -> 2
             else -> 0
@@ -110,17 +110,42 @@ class BookingsViewModel @Inject constructor(
         _uiState.update { it.copy(highlightedBookingId = bookingId, requestedTabIndex = tabIndex) }
     }
 
-    fun clearHighlight() {
-        _uiState.update { it.copy(highlightedBookingId = null) }
-    }
+    fun clearHighlight() = _uiState.update { it.copy(highlightedBookingId = null) }
 
     // ── Actions ───────────────────────────────────────────────────────────────
 
     fun acceptBooking(booking: Booking) =
         updateStatus(booking, BookingStatus.ACCEPTED, "Booking accepted")
 
-    fun rejectBooking(booking: Booking) =
-        updateStatus(booking, BookingStatus.REJECTED, "Booking rejected")
+    /**
+     * All purohit rejections require a reason — regardless of current status.
+     * PAYMENT_DONE and ACCEPTED both go through this path.
+     */
+    fun rejectBookingWithRemarks(booking: Booking, remarks: String) {
+        val trimmed = remarks.trim()
+        if (trimmed.isBlank()) {
+            viewModelScope.launch {
+                _effect.emit(BookingsEffect.ShowSnackbar("Please provide a reason for rejection."))
+            }
+            return
+        }
+        viewModelScope.launch {
+            repository.rejectBookingWithRemarks(booking.bookingId, trimmed)
+                .onSuccess {
+                    applyLocalUpdate(
+                        booking.copy(
+                            status    = BookingStatus.REJECTED,
+                            comments  = trimmed,
+                            updatedAt = Timestamp.now()
+                        )
+                    )
+                    _effect.emit(BookingsEffect.ShowSnackbar("Booking rejected."))
+                }
+                .onFailure { e ->
+                    _effect.emit(BookingsEffect.ShowSnackbar(e.message ?: "Rejection failed. Please try again."))
+                }
+        }
+    }
 
     /** User cancel — no remarks required. */
     fun cancelBooking(booking: Booking) =
@@ -140,35 +165,38 @@ class BookingsViewModel @Inject constructor(
     }
 
     /**
-     * Purohit cancel — requires a non-blank reason.
-     * Writes status + remarks atomically via [BookingsRepository.cancelBookingWithRemarks].
-     * Guard: COMPLETED bookings cannot be cancelled (enforced in UI and here).
+     * Customer edits address and/or scheduled date.
+     * Blocked by the 1-day window upstream (UI enforces this before calling here).
+     * Writes the booking update + sends a notification to the purohit.
      */
-    fun cancelBookingAsPurohit(booking: Booking, remarks: String) {
-        if (booking.status == BookingStatus.COMPLETED) return
-        val trimmed = remarks.trim()
-        if (trimmed.isBlank()) {
+    fun updateBookingAddressAndTime(
+        booking          : Booking,
+        newAddress       : String,
+        newScheduledDate : Timestamp,
+        newCoordinates   : com.poojapurohit.booking.model.Coordinates? = null
+    ) {
+        val trimmedAddress = newAddress.trim()
+        if (trimmedAddress.isBlank()) {
             viewModelScope.launch {
-                _effect.emit(BookingsEffect.ShowSnackbar("Please provide a reason for cancellation."))
+                _effect.emit(BookingsEffect.ShowSnackbar("Address cannot be empty."))
             }
             return
         }
         viewModelScope.launch {
-            repository.cancelBookingWithRemarks(booking.bookingId, trimmed)
+            repository.updateBookingAddressAndTime(booking, trimmedAddress, newScheduledDate, newCoordinates)
                 .onSuccess {
                     applyLocalUpdate(
                         booking.copy(
-                            status = BookingStatus.CANCELLED,
-                            remarks = trimmed,
-                            updatedAt = Timestamp.now()
+                            address       = trimmedAddress,
+                            scheduledDate = newScheduledDate,
+                            coordinates   = newCoordinates ?: booking.coordinates,
+                            updatedAt     = Timestamp.now()
                         )
                     )
-                    _effect.emit(BookingsEffect.ShowSnackbar("Booking cancelled."))
+                    _effect.emit(BookingsEffect.ShowSnackbar("Booking updated. Purohit has been notified."))
                 }
                 .onFailure { e ->
-                    _effect.emit(
-                        BookingsEffect.ShowSnackbar(e.message ?: "Cancellation failed. Please try again.")
-                    )
+                    _effect.emit(BookingsEffect.ShowSnackbar(e.message ?: "Update failed. Please try again."))
                 }
         }
     }
@@ -181,20 +209,14 @@ class BookingsViewModel @Inject constructor(
                     _effect.emit(BookingsEffect.ShowSnackbar(successMessage))
                 }
                 .onFailure { e ->
-                    _effect.emit(
-                        BookingsEffect.ShowSnackbar(e.message ?: "Action failed. Please try again.")
-                    )
+                    _effect.emit(BookingsEffect.ShowSnackbar(e.message ?: "Action failed. Please try again."))
                 }
         }
     }
 
     private fun applyLocalUpdate(updated: Booking) {
-        userBookings.update { list ->
-            list.map { if (it.bookingId == updated.bookingId) updated else it }
-        }
-        purohitBookings.update { list ->
-            list.map { if (it.bookingId == updated.bookingId) updated else it }
-        }
+        userBookings.update    { list -> list.map { if (it.bookingId == updated.bookingId) updated else it } }
+        purohitBookings.update { list -> list.map { if (it.bookingId == updated.bookingId) updated else it } }
     }
 
     // ── Role ──────────────────────────────────────────────────────────────────
