@@ -25,6 +25,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EventBusy
 import androidx.compose.material3.AlertDialog
@@ -61,6 +62,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -176,7 +178,6 @@ fun BookingsScreen(
     // ── Dialog state ──────────────────────────────────────────────────────────
     var pendingCancel         by remember { mutableStateOf<Booking?>(null) }
     var pendingReject         by remember { mutableStateOf<Booking?>(null) }
-    var pendingComplete       by remember { mutableStateOf<Booking?>(null) }
     var pendingPaymentBooking by remember { mutableStateOf<Booking?>(null) }
     // ── Back: dismiss detail before popping activity ──────────────────────────
     BackHandler(enabled = selectedBookingId != null) { selectedBookingId = null }
@@ -185,7 +186,7 @@ fun BookingsScreen(
     val onCompletePayment: (Booking) -> Unit = { pendingPaymentBooking = it }
     val onAccept:          (Booking) -> Unit = { viewModel.acceptBooking(it) }
     val onReject:          (Booking) -> Unit = { pendingReject = it }
-    val onComplete:        (Booking) -> Unit = { pendingComplete = it }
+    val onComplete:        (Booking) -> Unit = { viewModel.initiateCompletion(it) }
     val onCancel:          (Booking) -> Unit = { pendingCancel = it }
     val onEditBooking: (Booking, String, Timestamp, com.poojapurohit.booking.model.Coordinates?) -> Unit =
         { booking, addr, date, coords -> viewModel.updateBookingAddressAndTime(booking, addr, date, coords) }
@@ -196,7 +197,8 @@ fun BookingsScreen(
         pendingPaymentBooking = pendingPaymentBooking,
         pendingCancel         = pendingCancel,
         pendingReject         = pendingReject,
-        pendingComplete       = pendingComplete,
+        otpPendingBooking     = uiState.otpPendingBooking,
+        otpLoading            = uiState.otpLoading,
         onDismissPayment      = { pendingPaymentBooking = null },
         onSimulateSuccess     = { b -> viewModel.processPaymentStub(b, true);  pendingPaymentBooking = null },
         onSimulateFailure     = { b -> viewModel.processPaymentStub(b, false); pendingPaymentBooking = null },
@@ -204,8 +206,8 @@ fun BookingsScreen(
         onDismissCancel       = { pendingCancel = null },
         onConfirmRejectWithRemarks = { b, r -> viewModel.rejectBookingWithRemarks(b, r); pendingReject = null },
         onDismissReject       = { pendingReject = null },
-        onConfirmComplete     = { b -> viewModel.completeBooking(b); pendingComplete = null },
-        onDismissComplete     = { pendingComplete = null }
+        onVerifyOtp           = { b, otp -> viewModel.verifyOtpAndComplete(b, otp) },
+        onDismissOtp          = { viewModel.dismissOtpDialog() }
     )
 
     // ── Animated list ↔ detail ────────────────────────────────────────────────
@@ -264,7 +266,8 @@ private fun BookingDialogs(
     pendingPaymentBooking     : Booking?,
     pendingCancel             : Booking?,
     pendingReject             : Booking?,
-    pendingComplete           : Booking?,
+    otpPendingBooking         : Booking?,
+    otpLoading                : Boolean,
     onDismissPayment          : () -> Unit,
     onSimulateSuccess         : (Booking) -> Unit,
     onSimulateFailure         : (Booking) -> Unit,
@@ -272,8 +275,8 @@ private fun BookingDialogs(
     onDismissCancel           : () -> Unit,
     onConfirmRejectWithRemarks: (Booking, String) -> Unit,
     onDismissReject           : () -> Unit,
-    onConfirmComplete         : (Booking) -> Unit,
-    onDismissComplete         : () -> Unit
+    onVerifyOtp               : (Booking, String) -> Unit,
+    onDismissOtp              : () -> Unit
 ) {
     pendingPaymentBooking?.let { booking ->
         RazorpayStubDialog(
@@ -309,7 +312,6 @@ private fun BookingDialogs(
     }
 
     pendingReject?.let { booking ->
-        // All purohit rejections require a reason — regardless of status
         var remarks by rememberSaveable { mutableStateOf("") }
         val isAccepted = booking.status == BookingStatus.ACCEPTED
         AlertDialog(
@@ -366,26 +368,64 @@ private fun BookingDialogs(
         )
     }
 
-    pendingComplete?.let { booking ->
+    // ── OTP verification dialog (purohit side) ────────────────────────────────
+    otpPendingBooking?.let { booking ->
+        var otpInput by rememberSaveable(booking.bookingId) { mutableStateOf("") }
+        val accentColor = if (isDark) DarkBrandOrange else BrandOrange
         AlertDialog(
-            onDismissRequest = onDismissComplete,
-            title   = { Text("Mark as Completed?", fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold) },
-            text    = {
+            onDismissRequest = { if (!otpLoading) onDismissOtp() },
+            title = {
                 Text(
-                    "Confirm that you have successfully completed the pooja for ${booking.serviceName}. This action cannot be undone.",
-                    fontFamily = FontFamily.Serif
+                    "Enter Completion Code",
+                    fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold
                 )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        "A 6-digit code has been sent to the customer. Ask them for the code and enter it below to complete this order.",
+                        fontFamily = FontFamily.Serif, fontSize = 13.sp,
+                        color      = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
+                    )
+                    OutlinedTextField(
+                        value         = otpInput,
+                        onValueChange = { if (it.length <= 6 && it.all { c -> c.isDigit() }) otpInput = it },
+                        label         = { Text("6-digit code", fontFamily = FontFamily.Serif, fontSize = 13.sp) },
+                        placeholder   = { Text("• • • • • •", fontFamily = FontFamily.Serif, fontSize = 18.sp,
+                            textAlign = TextAlign.Center) },
+                        singleLine    = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                        modifier      = Modifier.fillMaxWidth(),
+                        enabled       = !otpLoading,
+                        colors        = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = accentColor,
+                            focusedLabelColor  = accentColor
+                        )
+                    )
+                    if (otpLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp).align(Alignment.CenterHorizontally),
+                            color    = accentColor,
+                            strokeWidth = 2.dp
+                        )
+                    }
+                }
             },
             confirmButton = {
                 Button(
-                    onClick = { onConfirmComplete(booking) },
-                    colors  = ButtonDefaults.buttonColors(
-                        containerColor = if (isDark) DarkBrandOrange else BrandOrange
-                    )
-                ) { Text("Yes, Completed", color = Color.White, fontFamily = FontFamily.Serif) }
+                    onClick  = { onVerifyOtp(booking, otpInput) },
+                    enabled  = otpInput.length == 6 && !otpLoading,
+                    colors   = ButtonDefaults.buttonColors(containerColor = accentColor)
+                ) {
+                    Text("Verify & Complete", color = Color.White,
+                        fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold)
+                }
             },
             dismissButton = {
-                TextButton(onClick = onDismissComplete) {
+                TextButton(
+                    onClick  = { if (!otpLoading) onDismissOtp() },
+                    enabled  = !otpLoading
+                ) {
                     Text("Cancel", fontFamily = FontFamily.Serif)
                 }
             }

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.Timestamp
 import com.poojapurohit.booking.data.BookingsRepository
+import com.poojapurohit.booking.data.WrongOtpException
 import com.poojapurohit.booking.model.Booking
 import com.poojapurohit.booking.model.BookingCategory
 import com.poojapurohit.booking.model.BookingStatus
@@ -27,7 +28,22 @@ data class BookingsUiState(
     val isLoading         : Boolean       = true,
     val error             : String?       = null,
     val highlightedBookingId: String?     = null,
-    val requestedTabIndex : Int           = 0
+    val requestedTabIndex : Int           = 0,
+
+    /**
+     * Non-null when the purohit has clicked "Complete Order" and the OTP
+     * has been successfully written to Firestore. The UI should show the
+     * OTP input dialog at this point.
+     *
+     * Cleared on successful verification or explicit dismissal.
+     */
+    val otpPendingBooking : Booking?      = null,
+
+    /**
+     * True while [initiateCompletion] or [verifyOtpAndComplete] is in flight.
+     * Used to show a loading indicator inside the OTP dialog.
+     */
+    val otpLoading        : Boolean       = false
 )
 
 sealed interface BookingsEffect {
@@ -117,10 +133,6 @@ class BookingsViewModel @Inject constructor(
     fun acceptBooking(booking: Booking) =
         updateStatus(booking, BookingStatus.ACCEPTED, "Booking accepted")
 
-    /**
-     * All purohit rejections require a reason — regardless of current status.
-     * PAYMENT_DONE and ACCEPTED both go through this path.
-     */
     fun rejectBookingWithRemarks(booking: Booking, remarks: String) {
         val trimmed = remarks.trim()
         if (trimmed.isBlank()) {
@@ -147,12 +159,8 @@ class BookingsViewModel @Inject constructor(
         }
     }
 
-    /** User cancel — no remarks required. */
     fun cancelBooking(booking: Booking) =
         updateStatus(booking, BookingStatus.CANCELLED, "Booking cancelled")
-
-    fun completeBooking(booking: Booking) =
-        updateStatus(booking, BookingStatus.COMPLETED, "Booking marked as completed")
 
     fun processPaymentStub(booking: Booking, isSuccess: Boolean) {
         if (isSuccess) {
@@ -164,11 +172,6 @@ class BookingsViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Customer edits address and/or scheduled date.
-     * Blocked by the 1-day window upstream (UI enforces this before calling here).
-     * Writes the booking update + sends a notification to the purohit.
-     */
     fun updateBookingAddressAndTime(
         booking          : Booking,
         newAddress       : String,
@@ -200,6 +203,78 @@ class BookingsViewModel @Inject constructor(
                 }
         }
     }
+
+    // ── OTP completion flow ───────────────────────────────────────────────────
+
+    /**
+     * Step 1: Purohit taps "Complete Order".
+     *
+     * Generates a 6-digit OTP, writes it to [bookings/{id}.completionOtp],
+     * then puts the booking into [otpPendingBooking] so the UI shows the
+     * OTP input dialog. The OTP itself is never surfaced in UI state.
+     */
+    fun initiateCompletion(booking: Booking) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(otpLoading = true) }
+            repository.initiateCompletion(booking.bookingId)
+                .onSuccess {
+                    // OTP written successfully — show the input dialog
+                    _uiState.update { it.copy(otpPendingBooking = booking, otpLoading = false) }
+                    _effect.emit(
+                        BookingsEffect.ShowSnackbar("OTP sent to customer. Ask them for the code.")
+                    )
+                }
+                .onFailure { e ->
+                    _uiState.update { it.copy(otpLoading = false) }
+                    _effect.emit(BookingsEffect.ShowSnackbar(e.message ?: "Failed to initiate completion. Try again."))
+                }
+        }
+    }
+
+    /**
+     * Step 2: Purohit enters the OTP received verbally from the customer.
+     *
+     * Fetches the stored OTP from Firestore, compares it, and on match
+     * atomically marks the booking COMPLETED and deletes [completionOtp].
+     * On mismatch, emits a snackbar — the dialog stays open for retry.
+     */
+    fun verifyOtpAndComplete(booking: Booking, inputOtp: String) {
+        val trimmed = inputOtp.trim()
+        if (trimmed.length != 6 || !trimmed.all { it.isDigit() }) {
+            viewModelScope.launch {
+                _effect.emit(BookingsEffect.ShowSnackbar("Enter the 6-digit code from the customer."))
+            }
+            return
+        }
+        viewModelScope.launch {
+            _uiState.update { it.copy(otpLoading = true) }
+            repository.verifyOtpAndComplete(booking.bookingId, trimmed)
+                .onSuccess {
+                    applyLocalUpdate(
+                        booking.copy(
+                            status        = BookingStatus.COMPLETED,
+                            completionOtp = null,
+                            updatedAt     = Timestamp.now()
+                        )
+                    )
+                    _uiState.update { it.copy(otpPendingBooking = null, otpLoading = false) }
+                    _effect.emit(BookingsEffect.ShowSnackbar("Booking marked as completed."))
+                }
+                .onFailure { e ->
+                    _uiState.update { it.copy(otpLoading = false) }
+                    val message = when (e) {
+                        is WrongOtpException -> e.message ?: "Incorrect code."
+                        else                 -> e.message ?: "Verification failed. Try again."
+                    }
+                    _effect.emit(BookingsEffect.ShowSnackbar(message))
+                }
+        }
+    }
+
+    /** Called when the purohit explicitly dismisses the OTP dialog. */
+    fun dismissOtpDialog() = _uiState.update { it.copy(otpPendingBooking = null, otpLoading = false) }
+
+    // ── Internal helpers ──────────────────────────────────────────────────────
 
     private fun updateStatus(booking: Booking, newStatus: BookingStatus, successMessage: String) {
         viewModelScope.launch {

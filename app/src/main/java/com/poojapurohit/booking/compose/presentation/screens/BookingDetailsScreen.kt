@@ -1,8 +1,8 @@
 package com.poojapurohit.booking.compose.presentation.screens
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -182,9 +183,7 @@ fun BookingDetailScreen(
         )
     }
 
-    val locale: Locale = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
-        LocalConfiguration.current.locales[0]
-    else @Suppress("DEPRECATION") Locale.getDefault()
+    val locale: Locale = LocalConfiguration.current.locales[0]
     val dateFmt = remember(locale) { SimpleDateFormat("dd MMM yyyy, hh:mm a", locale) }
 
     val actionFlags = bookingActionFlags(
@@ -309,6 +308,16 @@ fun BookingDetailScreen(
             SectionCard(accentColor = paymentColor(isDark), isDark = isDark) {
                 SectionHeader("Payment", paymentColor(isDark))
                 InfoRow("Amount", "₹${booking.amount}", valueColor = paymentColor(isDark), valueBold = true)
+            }
+
+            // ── 7b. Completion OTP (customer view only) ───────────────────────
+            // Shown when purohit has initiated completion. Auto-disappears when
+            // booking moves to COMPLETED and completionOtp is deleted from Firestore.
+            if (!isPurohitView &&
+                booking.status == BookingStatus.ACCEPTED &&
+                !booking.completionOtp.isNullOrBlank()
+            ) {
+                CompletionOtpCard(otp = booking.completionOtp, isDark = isDark)
             }
 
             // ── 8. Booked On ──────────────────────────────────────────────────
@@ -626,6 +635,7 @@ internal fun EditBookingButton(isDark: Boolean, onClick: () -> Unit) {
  * Fully stateless edit dialog — all mutable state is hoisted to [BookingDetailScreen]
  * so it survives the map picker overlay without any reset.
  */
+@SuppressLint("UnrememberedMutableState")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun EditBookingDialog(
@@ -929,4 +939,53 @@ internal fun EditBookingDialog(
             }
         }
     )
+}
+
+// ── Completion OTP section card (customer view only) ──────────────────────────
+
+private fun otpAccentColor(dark: Boolean) =
+    if (dark) Color(0xFF90CAF9) else Color(0xFF1565C0)  // Blue 200 / Blue 800
+
+/**
+ * Full-width section card displayed in BookingDetailsScreen when a completion
+ * OTP is live. Mirrors the same visibility rule as CompletionOtpChip in
+ * BookingCard: !isPurohitView && status == ACCEPTED && completionOtp != null.
+ *
+ * The card auto-disappears when the Firestore listener pushes the COMPLETED
+ * status update (completionOtp deleted), triggering recomposition.
+ */
+@Composable
+private fun CompletionOtpCard(otp: String, isDark: Boolean) {
+    val accent = otpAccentColor(isDark)
+    SectionCard(accentColor = accent, isDark = isDark) {
+        SectionHeader("Completion Code", accent)
+        Spacer(Modifier.height(4.dp))
+        Row(
+            modifier          = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector        = Icons.Default.VpnKey,
+                contentDescription = null,
+                tint               = accent,
+                modifier           = Modifier.size(18.dp)
+            )
+            Spacer(Modifier.width(10.dp))
+            Text(
+                text          = otp,
+                fontFamily    = FontFamily.Serif,
+                fontWeight    = FontWeight.Bold,
+                fontSize      = 32.sp,
+                letterSpacing = 8.sp,
+                color         = accent
+            )
+        }
+        Text(
+            text       = "Share this code with the purohit to confirm completion of your booking.",
+            fontFamily = FontFamily.Serif,
+            fontSize   = 12.sp,
+            lineHeight  = 17.sp,
+            color      = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.60f)
+        )
+    }
 }

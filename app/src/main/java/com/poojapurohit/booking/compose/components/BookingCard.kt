@@ -33,6 +33,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -240,6 +241,18 @@ fun BookingCard(
                     fontSize   = 15.sp,
                     color      = if (isDark) DarkBrandOrange else BrandOrange
                 )
+            }
+
+            // ── Completion OTP chip (customer view only) ──────────────────────
+            // Shown when the purohit has initiated completion and the OTP is live.
+            // Disappears automatically once the booking moves to COMPLETED
+            // because completionOtp is deleted from the document at that point.
+            if (!isPurohitView &&
+                booking.status == BookingStatus.ACCEPTED &&
+                !booking.completionOtp.isNullOrBlank()
+            ) {
+                Spacer(Modifier.height(8.dp))
+                CompletionOtpChip(otp = booking.completionOtp, isDark = isDark)
             }
 
             val flags = bookingActionFlags(booking, isPurohitView,
@@ -565,5 +578,62 @@ fun statusChipColors(status: BookingStatus): Pair<Color, Color> {
         BookingStatus.AUTO_CANCELLED  ->
             if (isDark) Color(0xFF3B1A1A) to DeleteRed  else Color(0xFFF8D7DA) to BrandRed
         BookingStatus.REFUNDED        -> Color(0xFFE8D5F5) to Color(0xFF6F42C1)
+    }
+}
+
+/**
+ * Distinct card shown on the customer's BookingCard when a completion OTP is live.
+ *
+ * Visibility rule: !isPurohitView && status == ACCEPTED && completionOtp != null
+ * Auto-disappears when booking moves to COMPLETED (completionOtp deleted from Firestore,
+ * Firestore listener pushes the update, recomposition clears this card).
+ */
+@Composable
+fun CompletionOtpChip(otp: String, isDark: Boolean) {
+    val accentColor = if (isDark) Color(0xFF90CAF9) else Color(0xFF1565C0)  // Blue 200 / Blue 800
+    Card(
+        modifier  = Modifier.fillMaxWidth(),
+        shape     = RoundedCornerShape(10.dp),
+        colors    = CardDefaults.cardColors(
+            containerColor = accentColor.copy(alpha = if (isDark) 0.12f else 0.07f)
+        ),
+        border    = BorderStroke(1.dp, accentColor.copy(alpha = if (isDark) 0.40f else 0.30f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(
+            modifier            = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector        = Icons.Default.VpnKey,
+                    contentDescription = null,
+                    tint               = accentColor,
+                    modifier           = Modifier.size(14.dp)
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    text       = "Your Completion Code",
+                    fontFamily = FontFamily.Serif,
+                    fontWeight = FontWeight.Bold,
+                    fontSize   = 12.sp,
+                    color      = accentColor
+                )
+            }
+            Text(
+                text       = otp,
+                fontFamily = FontFamily.Serif,
+                fontWeight = FontWeight.Bold,
+                fontSize   = 28.sp,
+                letterSpacing = 8.sp,
+                color      = accentColor
+            )
+            Text(
+                text       = "Share this code with the purohit to complete your booking.",
+                fontFamily = FontFamily.Serif,
+                fontSize   = 11.sp,
+                color      = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.60f)
+            )
+        }
     }
 }

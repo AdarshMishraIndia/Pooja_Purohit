@@ -1,6 +1,7 @@
 package com.poojapurohit.notification.compose.model
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.material.icons.filled.Autorenew
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Campaign
@@ -178,6 +179,14 @@ object NotificationTemplateRegistry {
             accentDark = Color(0xFFB0BEC5),
             category = NotificationCategory.BOOKING,
             isActionable = true
+        ),
+
+        NotificationType.COMPLETION_OTP to NotificationTemplate(
+            icon = Icons.Default.VpnKey,
+            accentLight = Color(0xFF1565C0),  // Blue 800 — distinct, attention-grabbing
+            accentDark  = Color(0xFF90CAF9),  // Blue 200
+            category    = NotificationCategory.BOOKING,
+            isActionable = true               // taps deep-link to booking detail
         )
     )
 

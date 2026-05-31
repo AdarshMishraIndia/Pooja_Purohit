@@ -35,6 +35,9 @@ enum class NotificationType {
     PROMO,
     SYSTEM_ALERT,
 
+    // ── MVP: Booking completion OTP ───────────────────────────────────────────
+    COMPLETION_OTP,         // "Your completion code is 482916. Share with the purohit."
+
     // ── MVP: Auto-cancellation (unpaid bookings) ──────────────────────────────
     AUTO_CANCELLED,
 

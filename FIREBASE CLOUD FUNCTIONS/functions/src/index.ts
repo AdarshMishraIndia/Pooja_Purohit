@@ -21,6 +21,11 @@
  *   processDayPriorReminder  — Cloud Tasks handler (queue: processDayPriorReminder)
  *                              Fires once at T-24h. Status-gated to ACCEPTED.
  *
+ *   onCompletionOtpWritten   — Firestore trigger on bookings/{bookingId}
+ *                              Fires when completionOtp field is newly written.
+ *                              Notifies user only via Firestore notification entry + FCM push.
+ *                              OTP appears in BookingCard, BookingDetailsScreen, Notifications.
+ *
  * Queue names MUST match the exported function names exactly.
  * Firebase resolves Cloud Run service URLs by these names at enqueue time.
  */
@@ -29,7 +34,7 @@ import * as admin from "firebase-admin";
 
 admin.initializeApp();
 
-export { onBookingStatusUpdated }  from "./handlers/booking-status.handler";
+export { onBookingStatusUpdated, onCompletionOtpWritten } from "./handlers/booking-status.handler";
 export { processPaymentReminder }  from "./handlers/payment-reminder.handler";
 export { processBookingReminder }  from "./handlers/booking-reminder.handler";
 export { processDayPriorReminder } from "./handlers/day-prior-reminder.handler";

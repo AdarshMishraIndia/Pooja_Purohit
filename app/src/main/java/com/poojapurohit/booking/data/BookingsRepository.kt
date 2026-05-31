@@ -2,6 +2,7 @@ package com.poojapurohit.booking.data
 
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.poojapurohit.booking.model.Booking
@@ -57,7 +58,7 @@ class BookingsRepository @Inject constructor(
         }
     }
 
-    /** Generic status update — accept, complete, user-cancel, payment flows. */
+    /** Generic status update — accept, user-cancel, payment flows. */
     suspend fun updateBookingStatus(
         bookingId: String,
         newStatus: BookingStatus
@@ -78,17 +79,71 @@ class BookingsRepository @Inject constructor(
         firestore.collection("bookings").document(bookingId)
             .update(mapOf(
                 "status"    to BookingStatus.REJECTED.name,
-                "comments"   to remarks.trim(),
+                "comments"  to remarks.trim(),
                 "updatedAt" to Timestamp.now()
+            )).await()
+    }
+
+    /**
+     * Step 1 of the OTP completion flow (purohit side).
+     *
+     * Generates a cryptographically random 6-digit OTP, writes it to
+     * [bookings/{bookingId}.completionOtp], and returns it as part of the
+     * Result so the ViewModel can hold it in memory for comparison.
+     *
+     * The OTP is intentionally NOT returned to any UI — only the ViewModel
+     * holds it temporarily. Cloud Functions (wired later) will push it to
+     * the customer via notification.
+     *
+     * Firestore security rule requirement:
+     *   allow read of completionOtp only when request.auth.uid == resource.data.userId
+     *   (customer can read; purohit cannot)
+     */
+    suspend fun initiateCompletion(bookingId: String): Result<String> = runCatching {
+        val otp = (100_000..999_999).random().toString()
+        firestore.collection("bookings").document(bookingId)
+            .update(mapOf(
+                "completionOtp" to otp,
+                "updatedAt"     to Timestamp.now()
+            )).await()
+        otp   // returned to ViewModel only; never surfaced in UI
+    }
+
+    /**
+     * Step 2 of the OTP completion flow (purohit side).
+     *
+     * Fetches the booking document, compares [inputOtp] against the stored
+     * [completionOtp], and on match atomically sets status=COMPLETED and
+     * clears [completionOtp] via FieldValue.delete().
+     *
+     * Returns:
+     *  - Result.success(Unit) on correct OTP + successful write
+     *  - Result.failure(WrongOtpException) on mismatch
+     *  - Result.failure(...) on any Firestore error
+     */
+    suspend fun verifyOtpAndComplete(
+        bookingId: String,
+        inputOtp : String
+    ): Result<Unit> = runCatching {
+        val doc = firestore.collection("bookings").document(bookingId).get().await()
+        val storedOtp = doc.getString("completionOtp")
+            ?: throw WrongOtpException("OTP not found. Please initiate completion again.")
+
+        if (storedOtp.trim() != inputOtp.trim()) {
+            throw WrongOtpException("Incorrect code. Please ask the customer for the correct code.")
+        }
+
+        firestore.collection("bookings").document(bookingId)
+            .update(mapOf(
+                "status"        to BookingStatus.COMPLETED.name,
+                "completionOtp" to FieldValue.delete(),
+                "updatedAt"     to Timestamp.now()
             )).await()
     }
 
     /**
      * Customer edit: updates address + scheduledDate on the booking document,
      * then writes a notification to the purohit's notification subcollection.
-     *
-     * Firestore path for notification:
-     *   notifications/{purohitId}/items/{auto-id}
      */
     suspend fun updateBookingAddressAndTime(
         booking         : Booking,
@@ -103,7 +158,6 @@ class BookingsRepository @Inject constructor(
             "scheduledDate" to newScheduledDate,
             "updatedAt"     to Timestamp.now()
         )
-        // Only write coordinates if the caller provided new ones
         if (newCoordinates != null) {
             bookingFields["coordinates"] = mapOf(
                 "latitude"  to newCoordinates.latitude,
@@ -132,3 +186,6 @@ class BookingsRepository @Inject constructor(
         batch.commit().await()
     }
 }
+
+/** Thrown when the purohit enters an OTP that doesn't match the stored value. */
+class WrongOtpException(message: String) : Exception(message)

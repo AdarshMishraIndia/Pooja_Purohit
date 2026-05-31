@@ -42,13 +42,13 @@ val BookingStatus.category: BookingCategory
 val BookingStatus.displayLabel: String
     get() = when (this) {
         BookingStatus.PENDING_PAYMENT -> "Pending Payment"
-        BookingStatus.PAYMENT_DONE -> "Payment Done"
-        BookingStatus.ACCEPTED -> "Accepted"
-        BookingStatus.REJECTED -> "Rejected"
-        BookingStatus.COMPLETED -> "Completed"
-        BookingStatus.CANCELLED -> "Cancelled"
-        BookingStatus.REFUNDED -> "Refunded"
-        BookingStatus.AUTO_CANCELLED -> "Auto Cancelled"
+        BookingStatus.PAYMENT_DONE    -> "Payment Done"
+        BookingStatus.ACCEPTED        -> "Accepted"
+        BookingStatus.REJECTED        -> "Rejected"
+        BookingStatus.COMPLETED       -> "Completed"
+        BookingStatus.CANCELLED       -> "Cancelled"
+        BookingStatus.REFUNDED        -> "Refunded"
+        BookingStatus.AUTO_CANCELLED  -> "Auto Cancelled"
     }
 
 data class Coordinates(
@@ -59,53 +59,63 @@ data class Coordinates(
 data class Booking(
     val bookingId: String = "",
 
-    val purohitId: String = "",
-    val purohitName: String = "",
+    val purohitId   : String = "",
+    val purohitName : String = "",
     val purohitPhone: String = "",
 
-    val userId: String = "",
-    val userName: String = "",
+    val userId   : String = "",
+    val userName : String = "",
     val userPhone: String = "",
 
     val serviceName: String = "",
-    val amount: Long = 0L,
+    val amount     : Long   = 0L,
 
-    val status: BookingStatus = BookingStatus.PENDING_PAYMENT,
-    val razorpayOrderId: String = "",
-    val razorpayPaymentId: String = "",
+    val status            : BookingStatus = BookingStatus.PENDING_PAYMENT,
+    val razorpayOrderId   : String        = "",
+    val razorpayPaymentId : String        = "",
 
-    val scheduledDate: Timestamp? = null,
-    val address    : String = "",
-    val coordinates: Coordinates? = null,
+    val scheduledDate: Timestamp?   = null,
+    val address      : String       = "",
+    val coordinates  : Coordinates? = null,
 
     val createdAt: Timestamp? = null,
     val updatedAt: Timestamp? = null,
 
-    val comments: String? = null
+    val comments: String? = null,
+
+    /**
+     * 6-digit OTP written by the purohit app when initiating completion.
+     * Cloud Functions push this to the customer via notification.
+     * Cleared (set to null) once the booking is marked COMPLETED.
+     *
+     * Security: Firestore rules must restrict read access to userId == auth.uid
+     * so the purohit cannot read back their own written value.
+     */
+    val completionOtp: String? = null
 ) {
     companion object {
         fun fromDocument(doc: DocumentSnapshot): Booking {
             return Booking(
                 bookingId = doc.getString("bookingId") ?: doc.id,
 
-                userId = doc.getString("userId") ?: "",
-                userName     = doc.getString("userName") ?: "",
+                userId    = doc.getString("userId")    ?: "",
+                userName  = doc.getString("userName")  ?: "",
                 userPhone = doc.getString("userPhone") ?: "",
 
-                purohitId = doc.getString("purohitId") ?: "",
-                purohitName = doc.getString("purohitName") ?: "",
+                purohitId    = doc.getString("purohitId")    ?: "",
+                purohitName  = doc.getString("purohitName")  ?: "",
                 purohitPhone = doc.getString("purohitPhone") ?: "",
 
                 serviceName = doc.getString("serviceName") ?: "",
-                amount = doc.getLong("amount") ?: 0L,
+                amount      = doc.getLong("amount")        ?: 0L,
 
-                status = BookingStatus.fromString(doc.getString("status")),
-                razorpayOrderId = doc.getString("razorpayOrderId") ?: "",
+                status            = BookingStatus.fromString(doc.getString("status")),
+                razorpayOrderId   = doc.getString("razorpayOrderId")   ?: "",
                 razorpayPaymentId = doc.getString("razorpayPaymentId") ?: "",
 
                 scheduledDate = doc.getTimestamp("scheduledDate"),
-                address = doc.getString("address") ?: "",
-                coordinates = (doc.get("coordinates") as? Map<*, *>)?.let { map ->
+                address       = doc.getString("address") ?: "",
+                coordinates   = (doc.get("coordinates") as? Map<*, *>)?.let { map ->
                     Coordinates(
                         latitude  = (map["latitude"]  as? Double) ?: 0.0,
                         longitude = (map["longitude"] as? Double) ?: 0.0
@@ -115,7 +125,8 @@ data class Booking(
                 createdAt = doc.getTimestamp("createdAt"),
                 updatedAt = doc.getTimestamp("updatedAt"),
 
-                comments = doc.getString("comments")
+                comments      = doc.getString("comments"),
+                completionOtp = doc.getString("completionOtp")
             )
         }
     }
