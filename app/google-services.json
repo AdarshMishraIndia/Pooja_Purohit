@@ -14,6 +14,22 @@
       },
       "oauth_client": [
         {
+          "client_id": "349985710498-7697nek4li8vvjikcn1gpt4jha2dm5ll.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.poojapurohit",
+            "certificate_hash": "a1fa9633cfcb2c5d6e12a74bf5a16c79359d4602"
+          }
+        },
+        {
+          "client_id": "349985710498-kq7qjovp2ts1efb9uh7b2luu3bqrl8il.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.poojapurohit",
+            "certificate_hash": "2a2344caa2c77c6952e37e1adf7308352910394e"
+          }
+        },
+        {
           "client_id": "349985710498-mb4pnfngfe2oad9ii8pi876g73btcqbk.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
