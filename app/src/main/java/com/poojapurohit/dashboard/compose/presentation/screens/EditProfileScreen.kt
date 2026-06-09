@@ -32,10 +32,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.google.android.libraries.places.api.Places
+import com.google.android.libraries.places.api.model.Place
+import com.google.android.libraries.places.api.model.RectangularBounds
+import com.google.android.libraries.places.api.net.FetchPlaceRequest
 import com.poojapurohit.dashboard.compose.EditProfileEffect
 import com.poojapurohit.dashboard.compose.EditProfileEvent
 import com.poojapurohit.dashboard.compose.EditProfileViewModel
+import com.poojapurohit.dashboard.compose.presentation.components.DashboardPlacesAutocompleteField
 import com.poojapurohit.dashboard.compose.theme.*
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,8 +53,11 @@ fun EditProfileScreen(
     val effect by viewModel.effect.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val isDark = isSystemInDarkTheme()
+    val scope = rememberCoroutineScope()
 
-    // Handle effects
+    // City viewport — biases locality autocomplete predictions
+    var cityBounds by remember { mutableStateOf<RectangularBounds?>(null) }
+
     LaunchedEffect(effect) {
         when (val currentEffect = effect) {
             is EditProfileEffect.ShowToast -> {
@@ -98,9 +107,7 @@ fun EditProfileScreen(
                 .padding(paddingValues)
         ) {
             if (uiState.isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center)
-                )
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else {
                 Column(
                     modifier = Modifier
@@ -109,35 +116,7 @@ fun EditProfileScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // User type indicator
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (uiState.isServicePartner) {
-                                if (isDark) DarkBrandOrange.copy(alpha = 0.2f)
-                                else BrandOrange.copy(alpha = 0.1f)
-                            } else {
-                                MaterialTheme.colorScheme.surfaceVariant
-                            }
-                        )
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = if (uiState.isServicePartner) "🕉️ Service Partner Profile" else "👤 Customer Profile",
-                                fontFamily = FontFamily.Serif,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp,
-                                color = if (isDark) Color.White else Color.Black
-                            )
-                        }
-                    }
-
-                    // Common fields
+                    // ── Common fields ─────────────────────────────────────────
                     ProfileTextField(
                         value = uiState.name,
                         onValueChange = { viewModel.onEvent(EditProfileEvent.NameChanged(it)) },
@@ -154,7 +133,7 @@ fun EditProfileScreen(
                         isDark = isDark
                     )
 
-                    // Service partner exclusive fields
+                    // ── Service partner exclusive fields ──────────────────────
                     if (uiState.isServicePartner) {
                         HorizontalDivider(
                             modifier = Modifier.padding(vertical = 8.dp),
@@ -169,25 +148,89 @@ fun EditProfileScreen(
                             color = if (isDark) DarkBrandOrange else BrandRed
                         )
 
-                        ProfileTextField(
-                            value = uiState.city,
-                            onValueChange = { viewModel.onEvent(EditProfileEvent.CityChanged(it)) },
+                        // ── City — Places autocomplete ────────────────────────
+                        DashboardPlacesAutocompleteField(
                             label = "City *",
-                            placeholder = "e.g., Rourkela, Sundargarh",
-                            error = uiState.cityError,
-                            helperText = "Enter your city name"
+                            value = uiState.city,
+                            onValueChange = { input ->
+                                viewModel.onEvent(EditProfileEvent.CityChanged(input))
+                                // Manual edit — reset locality and bounds
+                                viewModel.onEvent(EditProfileEvent.LocalityChanged(""))
+                                cityBounds = null
+                            },
+                            onPlaceSelected = { placeId, displayName ->
+                                viewModel.onEvent(EditProfileEvent.CityChanged(displayName))
+                                viewModel.onEvent(EditProfileEvent.LocalityChanged(""))
+                                cityBounds = null
+                                // Fetch viewport to bias locality predictions
+                                if (Places.isInitialized()) {
+                                    scope.launch {
+                                        try {
+                                            val request = FetchPlaceRequest.newInstance(
+                                                placeId,
+                                                listOf(Place.Field.VIEWPORT)
+                                            )
+                                            Places.createClient(context)
+                                                .fetchPlace(request)
+                                                .addOnSuccessListener { result ->
+                                                    result.place.viewport?.let {
+                                                        cityBounds = RectangularBounds.newInstance(it)
+                                                    }
+                                                }
+                                        } catch (_: Exception) {
+                                            // Bounds unavailable — locality autocomplete still works unbiased
+                                        }
+                                    }
+                                }
+                            },
+                            placeholder = "Enter your city",
+                            typesFilter = listOf("(cities)"),
+                            isError = uiState.cityError != null,
+                            isDark = isDark
                         )
 
-                        ProfileTextField(
-                            value = uiState.locality,
-                            onValueChange = { viewModel.onEvent(EditProfileEvent.LocalityChanged(it)) },
+                        if (uiState.cityError != null) {
+                            Text(
+                                text = uiState.cityError!!,
+                                fontFamily = FontFamily.Serif,
+                                color = MaterialTheme.colorScheme.error,
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(start = 16.dp)
+                            )
+                        }
+
+                        // ── Locality — Places autocomplete ────────────────────
+                        // No typesFilter — unfiltered + cityBounds bias surfaces
+                        // Indian neighbourhoods and sub-areas correctly.
+                        DashboardPlacesAutocompleteField(
                             label = "Locality *",
-                            placeholder = "e.g., Civil Township, Sector 8",
-                            error = uiState.localityError,
-                            helperText = "Enter your locality name"
+                            value = uiState.locality,
+                            onValueChange = { input ->
+                                viewModel.onEvent(EditProfileEvent.LocalityChanged(input))
+                            },
+                            onPlaceSelected = { _, displayName ->
+                                viewModel.onEvent(EditProfileEvent.LocalityChanged(displayName))
+                            },
+                            placeholder = if (uiState.city.isBlank()) "Select a city first"
+                            else "Enter your locality / area",
+                            typesFilter = emptyList(),
+                            locationBias = cityBounds,
+                            enabled = uiState.city.isNotBlank(),
+                            isError = uiState.localityError != null,
+                            isDark = isDark
                         )
 
-                        // Skills selection (RecyclerView style)
+                        if (uiState.localityError != null) {
+                            Text(
+                                text = uiState.localityError!!,
+                                fontFamily = FontFamily.Serif,
+                                color = MaterialTheme.colorScheme.error,
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(start = 16.dp)
+                            )
+                        }
+
+                        // ── Specialization ────────────────────────────────────
                         SkillsSelectionList(
                             availableSkills = uiState.availableSkills,
                             selectedSkills = uiState.selectedSkills,
@@ -199,7 +242,7 @@ fun EditProfileScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Save button
+                    // ── Save button ───────────────────────────────────────────
                     Button(
                         onClick = { viewModel.onEvent(EditProfileEvent.SaveProfile) },
                         modifier = Modifier
@@ -236,7 +279,6 @@ fun EditProfileScreen(
                         }
                     }
 
-                    // Required fields note
                     Text(
                         text = "* Required fields",
                         fontFamily = FontFamily.Serif,
@@ -277,33 +319,24 @@ private fun EditProfileTopBar(
                     )
                 }
             },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.Transparent
-            ),
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
             modifier = Modifier.background(
                 brush = Brush.linearGradient(
-                    colors = if (isDark) {
-                        listOf(DarkBrandOrange, DarkBrandRed)
-                    } else {
-                        listOf(BrandOrange, BrandRed)
-                    },
+                    colors = if (isDark) listOf(DarkBrandOrange, DarkBrandRed)
+                    else listOf(BrandOrange, BrandRed),
                     start = Offset.Zero,
                     end = Offset.Infinite
                 )
             )
         )
 
-        // Page title banner
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
                     brush = Brush.verticalGradient(
-                        colors = if (isDark) {
-                            listOf(DarkWelcomeBannerStart, DarkWelcomeBannerEnd)
-                        } else {
-                            listOf(WelcomeBannerStart, WelcomeBannerEnd)
-                        }
+                        colors = if (isDark) listOf(DarkWelcomeBannerStart, DarkWelcomeBannerEnd)
+                        else listOf(WelcomeBannerStart, WelcomeBannerEnd)
                     )
                 )
                 .padding(12.dp),
@@ -349,32 +382,23 @@ private fun PhoneTextField(
                     text = "+91 ",
                     fontFamily = FontFamily.Serif,
                     fontSize = 16.sp,
-                    color = if (isDark) Color.White.copy(alpha = 0.7f) else Color.Black.copy(alpha = 0.7f)
+                    color = if (isDark) Color.White.copy(alpha = 0.7f)
+                    else Color.Black.copy(alpha = 0.7f)
                 )
             },
             placeholder = {
-                Text(
-                    text = "10 digit mobile number",
-                    fontFamily = FontFamily.Serif,
-                    fontSize = 14.sp
-                )
+                Text(text = "10 digit mobile number", fontFamily = FontFamily.Serif, fontSize = 14.sp)
             },
             textStyle = androidx.compose.ui.text.TextStyle(
                 fontFamily = FontFamily.Serif,
                 fontSize = 16.sp
             ),
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Phone
-            ),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
             singleLine = true,
             isError = error != null,
             supportingText = {
                 if (error != null) {
-                    Text(
-                        text = error,
-                        fontFamily = FontFamily.Serif,
-                        color = MaterialTheme.colorScheme.error
-                    )
+                    Text(text = error, fontFamily = FontFamily.Serif, color = MaterialTheme.colorScheme.error)
                 } else {
                     Text(
                         text = "10 digits only (without +91)",
@@ -386,7 +410,72 @@ private fun PhoneTextField(
             },
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = if (error != null) MaterialTheme.colorScheme.error else BrandOrange,
-                unfocusedBorderColor = if (error != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline,
+                unfocusedBorderColor = if (error != null) MaterialTheme.colorScheme.error
+                else MaterialTheme.colorScheme.outline,
+                errorBorderColor = MaterialTheme.colorScheme.error
+            )
+        )
+    }
+}
+
+@Composable
+private fun ProfileTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    placeholder: String,
+    error: String? = null,
+    helperText: String? = null,
+    keyboardType: KeyboardType = KeyboardType.Text,
+    minLines: Int = 1,
+    maxLines: Int = 1
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = label,
+            fontFamily = FontFamily.Serif,
+            fontWeight = FontWeight.Bold,
+            fontSize = 14.sp,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = {
+                Text(text = placeholder, fontFamily = FontFamily.Serif, fontSize = 14.sp)
+            },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = keyboardType,
+                capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Words
+            ),
+            textStyle = androidx.compose.ui.text.TextStyle(
+                fontFamily = FontFamily.Serif,
+                fontSize = 16.sp
+            ),
+            minLines = minLines,
+            maxLines = maxLines,
+            singleLine = minLines == 1 && maxLines == 1,
+            isError = error != null,
+            supportingText = {
+                if (error != null) {
+                    Text(text = error, fontFamily = FontFamily.Serif, color = MaterialTheme.colorScheme.error)
+                } else if (helperText != null) {
+                    Text(
+                        text = helperText,
+                        fontFamily = FontFamily.Serif,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                        fontSize = 12.sp
+                    )
+                }
+            },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = if (error != null) MaterialTheme.colorScheme.error else BrandOrange,
+                unfocusedBorderColor = if (error != null) MaterialTheme.colorScheme.error
+                else MaterialTheme.colorScheme.outline,
                 errorBorderColor = MaterialTheme.colorScheme.error
             )
         )
@@ -420,25 +509,22 @@ private fun SkillsSelectionList(
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
         )
 
-        // Services list (RecyclerView style) - CONSTRAINED HEIGHT
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(max = 400.dp),  // Maximum height constraint
+                .heightIn(max = 400.dp),
             colors = CardDefaults.cardColors(
                 containerColor = if (isDark) DarkSurface else Color.White
             ),
             shape = RoundedCornerShape(12.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            // Scrollable column inside the card
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
             ) {
                 if (availableSkills.isEmpty()) {
-                    // Empty state
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -461,11 +547,11 @@ private fun SkillsSelectionList(
                             onToggle = { onSkillToggled(skill) },
                             isDark = isDark
                         )
-
                         if (index < availableSkills.size - 1) {
                             HorizontalDivider(
                                 modifier = Modifier.padding(horizontal = 16.dp),
-                                color = if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.1f)
+                                color = if (isDark) Color.White.copy(alpha = 0.1f)
+                                else Color.Black.copy(alpha = 0.1f)
                             )
                         }
                     }
@@ -483,7 +569,6 @@ private fun SkillsSelectionList(
             )
         }
 
-        // Selected skills count
         if (selectedSkills.isNotEmpty()) {
             Text(
                 text = "${selectedSkills.size} skill(s) selected",
@@ -519,7 +604,6 @@ private fun ServiceListItem(
             modifier = Modifier.weight(1f)
         )
 
-        // Custom radio button (matching ServicesAdapter style)
         Box(
             modifier = Modifier
                 .size(32.dp)
@@ -551,76 +635,5 @@ private fun ServiceListItem(
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun ProfileTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    placeholder: String,
-    error: String? = null,
-    helperText: String? = null,
-    keyboardType: KeyboardType = KeyboardType.Text,
-    minLines: Int = 1,
-    maxLines: Int = 1
-) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = label,
-            fontFamily = FontFamily.Serif,
-            fontWeight = FontWeight.Bold,
-            fontSize = 14.sp,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = {
-                Text(
-                    text = placeholder,
-                    fontFamily = FontFamily.Serif,
-                    fontSize = 14.sp
-                )
-            },
-            keyboardOptions = KeyboardOptions(
-                keyboardType = keyboardType,
-                capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Words
-            ),
-            textStyle = androidx.compose.ui.text.TextStyle(
-                fontFamily = FontFamily.Serif,
-                fontSize = 16.sp
-            ),
-            minLines = minLines,
-            maxLines = maxLines,
-            singleLine = minLines == 1 && maxLines == 1,
-            isError = error != null,
-            supportingText = {
-                if (error != null) {
-                    Text(
-                        text = error,
-                        fontFamily = FontFamily.Serif,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                } else if (helperText != null) {
-                    Text(
-                        text = helperText,
-                        fontFamily = FontFamily.Serif,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                        fontSize = 12.sp
-                    )
-                }
-            },
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = if (error != null) MaterialTheme.colorScheme.error else BrandOrange,
-                unfocusedBorderColor = if (error != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline,
-                errorBorderColor = MaterialTheme.colorScheme.error
-            )
-        )
     }
 }

@@ -16,7 +16,7 @@ android {
         applicationId = "com.poojapurohit"
         minSdk = 24
         //noinspection OldTargetApi
-        targetSdk = 36
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -28,7 +28,7 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("C:/Work/Software_Development/Android_Studio_Projects/Release Key/adarsh_release_key")
+            storeFile = file("C:/Work/Software_Development/Android_Studio_Projects/Release Key/adarsh_release_key.jks")
             storePassword = "ARKtaida#123"
             keyAlias = "key0"
             keyPassword = "ARKtaida#123"

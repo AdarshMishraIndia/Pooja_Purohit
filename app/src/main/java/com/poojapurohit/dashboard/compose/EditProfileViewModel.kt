@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlin.time.Duration.Companion.milliseconds
 
 data class EditProfileUiState(
     val name: String = "",
@@ -83,17 +84,21 @@ class EditProfileViewModel : ViewModel() {
         _effect.value = null
     }
 
+    // ─── Load Available Skills ────────────────────────────────────────────────
+    // Queries services collection: isActive == true, ordered by displayOrder.
+    // Each doc has a `name` string field — mirrors AuthRepository.loadServices().
+
     private fun loadAvailableSkills() {
         viewModelScope.launch {
             try {
-                val document = firestore
+                val snapshot = firestore
                     .collection("services")
-                    .document("BookAPurohit")
+                    .whereEqualTo("isActive", true)
+                    .orderBy("displayOrder")
                     .get()
                     .await()
 
-                val skillsRaw = document.get("name") as? List<*>
-                val skills = skillsRaw?.filterIsInstance<String>() ?: emptyList()
+                val skills = snapshot.documents.mapNotNull { it.getString("name") }
                 _uiState.update { it.copy(availableSkills = skills) }
             } catch (e: Exception) {
                 Log.e(TAG, "Error loading skills", e)
@@ -138,7 +143,6 @@ class EditProfileViewModel : ViewModel() {
 
         viewModelScope.launch {
             try {
-                // Try users collection first
                 val userDoc = firestore.collection("users").document(uid).get().await()
                 if (userDoc.exists()) {
                     _uiState.update {
@@ -154,7 +158,6 @@ class EditProfileViewModel : ViewModel() {
                     return@launch
                 }
 
-                // Try purohits collection
                 val purohitDoc = firestore.collection("purohits").document(uid).get().await()
                 if (purohitDoc.exists()) {
                     val skills = (purohitDoc.get("proficiency") as? List<*>)
@@ -185,7 +188,7 @@ class EditProfileViewModel : ViewModel() {
         val currentState = _uiState.value
         var isValid = true
 
-        if (currentState.name.length < 3) {
+        if (currentState.name.trim().length < 3) {
             _uiState.update { it.copy(nameError = "Name too short") }
             isValid = false
         }
@@ -195,9 +198,18 @@ class EditProfileViewModel : ViewModel() {
         }
 
         if (currentState.isServicePartner) {
-            if (currentState.city.isBlank()) { _uiState.update { it.copy(cityError = "Required") }; isValid = false }
-            if (currentState.locality.isBlank()) { _uiState.update { it.copy(localityError = "Required") }; isValid = false }
-            if (currentState.selectedSkills.isEmpty()) { _uiState.update { it.copy(skillsError = "Select a skill") }; isValid = false }
+            if (currentState.city.trim().isBlank()) {
+                _uiState.update { it.copy(cityError = "Required") }
+                isValid = false
+            }
+            if (currentState.locality.trim().isBlank()) {
+                _uiState.update { it.copy(localityError = "Required") }
+                isValid = false
+            }
+            if (currentState.selectedSkills.isEmpty()) {
+                _uiState.update { it.copy(skillsError = "Select at least one skill") }
+                isValid = false
+            }
         }
         return isValid
     }
@@ -218,7 +230,10 @@ class EditProfileViewModel : ViewModel() {
                     .set(updateData, SetOptions.merge())
                     .await()
 
+                _uiState.update { it.copy(isSaving = false) }
                 _effect.value = EditProfileEffect.ShowToast("Profile updated")
+                // Small yield to allow toast effect to be consumed before navigating back
+                kotlinx.coroutines.delay(300.milliseconds)
                 _effect.value = EditProfileEffect.NavigateBack
             } catch (e: Exception) {
                 _uiState.update { it.copy(isSaving = false) }
