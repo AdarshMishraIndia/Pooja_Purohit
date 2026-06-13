@@ -1,10 +1,13 @@
 package com.poojapurohit.auth.compose.presentation.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,26 +25,25 @@ import com.poojapurohit.auth.compose.presentation.AuthViewModel
 import com.poojapurohit.auth.compose.presentation.components.AuthButton
 import com.poojapurohit.auth.compose.presentation.components.AuthTextField
 import com.poojapurohit.auth.compose.presentation.components.AuthTitle
-import com.poojapurohit.auth.compose.presentation.components.ServicesList
 import com.poojapurohit.auth.compose.presentation.components.WelcomeText
 import kotlinx.coroutines.delay
 import kotlin.math.min
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun ServicePartnerStep3Screen(
     viewModel: AuthViewModel,
-    services: List<String>
+    services: Map<String, String>
 ) {
-    var selectedServices by remember {
-        mutableStateOf(viewModel.formData.services.toSet())
-    }
+    // 1. Use a SnapshotStateMap to track selections (Key: Slug, Value: Display Name)
+    val selectedServices = remember { mutableStateMapOf<String, String>() }
+
     var experience by remember {
         mutableStateOf(viewModel.formData.experience)
     }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     val fontScale = LocalDensity.current.fontScale
-    // NEW: Adaptive top spacing
     val adaptiveTopSpacing = (200 / min(fontScale, 1.5f)).dp
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -54,7 +56,7 @@ fun ServicePartnerStep3Screen(
         ) {
             AuthTitle()
 
-            Spacer(modifier = Modifier.height(adaptiveTopSpacing))  // CHANGED: adaptive
+            Spacer(modifier = Modifier.height(adaptiveTopSpacing))
 
             WelcomeText()
 
@@ -67,25 +69,54 @@ fun ServicePartnerStep3Screen(
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 fontFamily = FontFamily.Serif,
-                lineHeight = 24.sp  // NEW: prevent clipping
+                lineHeight = 24.sp
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Services List
-            ServicesList(
-                services = services,
-                selectedServices = selectedServices,
-                onSelectionChange = { service, isSelected ->
-                    selectedServices = if (isSelected) {
-                        selectedServices + service
-                    } else {
-                        selectedServices - service
+            // 2. Replaced ServicesList with an inline loop to handle the Map correctly
+            // Using a standard Column with forEach because the parent is already vertically scrollable
+            Column(modifier = Modifier.fillMaxWidth()) {
+                services.forEach { (slug, name) ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                if (selectedServices.containsKey(slug)) {
+                                    selectedServices.remove(slug)
+                                } else {
+                                    selectedServices[slug] = name
+                                }
+                                errorMessage = null
+                            }
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = selectedServices.containsKey(slug),
+                            onCheckedChange = { isChecked ->
+                                if (isChecked) {
+                                    selectedServices[slug] = name
+                                } else {
+                                    selectedServices.remove(slug)
+                                }
+                                errorMessage = null
+                            },
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = Color(0xFFE53935), // Adjust colour to match your theme
+                                uncheckedColor = Color.White,
+                                checkmarkColor = Color.White
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = name,
+                            color = Color.White,
+                            fontSize = 16.sp
+                        )
                     }
-                    viewModel.formData.services = selectedServices.toList()
-                    errorMessage = null
                 }
-            )
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -118,9 +149,10 @@ fun ServicePartnerStep3Screen(
                         experience.toInt() > 100 -> errorMessage = "Experience cannot exceed 100 years"
                         else -> {
                             errorMessage = null
+                            // 3. Updated function call to pass the parameters the ViewModel expects
                             viewModel.registerServicePartner(
                                 experience = experience,
-                                services = selectedServices.toList()
+                                selectedServices = selectedServices.toMap()
                             )
                         }
                     }
@@ -146,7 +178,7 @@ private fun ErrorDialog(
     onDismiss: () -> Unit
 ) {
     LaunchedEffect(message) {
-        delay(3000)
+        delay(3000.milliseconds)
         onDismiss()
     }
 

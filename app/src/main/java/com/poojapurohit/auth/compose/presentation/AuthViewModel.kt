@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
+import kotlin.time.Duration.Companion.milliseconds
 
 class AuthViewModel(
     private val repository: AuthRepository = AuthRepository()
@@ -106,7 +107,7 @@ class AuthViewModel(
                         maxAttempts = MAX_RETRY_ATTEMPTS,
                         statusMessage = "Slow connection. Retrying ($attempt/$MAX_RETRY_ATTEMPTS)…"
                     )
-                    delay(delayMs)
+                    delay(delayMs.milliseconds)
 
                     // Re-check network before each retry
                     if (!NetworkUtils.isNetworkAvailable(context)) {
@@ -251,16 +252,19 @@ class AuthViewModel(
     }
 
     // ─── Load Services ───────────────────────────────────────────────────────
-
+    
     private fun loadServicesForStep3() {
         _uiState.value = AuthUiState.Loading
         viewModelScope.launch {
             yield()
-            val result = repository.loadServices()
+            // Call the new Map-based repository function
+            val result = repository.loadServicesMap()
             currentStep = 3
             _uiState.value = result.fold(
-                onSuccess = { services -> AuthUiState.ShowServicePartnerStep3(services) },
-                onFailure = { AuthUiState.ShowServicePartnerStep3(emptyList()) }
+                // Successfully pass the Map<String, String> to the UI State
+                onSuccess = { servicesMap -> AuthUiState.ShowServicePartnerStep3(servicesMap) },
+                // Use emptyMap() here instead of emptyList()
+                onFailure = { AuthUiState.ShowServicePartnerStep3(emptyMap()) }
             )
         }
     }
@@ -294,16 +298,26 @@ class AuthViewModel(
         }
     }
 
-    // ─── Register Service Partner ────────────────────────────────────────────
+// ─── Register Service Partner ────────────────────────────────────────────
 
-    fun registerServicePartner(experience: String, services: List<String>) {
+    /**
+     * Handles Service Partner submission.
+     * @param experience years of experience as a string input.
+     * @param selectedServices Map containing the user-selected items formatted as Map<Slug, DisplayName>
+     */
+
+    fun registerServicePartner(experience: String, selectedServices: Map<String, String>) {
         val user = FirebaseAuth.getInstance().currentUser ?: run {
-            _uiState.value = AuthUiState.Error("User not signed in")
+            _uiState.value = AuthUiState.Error("User session expired. Please sign in again.")
             return
         }
 
+        // Split map keys and values to feed the distinct arrays required by the schema
+        val serviceIds = selectedServices.keys.toList()       // matches schema: "serviceIds": ["string"]
+        val proficiency = selectedServices.values.toList()    // matches schema: "proficiency": ["string"]
+
         formData.experience = experience
-        formData.services = services
+        // Note: If formData requires storage updates, assign these lists to your Form Data container object.
 
         _uiState.value = AuthUiState.Loading
         viewModelScope.launch {
@@ -314,12 +328,17 @@ class AuthViewModel(
                 email = user.email.orEmpty(),
                 city = formData.city,
                 locality = formData.locality,
-                proficiency = formData.services,
+                proficiency = proficiency,
+                serviceIds = serviceIds, // Injected structural array fix
                 experience = formData.experience
             )
+
             _uiState.value = result.fold(
                 onSuccess = { AuthUiState.Success },
-                onFailure = { AuthUiState.Error(it.message ?: "Service partner registration failed") }
+                onFailure = {
+                    Log.e(TAG, "Registration execution caught error", it)
+                    AuthUiState.Error(it.localizedMessage ?: "Service partner registration failed")
+                }
             )
         }
     }

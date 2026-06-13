@@ -103,7 +103,8 @@ fun AuthScreen(
                         ServicePartnerStep2Screen(viewModel = viewModel)
 
                     3 ->
-                        ServicePartnerStep3Screen(viewModel = viewModel, services = emptyList())
+                        // FIX APPLIED HERE: Changed emptyList() to emptyMap()
+                        ServicePartnerStep3Screen(viewModel = viewModel, services = emptyMap())
 
                     else -> InitialAuthScreen(viewModel = viewModel)
                 }

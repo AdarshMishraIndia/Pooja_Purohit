@@ -27,5 +27,10 @@ sealed class AuthUiState {
     object ShowCustomerFields : AuthUiState()
     object ShowServicePartnerStep1 : AuthUiState()
     object ShowServicePartnerStep2 : AuthUiState()
-    data class ShowServicePartnerStep3(val services: List<String>) : AuthUiState()
+
+    /**
+     * Updated to pass a Map where the Key is the service document ID (slug)
+     * and the Value is the human-readable display name.
+     */
+    data class ShowServicePartnerStep3(val services: Map<String, String>) : AuthUiState()
 }

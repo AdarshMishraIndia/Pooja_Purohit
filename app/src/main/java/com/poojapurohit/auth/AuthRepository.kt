@@ -19,6 +19,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import kotlin.time.Duration.Companion.milliseconds
 
 class AuthRepository(
     private val auth: FirebaseAuth = FirebaseAuth.getInstance(),
@@ -91,7 +92,7 @@ class AuthRepository(
         clientId: String
     ): AuthResult {
         return try {
-            withTimeout(AUTH_TIMEOUT_MS) {
+            withTimeout(AUTH_TIMEOUT_MS.milliseconds) {
                 val googleIdOption = GetGoogleIdOption.Builder()
                     .setFilterByAuthorizedAccounts(false)
                     .setServerClientId(clientId)
@@ -132,7 +133,7 @@ class AuthRepository(
 
     suspend fun firebaseAuthWithGoogle(idToken: String): AuthResult {
         return try {
-            withTimeout(AUTH_TIMEOUT_MS) {
+            withTimeout(AUTH_TIMEOUT_MS.milliseconds) {
                 val credential = GoogleAuthProvider.getCredential(idToken, null)
                 val authResult = auth.signInWithCredential(credential).await()
                 val user = authResult.user
@@ -161,7 +162,7 @@ class AuthRepository(
     private suspend fun appendFcmTokenToExistingUser(uid: String) {
         val token = getFcmToken() ?: return
         try {
-            withTimeout(FIRESTORE_TIMEOUT_MS) {
+            withTimeout(FIRESTORE_TIMEOUT_MS.milliseconds) {
                 val userDoc = firestore.collection("users").document(uid).get().await()
                 if (userDoc.exists()) {
                     firestore.collection("users").document(uid)
@@ -186,7 +187,7 @@ class AuthRepository(
 
     private suspend fun checkUserExists(uid: String): Boolean {
         return withContext(Dispatchers.IO) {
-            withTimeout(FIRESTORE_TIMEOUT_MS) {
+            withTimeout(FIRESTORE_TIMEOUT_MS.milliseconds) {
                 val userDoc = firestore.collection("users").document(uid).get().await()
                 if (userDoc.exists()) return@withTimeout false
 
@@ -205,7 +206,7 @@ class AuthRepository(
         email: String
     ): Result<Unit> {
         return try {
-            withTimeout(FIRESTORE_TIMEOUT_MS) {
+            withTimeout(FIRESTORE_TIMEOUT_MS.milliseconds) {
                 val token = getFcmToken()
                 val newUser = hashMapOf(
                     "userId" to uid,
@@ -233,11 +234,13 @@ class AuthRepository(
         city: String,
         locality: String,
         proficiency: List<String>,
+        serviceIds: List<String>,
         experience: String
     ): Result<Unit> {
         return try {
-            withTimeout(FIRESTORE_TIMEOUT_MS) {
+            withTimeout(FIRESTORE_TIMEOUT_MS.milliseconds) {
                 val token = getFcmToken()
+
                 val newPurohit = hashMapOf(
                     "purohitId" to uid,
                     "name" to name,
@@ -245,19 +248,27 @@ class AuthRepository(
                     "email" to email,
                     "city" to city,
                     "locality" to locality,
-                    "proficiency" to proficiency,
-                    "experience" to (experience.toIntOrNull() ?: 0),
+                    "proficiency" to proficiency,       // Array of human-readable names
+                    "serviceIds" to serviceIds,         // Array of unique service slugs/IDs
+                    "fcmTokens" to listOfNotNull(token),
                     "isVerified" to false,
                     "isAvailable" to false,
                     "rating" to 0.0,
                     "totalBookings" to 0,
                     "createdAt" to Timestamp.now(),
-                    "fcmTokens" to listOfNotNull(token)
+                    "updatedAt" to Timestamp.now()
                 )
+
+                // Safe parsing wrapper to prevent formatting crashes
+                val parsedExperience = experience.toIntOrNull() ?: 0
+                newPurohit["experience"] = parsedExperience
+
                 firestore.collection("purohits").document(uid).set(newPurohit).await()
                 Result.success(Unit)
             }
         } catch (e: Exception) {
+            Log.e(TAG, "Critical: Service partner registration failed for UID: $uid", e)
+            Log.e(TAG, "Critical: Service partner registration failed for UID: $uid", e)
             Result.failure(e)
         }
     }
@@ -267,7 +278,7 @@ class AuthRepository(
     suspend fun isUserRegistered(): Boolean {
         val user = auth.currentUser ?: return false
         return try {
-            withTimeout(FIRESTORE_TIMEOUT_MS) {
+            withTimeout(FIRESTORE_TIMEOUT_MS.milliseconds) {
                 user.reload().await()
                 val userDoc = firestore.collection("users").document(user.uid).get().await()
                 if (userDoc.exists()) return@withTimeout true
@@ -293,7 +304,7 @@ class AuthRepository(
      */
     suspend fun loadServices(): Result<List<String>> {
         return try {
-            withTimeout(FIRESTORE_TIMEOUT_MS) {
+            withTimeout(FIRESTORE_TIMEOUT_MS.milliseconds) {
                 val snapshot = firestore.collection("services")
                     .whereEqualTo("isActive", true)
                     .orderBy("displayOrder")
@@ -305,6 +316,32 @@ class AuthRepository(
         } catch (e: Exception) {
             Log.e(TAG, "Failed to load services", e)
             Result.success(emptyList())
+        }
+    }
+
+    // ─── Load Services Map ───────────────────────────────────────────────────
+
+    /**
+     * Queries the services collection and maps the Document ID (slug) to its Name.
+     */
+    suspend fun loadServicesMap(): Result<Map<String, String>> {
+        return try {
+            withTimeout(FIRESTORE_TIMEOUT_MS.milliseconds) {
+                val snapshot = firestore.collection("services")
+                    .whereEqualTo("isActive", true)
+                    .orderBy("displayOrder")
+                    .get()
+                    .await()
+
+                val servicesMap = snapshot.documents.associate { doc ->
+                    doc.id to (doc.getString("name") ?: "")
+                }.filterValues { it.isNotEmpty() }
+
+                Result.success(servicesMap)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to load services map", e)
+            Result.success(emptyMap())
         }
     }
 }
