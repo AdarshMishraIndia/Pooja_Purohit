@@ -1,6 +1,5 @@
 package com.poojapurohit.dashboard.compose
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
@@ -34,6 +33,7 @@ sealed interface DashboardEvent {
     data object NavigateToEditAccount : DashboardEvent
     data object NavigateToAboutUs : DashboardEvent
     data object NavigateToTerms : DashboardEvent
+    data object NavigateToPrivacyPolicy : DashboardEvent
     data object NavigateToNotifications : DashboardEvent
     data class ServiceClicked(val service: ServiceItem) : DashboardEvent
     data object CallContact : DashboardEvent
@@ -45,7 +45,7 @@ sealed interface DashboardEffect {
     data object NavigateToBookPurohit : DashboardEffect
     data object NavigateToNotifications : DashboardEffect
     data class ShowToast(val message: String) : DashboardEffect
-    data class NavigateToInfo(val title: String, val content: String) : DashboardEffect
+    data class OpenUrl(val url: String) : DashboardEffect
     data class MakePhoneCall(val phoneNumber: String) : DashboardEffect
 }
 
@@ -66,7 +66,7 @@ class DashboardViewModel : ViewModel() {
         loadUnreadNotificationCount()
     }
 
-    fun onEvent(event: DashboardEvent, context: Context? = null) {
+    fun onEvent(event: DashboardEvent) {
         when (event) {
             is DashboardEvent.SignOut -> handleSignOut()
             is DashboardEvent.DeleteAccountRequested -> _uiState.update { it.copy(showDeleteDialog = true) }
@@ -74,7 +74,8 @@ class DashboardViewModel : ViewModel() {
             is DashboardEvent.DeleteAccountConfirmed -> handleDeleteAccount()
             is DashboardEvent.NavigateToEditAccount -> handleEditAccount()
             is DashboardEvent.NavigateToAboutUs -> handleAboutUs()
-            is DashboardEvent.NavigateToTerms -> context?.let { handleTermsConditions(it) }
+            is DashboardEvent.NavigateToTerms -> handleTermsConditions()
+            is DashboardEvent.NavigateToPrivacyPolicy -> handlePrivacyPolicy()
             is DashboardEvent.NavigateToNotifications -> {
                 _effect.value = DashboardEffect.NavigateToNotifications
             }
@@ -191,24 +192,15 @@ class DashboardViewModel : ViewModel() {
     }
 
     private fun handleAboutUs() {
-        _effect.value = DashboardEffect.NavigateToInfo(
-            title = "About Us",
-            content = "Pooja Purohit is a digital platform connecting families with qualified Purohits."
-        )
+        _effect.value = DashboardEffect.OpenUrl("https://about-pooja-purohit.netlify.app")
     }
 
-    private fun handleTermsConditions(context: Context) {
-        try {
-            val termsText = context.resources.openRawResource(R.raw.terms)
-                .bufferedReader().use { it.readText() }
+    private fun handleTermsConditions() {
+        _effect.value = DashboardEffect.OpenUrl("https://tnc-pooja-purohit.netlify.app")
+    }
 
-            _effect.value = DashboardEffect.NavigateToInfo(
-                title = "Terms & Conditions",
-                content = termsText
-            )
-        } catch (_: Exception) {
-            _effect.value = DashboardEffect.ShowToast("Could not load terms.")
-        }
+    private fun handlePrivacyPolicy() {
+        _effect.value = DashboardEffect.OpenUrl("https://privacy-pooja-purohit.netlify.app")
     }
 
     private fun handleServiceClick(service: ServiceItem) {

@@ -8,6 +8,7 @@ import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
 import androidx.credentials.exceptions.NoCredentialException
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
@@ -82,7 +83,16 @@ class AuthRepository(
     // ─── Google Sign-In ──────────────────────────────────────────────────────
 
     /**
-     * Attempts Google Sign-In with a hard timeout.
+     * Two-pass Google Sign-In strategy:
+     *
+     * Pass 1 — [GetGoogleIdOption] with filterByAuthorizedAccounts=true:
+     *   Fast, zero-friction bottom sheet for users who have previously
+     *   signed in. No account picker UI shown if only one account qualifies.
+     *
+     * Pass 2 — [GetSignInWithGoogleOption] (triggered on [NoCredentialException]):
+     *   Full Google account picker that includes "Use another account",
+     *   allowing users to add a new account not yet on the device.
+     *
      * Returns a typed [AuthResult] instead of a generic Result<Boolean>,
      * so the ViewModel can show specific messages per failure reason.
      */
@@ -93,13 +103,10 @@ class AuthRepository(
     ): AuthResult {
         return try {
             withTimeout(AUTH_TIMEOUT_MS.milliseconds) {
-                val googleIdOption = GetGoogleIdOption.Builder()
-                    .setFilterByAuthorizedAccounts(false)
-                    .setServerClientId(clientId)
-                    .build()
+                val signInWithGoogleOption = GetSignInWithGoogleOption.Builder(clientId).build()
 
                 val request = GetCredentialRequest.Builder()
-                    .addCredentialOption(googleIdOption)
+                    .addCredentialOption(signInWithGoogleOption)
                     .build()
 
                 val result = credentialManager.getCredential(activity, request)
@@ -268,7 +275,6 @@ class AuthRepository(
             }
         } catch (e: Exception) {
             Log.e(TAG, "Critical: Service partner registration failed for UID: $uid", e)
-            Log.e(TAG, "Critical: Service partner registration failed for UID: $uid", e)
             Result.failure(e)
         }
     }
@@ -292,8 +298,6 @@ class AuthRepository(
             false
         }
     }
-
-    // ─── Load Services ───────────────────────────────────────────────────────
 
     // ─── Load Services Map ───────────────────────────────────────────────────
 

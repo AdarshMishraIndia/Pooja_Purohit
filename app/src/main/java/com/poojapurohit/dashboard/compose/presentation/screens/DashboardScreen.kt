@@ -44,7 +44,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.poojapurohit.auth.compose.AuthActivity
 import com.poojapurohit.bookpurohit.BookPurohitActivity
 import com.poojapurohit.dashboard.EditProfileActivity
-import com.poojapurohit.dashboard.InfoActivity
 import com.poojapurohit.dashboard.compose.DashboardEffect
 import com.poojapurohit.dashboard.compose.DashboardEvent
 import com.poojapurohit.dashboard.compose.DashboardViewModel
@@ -102,11 +101,8 @@ fun DashboardScreen(
                 Toast.makeText(context, currentEffect.message, Toast.LENGTH_SHORT).show()
                 viewModel.clearEffect()
             }
-            is DashboardEffect.NavigateToInfo -> {
-                context.startActivity(Intent(context, InfoActivity::class.java).apply {
-                    putExtra("title", currentEffect.title)
-                    putExtra("content", currentEffect.content)
-                })
+            is DashboardEffect.OpenUrl -> {
+                context.startActivity(Intent(Intent.ACTION_VIEW, currentEffect.url.toUri()))
                 viewModel.clearEffect()
             }
             is DashboardEffect.MakePhoneCall -> {
@@ -139,7 +135,8 @@ fun DashboardScreen(
                 userEmail = uiState.userEmail,
                 onEditAccount = { viewModel.onEvent(DashboardEvent.NavigateToEditAccount) },
                 onAboutUs = { viewModel.onEvent(DashboardEvent.NavigateToAboutUs) },
-                onTermsConditions = { viewModel.onEvent(DashboardEvent.NavigateToTerms, context) },
+                onTermsConditions = { viewModel.onEvent(DashboardEvent.NavigateToTerms) },
+                onPrivacyPolicy = { viewModel.onEvent(DashboardEvent.NavigateToPrivacyPolicy) },
                 onSignOut = { viewModel.onEvent(DashboardEvent.SignOut) },
                 onDeleteAccount = { viewModel.onEvent(DashboardEvent.DeleteAccountRequested) },
                 onClose = { scope.launch { drawerState.close() } }

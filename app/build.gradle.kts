@@ -17,8 +17,8 @@ android {
         minSdk = 24
         //noinspection OldTargetApi
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.2"
+        versionCode = 5
+        versionName = "2.0"
 
         val mapsKey = project.findProperty("MAPS_API_KEY")?.toString() ?: ""
         manifestPlaceholders["MAPS_API_KEY"] = mapsKey

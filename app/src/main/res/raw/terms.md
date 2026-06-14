@@ -1,104 +1,27 @@
-# TERMS & CONDITIONS
+# Terms & Conditions for POOJA PUROHIT
 
-**Puja Purohit Mobile Application**
+Welcome to POOJA PUROHIT (ପୂଜା ପୁରୋହିତ). By using our mobile application, you agree to comply with and be bound by the following terms and conditions. Please read them carefully.
 
-**Effective Date:** 1 January 2026  
-**Last Updated:** 1 December 2025
+## 1. Account Registration
+* Users must provide accurate details (name, phone number, and location coordinates) to ensure seamless booking and service delivery.
+* You are responsible for maintaining the confidentiality of your account and any activities under it. You can use your inbuilt device features to protect access from others.
 
-These Terms & Conditions ("Terms") govern the use of the Puja Purohit mobile application ("App"), owned and operated by the App Developer ("Developer"). By installing, registering, or using the App, all users agree to abide by these Terms. Users who do not agree must discontinue use immediately.
+## 2. Booking and Services
+* Our platform acts strictly as a bridge connecting customers with verified Purohits for religious and spiritual services.
+* Completion OTP: Once a booking is marked as completed by the Purohit, you will receive a unique Completion Code (OTP) in your app. You must share this OTP with the Purohit only after the service has been successfully and fully completed.
 
-## 1. Definitions
+## 3. Payments and Cancellations
+* All digital payments are proposed to be securely processed through our authorized payment gateway (Razorpay).
+* Unpaid bookings may be subject to auto-cancellation by our system.
+* For refund queries regarding incomplete or canceled services, please contact our support team directly when this service is enabled in the App.
 
-**Service Provider (Purohit):** A registered individual offering religious, spiritual, or ritual-related services through the App.
+## 4. Service Partners (Purohits)
+* Registered Purohits are expected to maintain punctuality, professionalism, and high service standards in order to fulfill the expectation of the customers.
+* POOJA PUROHIT reserves the right to suspend or terminate Service Partner accounts due to poor Trust Index ratings, incomplete bookings, or verified customer complaints.
 
-**Service Receiver (Jajman):** An individual seeking or booking services from a Service Provider through the App.
+## 5. Limitation of Liability
+* POOJA PUROHIT is not liable for any direct, indirect, or incidental damages arising from interactions between customers and service partners outside the agreed scope of the booked service. Users acknowledge that all agreed interactions/actions are undertaken at their own risk, and the Platform disclaims all liability arising from such interactions.
+* The Platform shall not be responsible or liable for any argument, disagreement, misunderstanding, offensive conduct, dispute, harassment, misbehaviour, verbal abuse, conflicts, confrontation, defamation or any other actions between users outside the app over phone.
 
-**Developer:** The creator and operator of the Puja Purohit App, providing the digital platform.
-
-## 2. User Categories & Eligibility
-
-The App offers two types of user accounts:
-
-### 2.1 Service Providers (Purohits)
-
-Must complete registration and agree to the applicable fees, rules, and verification process.
-
-### 2.2 Service Receivers (Jajmans)
-
-May use the App free of charge and must provide accurate information while booking any service.
-
-## 3. Registration Charges & Renewal (For Service Providers)
-
-1. A one-time registration fee of ₹1001/- is applicable for Service Providers.
-2. This registration is free up to 31 January 2024.
-3. An annual renewal fee of ₹1001/- must be paid to continue enjoying unrestricted access.
-4. If the renewal fee is not paid by the due date, the Service Provider's access and visibility in the App may be restricted until payment is completed.
-5. All fees once paid are non-refundable and non-transferable.
-
-## 4. Charges for Service Receivers
-
-Service Receivers are not required to pay any registration or usage fee for accessing or booking through the App.
-
-## 5. Role of the Developer
-
-1. The App functions only as a digital meeting platform enabling communication between Purohits and Jajmans.
-2. The Developer is not a party to any agreement, communication, negotiation, or transaction between users.
-3. The Developer does not guarantee, control, supervise, or validate the quality of services offered, the conduct of users, or the fulfillment of any booking or ritual.
-
-## 6. No Financial Liability
-
-1. All financial transactions between Service Providers and Service Receivers occur outside the App.
-2. The Developer bears no responsibility or liability for payments, cancellations, disputes, or any loss arising from engagements between users.
-3. The Developer is not liable for any refund, compensation, or damages relating to services booked through the App.
-
-## 7. Communication Between Users
-
-1. All communication between Purohits and Jajmans is done directly within or outside the App.
-2. The Developer does not monitor, influence, or interfere with such communication.
-3. Users are solely responsible for maintaining respectful, lawful communication.
-
-## 8. User Obligations
-
-1. Provide accurate and genuine information during registration and usage.
-2. Comply with all applicable laws, practices, and ethical guidelines.
-3. Avoid misuse of the App, including abusive behavior, fraud, impersonation, or unauthorized commercial use.
-
-## 9. Suspension & Termination
-
-The Developer reserves the right to restrict or terminate user access if any user:
-
-1. Violates these Terms,
-2. Provides false information,
-3. Engages in fraudulent or harmful activities,
-4. Fails to pay applicable fees (for Purohits).
-
-## 10. Limitation of Liability
-
-The App is provided on an "as-is" and "as-available" basis.
-
-The Developer shall not be liable for:
-
-1. Service failures, delays, or inaccuracies,
-2. Losses arising from user interactions,
-3. Technical issues, server downtime, or data loss,
-4. Any indirect, incidental, or consequential damages.
-
-## 11. Privacy
-
-User data is handled as per the App's Privacy Policy. Users are encouraged to review the Privacy Policy for full details.
-
-## 12. Modifications to Terms
-
-The Developer may update or revise these Terms at any time. Continued use of the App after such changes will be considered acceptance of the revised Terms.
-
-## 13. Governing Law
-
-These Terms are governed by the laws of India. Any disputes shall fall under the jurisdiction of courts located in Sundargarh District.
-
-## 14. Contact Information
-
-For support or queries, users may contact:
-
-**Email:** gdsrourkela@gmail.com  
-**Phone:** 9040292104  
-**Address:** Vedvyas Mandir, Rourkela – 769004
+## 6. Contact & Grievances
+For any grievances, support, or questions regarding these terms, please contact our Grievance Nodal Personnel Sri Niranjan Panda, Email: gdsorissa@gmail.com

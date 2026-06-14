@@ -38,6 +38,7 @@ fun NavigationDrawerContent(
     onEditAccount: () -> Unit,
     onAboutUs: () -> Unit,
     onTermsConditions: () -> Unit,
+    onPrivacyPolicy: () -> Unit,
     onSignOut: () -> Unit,
     onDeleteAccount: () -> Unit,
     onClose: () -> Unit
@@ -77,6 +78,15 @@ fun NavigationDrawerContent(
             text = "Terms & Conditions",
             onClick = {
                 onTermsConditions()
+                onClose()
+            }
+        )
+
+        DrawerMenuItem(
+            icon = Icons.Default.PrivacyTip,
+            text = "Privacy Policy",
+            onClick = {
+                onPrivacyPolicy()
                 onClose()
             }
         )
