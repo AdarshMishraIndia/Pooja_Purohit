@@ -26,7 +26,7 @@ fun ContactSection(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Contact:\nSri Niranjan Panda",
+            text = "Contact:\nPooja Purohit Help Center", // Updated text
             fontFamily = FontFamily.Serif,
             fontWeight = FontWeight.Bold,
             fontStyle = FontStyle.Italic,
@@ -36,7 +36,7 @@ fun ContactSection(
         )
 
         Text(
-            text = "Call Here",
+            text = "Call Now", // Updated text
             fontFamily = FontFamily.Serif,
             fontWeight = FontWeight.Bold,
             fontStyle = FontStyle.Italic,

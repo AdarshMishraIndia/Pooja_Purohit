@@ -64,8 +64,11 @@ class BookingsRepository @Inject constructor(
         newStatus: BookingStatus
     ): Result<Unit> = runCatching {
         firestore.collection("bookings").document(bookingId)
-            .update(mapOf("status" to newStatus.name, "updatedAt" to Timestamp.now()))
-            .await()
+            .update(mapOf(
+                "status"    to newStatus.name,
+                "updatedAt" to Timestamp.now()
+            ) + if (newStatus == BookingStatus.ACCEPTED) mapOf("confirmedAt" to Timestamp.now()) else emptyMap()
+            ).await()
     }
 
     /**

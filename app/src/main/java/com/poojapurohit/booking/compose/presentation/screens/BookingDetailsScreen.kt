@@ -63,6 +63,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -80,7 +81,6 @@ import com.poojapurohit.booking.compose.components.SUPPORT_PHONE
 import com.poojapurohit.booking.compose.components.StatusChip
 import com.poojapurohit.booking.compose.components.bookingActionFlags
 import com.poojapurohit.booking.compose.components.graceRemainingText
-import com.poojapurohit.booking.compose.components.isWithin1DayOfEvent
 import com.poojapurohit.booking.compose.components.isWithinGracePeriod
 import com.poojapurohit.booking.model.Booking
 import com.poojapurohit.booking.model.BookingStatus
@@ -91,8 +91,10 @@ import com.poojapurohit.dashboard.compose.theme.DarkBrandRed
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.concurrent.TimeUnit
+import com.poojapurohit.booking.compose.components.isCancellationWindowClosed
+import kotlin.time.Duration.Companion.milliseconds
 
-// ── Section accent colors ─────────────────────────────────────────────────────
+// ── Section accent colours ─────────────────────────────────────────────────────
 
 private fun purohitColor(dark: Boolean)  = if (dark) Color(0xFFEF9A9A) else Color(0xFF8D1F06)
 private fun customerColor(dark: Boolean) = if (dark) Color(0xFFFFCC80) else Color(0xFFBF360C)
@@ -156,7 +158,7 @@ fun BookingDetailScreen(
     // Edit is allowed when: customer view + editable status + free cancellation window
     val canEdit = !isPurohitView &&
             booking.status in setOf(BookingStatus.PAYMENT_DONE, BookingStatus.ACCEPTED) &&
-            (isWithinGracePeriod(booking.createdAt) || !isWithin1DayOfEvent(booking.scheduledDate)) &&
+            isWithinGracePeriod(booking) &&
             onEditBooking != null
 
     if (showEditDialog) {
@@ -227,17 +229,16 @@ fun BookingDetailScreen(
 
             // ── 2. Grace period banner (customer view, grace still active) ────
             if (!isPurohitView) {
-                val withinGrace = isWithinGracePeriod(booking.createdAt)
-                val within1Day  = isWithin1DayOfEvent(booking.scheduledDate)
+                val withinGrace = isWithinGracePeriod(booking)
                 val isActive    = booking.status in setOf(
                     BookingStatus.PAYMENT_DONE, BookingStatus.ACCEPTED
                 )
-                when {
-                    withinGrace && isActive ->
-                        GracePeriodBanner(createdAt = booking.createdAt, isDark = isDark)
-                    !withinGrace && within1Day && isActive ->
-                        CancellationLockedBanner(isDark = isDark)
-                    else -> {}
+
+                if (isActive) {
+                    when {
+                        withinGrace  -> GracePeriodBanner(booking = booking, isDark = isDark)
+                        else         -> CancellationLockedBanner(isDark = isDark)
+                    }
                 }
             }
 
@@ -246,25 +247,21 @@ fun BookingDetailScreen(
                 EditBookingButton(isDark = isDark) { showEditDialog = true }
             }
 
-            // ── 4. Purohit ────────────────────────────────────────────────────
-            SectionCard(accentColor = purohitColor(isDark), isDark = isDark) {
-                SectionHeader("Purohit", purohitColor(isDark))
-                InfoRow("Name", booking.purohitName.ifBlank { "—" })
-                if (booking.purohitPhone.isNotBlank()) {
-                    PurohitPhoneRow(
-                        phone         = booking.purohitPhone,
-                        scheduledDate = booking.scheduledDate,
-                        isPurohitView = isPurohitView
-                    )
-                }
-            }
+            // ── 4. Counterparty Details ───────────────────────────────────────
+            val accentCol = if (isPurohitView) customerColor(isDark) else purohitColor(isDark)
+            val sectionTitle = if (isPurohitView) "Customer" else "Purohit"
+            val partyName = if (isPurohitView) booking.userName else booking.purohitName
+            val partyPhone = if (isPurohitView) booking.userPhone else booking.purohitPhone
 
-            // ── 5. Customer (purohit view only) ───────────────────────────────
-            if (isPurohitView) {
-                SectionCard(accentColor = customerColor(isDark), isDark = isDark) {
-                    SectionHeader("Customer", customerColor(isDark))
-                    InfoRow("Name",  booking.userName.ifBlank { "—" })
-                    InfoRow("Phone", booking.userPhone.ifBlank { "—" })
+            SectionCard(accentColor = accentCol, isDark = isDark) {
+                SectionHeader(sectionTitle, accentCol)
+                InfoRow("Name", partyName.ifBlank { "—" })
+
+                if (partyPhone.isNotBlank()) {
+                    ProtectedPhoneRow(
+                        phone = partyPhone,
+                        isRevealed = isCancellationWindowClosed(booking) && booking.status == BookingStatus.ACCEPTED
+                    )
                 }
             }
 
@@ -430,28 +427,25 @@ private fun HeaderCard(booking: Booking, isDark: Boolean) {
 }
 
 @Composable
-private fun PurohitPhoneRow(phone: String, scheduledDate: Timestamp?, isPurohitView: Boolean) {
-    val isRevealed = isPurohitView || remember(scheduledDate) {
-        scheduledDate?.let { ts ->
-            System.currentTimeMillis() >= ts.toDate().time - TimeUnit.DAYS.toMillis(1)
-        } ?: false
-    }
+private fun ProtectedPhoneRow(phone: String, isRevealed: Boolean) {
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text("Contact Details", fontFamily = FontFamily.Serif, fontWeight = FontWeight.SemiBold,
             fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
             modifier = Modifier.width(110.dp))
+
         if (isRevealed) {
             Text(phone, fontFamily = FontFamily.Serif, fontSize = 13.sp,
                 color = MaterialTheme.colorScheme.onSurface)
         } else {
+            // Blurred state as requested
             Text(phone, fontFamily = FontFamily.Serif, fontSize = 13.sp,
                 color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.blur(6.dp))
             Spacer(Modifier.width(6.dp))
-            Icon(Icons.Default.Lock, "Hidden until 1 day before event",
+            Icon(Icons.Default.Lock, "Hidden until cancellation window closes",
                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
                 modifier = Modifier.size(13.dp))
             Spacer(Modifier.width(3.dp))
-            Text("1 day before event", fontFamily = FontFamily.Serif, fontSize = 10.sp,
+            Text("Locked", fontFamily = FontFamily.Serif, fontSize = 10.sp,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f))
         }
     }
@@ -515,11 +509,20 @@ private fun BookedOnFooter(label: String) {
 }
 
 /**
- * Banner shown in the detail screen while the 3-hour grace period is still active.
+ * Banner shown in the detail screen while the cancellation window is still active.
+ * Ticks every second in HH:MM:SS format.
  */
 @Composable
-private fun GracePeriodBanner(createdAt: Timestamp?, isDark: Boolean) {
-    val remaining = graceRemainingText(createdAt) ?: return
+private fun GracePeriodBanner(booking: Booking, isDark: Boolean) {
+    var remaining by remember { mutableStateOf(graceRemainingText(booking)) }
+    LaunchedEffect(booking.bookingId) {
+        while (true) {
+            remaining = graceRemainingText(booking)
+            if (remaining == null) break
+            delay(1_000L.milliseconds)
+        }
+    }
+    val text = remaining ?: return
     val chipColor = if (isDark) Color(0xFF80CBC4) else Color(0xFF00695C)
     Card(
         modifier  = Modifier.fillMaxWidth(),
@@ -539,7 +542,7 @@ private fun GracePeriodBanner(createdAt: Timestamp?, isDark: Boolean) {
             Column {
                 Text("Free cancellation available", fontFamily = FontFamily.Serif,
                     fontWeight = FontWeight.Bold, fontSize = 12.sp, color = chipColor)
-                Text("You can cancel this booking without any reason for the next $remaining.",
+                Text("You can cancel this booking without any reason for the next $text.",
                     fontFamily = FontFamily.Serif, fontSize = 11.sp, lineHeight = 16.sp,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f))
             }
@@ -548,7 +551,7 @@ private fun GracePeriodBanner(createdAt: Timestamp?, isDark: Boolean) {
 }
 
 /**
- * Banner shown when the 3-hour grace period has expired AND the 1-day window is active.
+ * Banner shown when the cancellation window has closed.
  */
 @Composable
 private fun CancellationLockedBanner(isDark: Boolean) {
@@ -573,7 +576,7 @@ private fun CancellationLockedBanner(isDark: Boolean) {
                     fontWeight = FontWeight.Bold, fontSize = 13.sp, color = warnColor)
             }
             Text(
-                text       = "You're within 24 hours of your scheduled event. " +
+                text       = "The cancellation window for this booking has closed. " +
                         "Self-cancellation is no longer available. To request a " +
                         "cancellation, please call our support team at $SUPPORT_PHONE.",
                 fontFamily = FontFamily.Serif, fontSize = 12.sp, lineHeight = 18.sp,
@@ -589,7 +592,7 @@ private fun CancellationLockedBanner(isDark: Boolean) {
  * Floating edit button — shown only when:
  *  - customer view
  *  - booking is in an editable status (PAYMENT_DONE or ACCEPTED)
- *  - outside the 1-day lock window (or within 3-hour grace period)
+ *  - cancellation window is still open
  */
 @Composable
 internal fun EditBookingButton(isDark: Boolean, onClick: () -> Unit) {
@@ -619,7 +622,7 @@ internal fun EditBookingButton(isDark: Boolean, onClick: () -> Unit) {
         Column(modifier = Modifier.weight(1f)) {
             Text("Edit Address or Schedule", fontFamily = FontFamily.Serif,
                 fontWeight = FontWeight.Bold, fontSize = 13.sp, color = accent)
-            Text("Change before the 1-day lock window", fontFamily = FontFamily.Serif,
+            Text("Change while cancellation window is open", fontFamily = FontFamily.Serif,
                 fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f))
         }
         Icon(
@@ -908,8 +911,8 @@ internal fun EditBookingDialog(
                             modifier = Modifier.size(13.dp))
                         Spacer(Modifier.width(6.dp))
                         Text(
-                            "This date is within 24 hours. After saving, you'll have a 3-hour " +
-                                    "window to cancel freely — then cancellation will be locked.",
+                            "This date is within 24 hours of now. After saving, the cancellation window " +
+                                    "may be limited or closed immediately based on booking timing.",
                             fontFamily = FontFamily.Serif, fontSize = 11.sp, lineHeight = 15.sp,
                             color      = errColor
                         )

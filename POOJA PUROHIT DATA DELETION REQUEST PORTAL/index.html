@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Account & Data Deletion — Pooja Purohit</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --brand-orange: #FFB500;
+      --brand-red:    #811C01;
+      --brand-red-dk: #5e1401;
+      --bg:           #FFF9F0;
+      --surface:      #FFFFFF;
+      --text:         #1A1209;
+      --muted:        #6B5A3E;
+      --border:       #E8D9C0;
+      --accent-light: #FFF3D0;
+      --radius:       12px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 16px;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Header / Nav ── */
+    header {
+      background: var(--brand-red);
+      padding: 0 24px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 12px rgba(129,28,1,0.35);
+    }
+
+    .header-inner {
+      max-width: 780px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 0;
+    }
+
+    .logo-wrap {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      overflow: hidden;
+      flex-shrink: 0;
+      border: 2px solid var(--brand-orange);
+      background: #c73800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .logo-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .brand-name {
+      font-family: 'Noto Serif', Georgia, serif;
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.01em;
+    }
+
+    .brand-sub {
+      font-size: 0.72rem;
+      font-weight: 400;
+      color: rgba(255,255,255,0.65);
+      letter-spacing: 0.03em;
+      margin-top: 1px;
+    }
+
+    /* ── Page Hero ── */
+    .hero {
+      background: linear-gradient(160deg, var(--brand-red) 0%, #b33000 60%, #c94200 100%);
+      padding: 52px 24px 44px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: 'ॐ';
+      position: absolute;
+      font-family: 'Noto Serif', serif;
+      font-size: 280px;
+      color: rgba(255,255,255,0.04);
+      top: -40px;
+      left: 50%;
+      transform: translateX(-50%);
+      pointer-events: none;
+      user-select: none;
+      line-height: 1;
+    }
+
+    .hero-eyebrow {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--brand-orange);
+      background: rgba(255,181,0,0.12);
+      border: 1px solid rgba(255,181,0,0.3);
+      border-radius: 100px;
+      padding: 4px 14px;
+      margin-bottom: 16px;
+    }
+
+    .hero h1 {
+      font-family: 'Noto Serif', Georgia, serif;
+      font-size: clamp(1.6rem, 5vw, 2.2rem);
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.25;
+      max-width: 520px;
+      margin: 0 auto 14px;
+    }
+
+    .hero p {
+      color: rgba(255,255,255,0.72);
+      font-size: 0.95rem;
+      max-width: 460px;
+      margin: 0 auto;
+    }
+
+    /* ── Main layout ── */
+    main {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 0 20px 64px;
+    }
+
+    /* ── Section shared styles ── */
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px 32px;
+      margin-top: 28px;
+    }
+
+    @media (max-width: 540px) {
+      .section { padding: 24px 20px; }
+    }
+
+    .section-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 24px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 1.3rem;
+    }
+
+    .icon-orange { background: var(--accent-light); }
+    .icon-red    { background: #fdecea; }
+    .icon-blue   { background: #edf2ff; }
+
+    .section-title {
+      font-family: 'Noto Serif', Georgia, serif;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.3;
+      margin-bottom: 4px;
+    }
+
+    .section-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* ── Step list ── */
+    .step-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .step-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+    }
+
+    .step-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--brand-red);
+      color: #fff;
+      font-size: 0.78rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .step-text {
+      font-size: 0.95rem;
+      color: var(--text);
+      padding-top: 3px;
+    }
+
+    .step-text strong { color: var(--brand-red-dk); }
+
+    /* ── Info callout ── */
+    .callout {
+      border-radius: 8px;
+      padding: 14px 18px;
+      font-size: 0.88rem;
+      margin-top: 20px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .callout-info {
+      background: var(--accent-light);
+      border-left: 3px solid var(--brand-orange);
+      color: #5a3e00;
+    }
+
+    .callout-warn {
+      background: #fdecea;
+      border-left: 3px solid var(--brand-red);
+      color: var(--brand-red-dk);
+    }
+
+    .callout-icon { flex-shrink: 0; font-size: 1rem; margin-top: 1px; }
+
+    /* ── Contact cards ── */
+    .contact-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 20px;
+    }
+
+    @media (max-width: 500px) {
+      .contact-grid { grid-template-columns: 1fr; }
+    }
+
+    .contact-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+
+    .contact-card .label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .contact-card a {
+      color: var(--brand-red);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.92rem;
+      word-break: break-word;
+    }
+
+    .contact-card a:hover { text-decoration: underline; }
+    .contact-card .name { font-size: 0.83rem; color: var(--muted); margin-top: 4px; }
+
+    /* ── Policy summary table ── */
+    .policy-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+      margin-top: 4px;
+    }
+
+    .policy-table thead tr {
+      background: var(--brand-red);
+      color: #fff;
+    }
+
+    .policy-table th {
+      padding: 10px 16px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 0.8rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .policy-table th:first-child { border-radius: 8px 0 0 0; }
+    .policy-table th:last-child  { border-radius: 0 8px 0 0; }
+
+    .policy-table tbody tr { border-bottom: 1px solid var(--border); }
+    .policy-table tbody tr:last-child { border-bottom: none; }
+    .policy-table tbody tr:nth-child(even) { background: var(--bg); }
+
+    .policy-table td {
+      padding: 12px 16px;
+      vertical-align: top;
+      color: var(--text);
+    }
+
+    .policy-table td:first-child { font-weight: 600; color: var(--brand-red-dk); width: 38%; }
+
+    .badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 2px 9px;
+      border-radius: 100px;
+      white-space: nowrap;
+    }
+
+    .badge-green  { background: #d1fae5; color: #065f46; }
+    .badge-amber  { background: var(--accent-light); color: #7a4500; }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 32px 24px 48px;
+      font-size: 0.8rem;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      max-width: 780px;
+      margin: 0 auto;
+    }
+
+    footer a { color: var(--brand-red); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 28px 0;
+    }
+
+    /* ── Focus accessibility ── */
+    a:focus-visible {
+      outline: 2px solid var(--brand-orange);
+      outline-offset: 3px;
+      border-radius: 3px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; animation: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Header ── -->
+  <header role="banner">
+    <div class="header-inner">
+      <div class="logo-wrap" aria-hidden="true">
+        <!-- Inline SVG fallback matching brand colors; replace src with actual logo if hosting the image -->
+        <img src="logo.png" alt="" onerror="this.style.display='none'" />
+      </div>
+      <div>
+        <div class="brand-name">Pooja Purohit</div>
+        <div class="brand-sub">Connecting devotees with priests</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Hero ── -->
+  <section class="hero" aria-label="Page introduction">
+    <div class="hero-eyebrow">Support &amp; Privacy</div>
+    <h1>Account &amp; Data Deletion</h1>
+    <p>Understand how to delete your account and manage your personal data in the Pooja Purohit app.</p>
+  </section>
+
+  <!-- ── Main content ── -->
+  <main>
+
+    <!-- Section 1: In-app deletion -->
+    <article class="section" aria-labelledby="s1-title">
+      <div class="section-header">
+        <div class="section-icon icon-red" aria-hidden="true">🗑️</div>
+        <div>
+          <div class="section-label">Self-Service</div>
+          <h2 class="section-title" id="s1-title">How to Delete Your Account</h2>
+        </div>
+      </div>
+
+      <p style="font-size:0.95rem; margin-bottom:20px;">
+        You can permanently delete your Pooja Purohit account and associated profile data instantly, directly from within the app — no support contact required.
+      </p>
+
+      <ol class="step-list" aria-label="Steps to delete account">
+        <li>
+          <div class="step-num" aria-label="Step 1">1</div>
+          <div class="step-text">Open the <strong>Pooja Purohit</strong> app and sign in to your account.</div>
+        </li>
+        <li>
+          <div class="step-num" aria-label="Step 2">2</div>
+          <div class="step-text">Open the <strong>side navigation drawer</strong> from the top-left menu icon.</div>
+        </li>
+        <li>
+          <div class="step-num" aria-label="Step 3">3</div>
+          <div class="step-text">Select <strong>Delete Account</strong> and confirm when prompted. Deletion is immediate and cannot be undone.</div>
+        </li>
+      </ol>
+
+      <div class="callout callout-warn" role="note" aria-label="Warning">
+        <span class="callout-icon">⚠️</span>
+        <span>Account deletion is <strong>permanent</strong>. Your profile data — including name, phone number, email address, and device tokens — will be removed immediately and cannot be recovered.</span>
+      </div>
+    </article>
+
+    <!-- Section 2: Support contact for specific data -->
+    <article class="section" aria-labelledby="s2-title">
+      <div class="section-header">
+        <div class="section-icon icon-orange" aria-hidden="true">📋</div>
+        <div>
+          <div class="section-label">Via Support Request</div>
+          <h2 class="section-title" id="s2-title">Requesting Specific Data Deletion</h2>
+        </div>
+      </div>
+
+      <p style="font-size:0.95rem; margin-bottom:8px;">
+        Deletion of <strong>booking history</strong> and <strong>Razorpay transaction records</strong> requires a manual review due to financial and legal compliance obligations. Contact our support team to submit such a request.
+      </p>
+
+      <div class="callout callout-info" role="note" aria-label="Information">
+        <span class="callout-icon">ℹ️</span>
+        <span>Please include your registered phone number or email in your message so our team can verify and process your request promptly.</span>
+      </div>
+
+      <div class="contact-grid" aria-label="Support contact details">
+        <div class="contact-card">
+          <div class="label">Email Support</div>
+          <a href="mailto:gdsorissa@gmail.com">gdsorissa@gmail.com</a>
+          <div class="name">Response within 2 business days</div>
+        </div>
+        <div class="contact-card">
+          <div class="label">Phone / Contact Person</div>
+          <a href="tel:+919438245904">+91 94382 45904</a>
+          <div class="name">Niranjan Panda</div>
+        </div>
+      </div>
+    </article>
+
+    <!-- Section 3: Policy summary -->
+    <article class="section" aria-labelledby="s3-title">
+      <div class="section-header">
+        <div class="section-icon icon-blue" aria-hidden="true">📄</div>
+        <div>
+          <div class="section-label">Summary</div>
+          <h2 class="section-title" id="s3-title">Data Deletion Policy</h2>
+        </div>
+      </div>
+
+      <p style="font-size:0.95rem; margin-bottom:20px;">
+        The table below summarises what data is deleted, how it is handled, and the method required for each category.
+      </p>
+
+      <div style="overflow-x:auto; border-radius:8px; border:1px solid var(--border);">
+        <table class="policy-table" aria-label="Data deletion policy summary">
+          <thead>
+            <tr>
+              <th scope="col">Data Category</th>
+              <th scope="col">What Gets Removed</th>
+              <th scope="col">Method</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Account Profile</td>
+              <td>Name, phone number, email address, device / FCM tokens, unread notifications</td>
+              <td><span class="badge badge-green">In-App (Instant)</span></td>
+            </tr>
+            <tr>
+              <td>Booking History</td>
+              <td>Past ceremony bookings and priest assignments linked to your account</td>
+              <td><span class="badge badge-amber">Contact Support</span></td>
+            </tr>
+            <tr>
+              <td>Payment / Transaction Data</td>
+              <td>Razorpay transaction records associated with your account</td>
+              <td><span class="badge badge-amber">Contact Support</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <hr class="divider" />
+
+      <p style="font-size:0.85rem; color:var(--muted); line-height:1.6;">
+        Transaction and booking data may be retained for a period required by applicable financial regulations, even after a support-initiated deletion request. Retained data is used solely for compliance purposes and is not processed for any other use.
+      </p>
+    </article>
+
+  </main>
+
+  <!-- ── Footer ── -->
+  <footer role="contentinfo">
+    <p style="margin-bottom:6px;">
+      <strong style="color:var(--text);">Pooja Purohit</strong> &nbsp;·&nbsp; GDS Orissa
+    </p>
+    <p>
+      Questions? Email us at
+      <a href="mailto:gdsorissa@gmail.com">gdsorissa@gmail.com</a>
+      or call
+      <a href="tel:+919438245904">+91 94382 45904</a> (Niranjan Panda)
+    </p>
+    <p style="margin-top:10px; font-size:0.75rem;">
+      Last updated: June 2025 &nbsp;·&nbsp; This page complies with Google Play Store Data Safety requirements.
+    </p>
+  </footer>
+
+</body>
+</html>

@@ -41,7 +41,7 @@ data class BookingsUiState(
 
     /**
      * True while [initiateCompletion] or [verifyOtpAndComplete] is in flight.
-     * Used to show a loading indicator inside the OTP dialog.
+     * Used to show a loading indicator inside the OTP dialogue.
      */
     val otpLoading        : Boolean       = false
 )
@@ -130,8 +130,19 @@ class BookingsViewModel @Inject constructor(
 
     // ── Actions ───────────────────────────────────────────────────────────────
 
-    fun acceptBooking(booking: Booking) =
-        updateStatus(booking, BookingStatus.ACCEPTED, "Booking accepted")
+    fun acceptBooking(booking: Booking) {
+        viewModelScope.launch {
+            val now = Timestamp.now()
+            repository.updateBookingStatus(booking.bookingId, BookingStatus.ACCEPTED)
+                .onSuccess {
+                    applyLocalUpdate(booking.copy(status = BookingStatus.ACCEPTED, confirmedAt = now, updatedAt = now))
+                    _effect.emit(BookingsEffect.ShowSnackbar("Booking accepted"))
+                }
+                .onFailure { e ->
+                    _effect.emit(BookingsEffect.ShowSnackbar(e.message ?: "Action failed. Please try again."))
+                }
+        }
+    }
 
     fun rejectBookingWithRemarks(booking: Booking, remarks: String) {
         val trimmed = remarks.trim()
@@ -159,8 +170,13 @@ class BookingsViewModel @Inject constructor(
         }
     }
 
-    fun cancelBooking(booking: Booking) =
-        updateStatus(booking, BookingStatus.CANCELLED, "Booking cancelled")
+    fun cancelBooking(booking: Booking) {
+        val status = if (currentUserIsPurohitFor(booking))
+            BookingStatus.CANCELLED_BY_PUROHIT
+        else
+            BookingStatus.CANCELLED_BY_USER
+        updateStatus(booking, status, "Booking cancelled")
+    }
 
     fun processPaymentStub(booking: Booking, isSuccess: Boolean) {
         if (isSuccess) {
@@ -211,14 +227,14 @@ class BookingsViewModel @Inject constructor(
      *
      * Generates a 6-digit OTP, writes it to [bookings/{id}.completionOtp],
      * then puts the booking into [otpPendingBooking] so the UI shows the
-     * OTP input dialog. The OTP itself is never surfaced in UI state.
+     * OTP input dialogue. The OTP itself is never surfaced in UI state.
      */
     fun initiateCompletion(booking: Booking) {
         viewModelScope.launch {
             _uiState.update { it.copy(otpLoading = true) }
             repository.initiateCompletion(booking.bookingId)
                 .onSuccess {
-                    // OTP written successfully — show the input dialog
+                    // OTP written successfully — show the input dialogue
                     _uiState.update { it.copy(otpPendingBooking = booking, otpLoading = false) }
                     _effect.emit(
                         BookingsEffect.ShowSnackbar("OTP sent to customer. Ask them for the code.")
@@ -271,7 +287,7 @@ class BookingsViewModel @Inject constructor(
         }
     }
 
-    /** Called when the purohit explicitly dismisses the OTP dialog. */
+    /** Called when the purohit explicitly dismisses the OTP dialogue. */
     fun dismissOtpDialog() = _uiState.update { it.copy(otpPendingBooking = null, otpLoading = false) }
 
     // ── Internal helpers ──────────────────────────────────────────────────────

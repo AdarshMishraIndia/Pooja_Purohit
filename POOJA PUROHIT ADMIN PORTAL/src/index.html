@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pooja Purohit — Admin Portal</title>
+  <link rel="icon" type="image/png" href="Pooja Purohit Logo.png"/>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Sora:wght@400;600;700&display=swap" rel="stylesheet"/>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/variables.css"/>
+  <link rel="stylesheet" href="css/login.css"/>
+  <link rel="stylesheet" href="css/dashboard.css"/>
+  <link rel="stylesheet" href="css/services.css"/>
+  <link rel="stylesheet" href="css/detail.css"/>
+  <link rel="stylesheet" href="css/utilities.css"/>
+</head>
+<body>
+
+<!-- ══════════════════════════ LOGIN ══════════════════════════ -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-mark"><img src="Pooja Purohit Logo.png" alt="Pooja Purohit Logo"/></div>
+      <div class="logo-text">
+        Pooja Purohit
+        <span><span class="portal-badge">Admin Portal</span></span>
+      </div>
+    </div>
+    <h1>Sign in</h1>
+    <p class="subtitle">Restricted to authorised administrators only.</p>
+    <div class="error-msg" id="login-error">Invalid credentials. Please try again.</div>
+    <div class="field">
+      <label>Username</label>
+      <input type="text" id="username" placeholder="admin" autocomplete="username"/>
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="password" placeholder="••••••••" autocomplete="current-password"/>
+    </div>
+    <button class="btn-primary" id="login-btn">Sign in</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════ DASHBOARD ══════════════════════════ -->
+<div id="dashboard-screen">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-logo"><img src="Pooja Purohit Logo.png" alt="Pooja Purohit Logo"/></div>
+      <div class="topbar-title">Purohit Admin &nbsp;<span class="portal-badge">Admin Portal</span></div>
+    </div>
+    <div class="topbar-right">
+      <button class="btn-manage-services" id="open-services-btn">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="8" cy="8" r="3"/>
+          <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.42 1.42M11.53 11.53l1.42 1.42M3.05 12.95l1.42-1.42M11.53 4.47l1.42-1.42"/>
+        </svg>
+        <span>Manage Services</span>
+      </button>
+      <span class="admin-badge">admin</span>
+      <button class="btn-logout" id="logout-btn">Log out</button>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="page-header">
+      <h2>Purohit Verification</h2>
+      <p>Review and manage verification status for all registered Purohits. Click any card to view full profile.</p>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card highlight">
+        <div class="stat-label">Pending Verification</div>
+        <div class="stat-value" id="stat-unverified">—</div>
+      </div>
+      <div class="stat-card verified">
+        <div class="stat-label">Verified</div>
+        <div class="stat-value" id="stat-verified">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Purohits</div>
+        <div class="stat-value" id="stat-total">—</div>
+      </div>
+    </div>
+
+    <div class="filter-bar">
+      <div style="display:flex; gap:10px; align-items:center;">
+        <div class="filter-tabs">
+          <button class="tab-btn active" data-filter="all"        id="tab-all">All</button>
+          <button class="tab-btn"        data-filter="unverified" id="tab-unverified">Unverified</button>
+          <button class="tab-btn"        data-filter="verified"   id="tab-verified">Verified</button>
+        </div>
+        <button class="refresh-btn" id="refresh-btn">↻ Refresh</button>
+      </div>
+      <input type="text" class="search-input" id="search-input" placeholder="Search by name or city…"/>
+    </div>
+
+    <div class="purohit-list" id="purohit-list">
+      <div class="loading-state">
+        <div class="spinner"></div>
+        Loading purohits…
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════ SERVICES OVERLAY ══════════════════════════ -->
+<div id="services-overlay">
+  <div class="svc-topbar">
+    <div class="svc-topbar-left">
+      <button class="btn-close-overlay" id="close-services-btn" title="Back to dashboard">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M10 3L5 8L10 13"/>
+        </svg>
+      </button>
+      <div>
+        <div class="svc-title">Manage Services &nbsp;<span class="portal-badge">Admin Portal</span></div>
+        <div class="svc-subtitle" id="svc-count-label">Loading…</div>
+      </div>
+    </div>
+    <button class="btn-add-service" id="show-add-service-btn">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+        <path d="M8 3v10M3 8h10"/>
+      </svg>
+      Add Service
+    </button>
+  </div>
+
+  <div class="svc-body">
+    <div class="svc-add-form" id="svc-add-form">
+      <input class="svc-add-input" id="svc-add-input" type="text"
+        placeholder="Service name, e.g. Maha Shivratri Pooja" maxlength="120"/>
+      <input class="svc-add-price-input" id="svc-add-price-input" type="number" min="0" step="1" placeholder="Price (₹)"/>
+      <button class="btn-svc-save"   id="svc-add-submit-btn">Add</button>
+      <button class="btn-svc-cancel" id="svc-add-cancel-btn">Cancel</button>
+    </div>
+    <div class="svc-grid" id="svc-grid">
+      <div class="svc-loading"><div class="spinner"></div>Loading services…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════ PUROHIT DETAIL SCREEN ══════════════════════════ -->
+<div id="purohit-detail-screen">
+  <div class="detail-topbar">
+    <div class="detail-topbar-left">
+      <button class="btn-back" id="back-to-dashboard-btn">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M10 3L5 8L10 13"/>
+        </svg>
+        Back
+      </button>
+      <div class="detail-topbar-title" id="detail-topbar-name">Purohit Profile</div>
+    </div>
+    <div class="detail-topbar-right">
+      <button class="btn-detail-edit" id="detail-edit-btn">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M11.5 2.5a2.121 2.121 0 013 3L5 15H1v-4L11.5 2.5z"/>
+        </svg>
+        Edit
+      </button>
+      <button class="btn-detail-cancel" id="detail-cancel-btn" style="display:none">Cancel</button>
+      <button class="btn-detail-save"   id="detail-save-btn"   style="display:none">Save Changes</button>
+    </div>
+  </div>
+
+  <div class="detail-body">
+    <div id="detail-save-feedback"></div>
+    <div id="purohit-detail-content">
+      <!-- Populated by detail.js -->
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- ══════════════════════════ FIREBASE SDK ══════════════════════════ -->
+<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+<script src="pooja-purohit-admin-portal-config.js"></script>
+
+<script>
+  if (typeof FIREBASE_CONFIG === "undefined") {
+    document.body.innerHTML =
+      '<div style="font-family:monospace;padding:40px;color:#C0392B;">' +
+      '<strong>Config file missing.</strong><br><br>' +
+      'Create <code>pooja-purohit-admin-portal-config.js</code> next to this HTML file.<br>' +
+      'See the included <code>.template</code> file for the required format.</div>';
+    throw new Error("FIREBASE_CONFIG not found.");
+  }
+</script>
+
+<!-- Load order: deps before consumers -->
+<script src="js/utils.js"></script>
+<script src="js/firebase.js"></script>
+<script src="js/services.js"></script>
+<script src="js/purohits.js"></script>
+<script src="js/detail.js"></script>
+<script src="js/auth.js"></script>
+
+</body>
+</html>

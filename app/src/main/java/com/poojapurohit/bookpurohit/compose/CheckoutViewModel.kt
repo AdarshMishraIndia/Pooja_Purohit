@@ -31,9 +31,11 @@ data class CheckoutUiState(
     // Map pin — mandatory before payment can proceed
     val coordinates: LatLng? = null,
 
-    // Cached eagerly so payment write needs zero extra reads (FIX #2)
+    // Cached eagerly so payment write needs zero extra reads
     val cachedUserPhone: String = "",
+    val cachedUserName: String = "",
     val cachedPurohitName: String = "",
+    val cachedPurohitPhone: String = "",
     val isPrefetchComplete: Boolean = false
 )
 
@@ -55,17 +57,38 @@ class CheckoutViewModel(
         if (purohitId.isNotBlank()) prefetchData(purohitId)
     }
 
-    // ─── FIX #2: EAGER PREFETCH ──────────────────────────────────────────────
     private fun prefetchData(purohitId: String) {
         viewModelScope.launch {
             try {
                 val userId = auth.currentUser?.uid ?: return@launch
-                val userDoc = firestore.collection("users").document(userId).get().await()
+
+                // Fetch purohit being booked (unchanged)
                 val purohitDoc = firestore.collection("purohits").document(purohitId).get().await()
+
+                // Determine if logged-in user is in purohits or users collection
+                val loggedInPurohitDoc = firestore.collection("purohits").document(userId).get().await()
+
+                val (userName, userPhone) = if (loggedInPurohitDoc.exists()) {
+                    // Logged-in user is a purohit — use purohit doc (superset)
+                    Pair(
+                        loggedInPurohitDoc.getString("name") ?: "",
+                        loggedInPurohitDoc.getString("phone") ?: ""
+                    )
+                } else {
+                    // Fall back to users collection
+                    val userDoc = firestore.collection("users").document(userId).get().await()
+                    Pair(
+                        userDoc.getString("name") ?: "",
+                        userDoc.getString("phone") ?: ""
+                    )
+                }
+
                 _uiState.update {
                     it.copy(
-                        cachedUserPhone = userDoc.getString("phone") ?: "",
-                        cachedPurohitName = purohitDoc.getString("name") ?: "Unknown Purohit",
+                        cachedUserName     = userName,
+                        cachedUserPhone    = userPhone,
+                        cachedPurohitName  = purohitDoc.getString("name")  ?: "",
+                        cachedPurohitPhone = purohitDoc.getString("phone") ?: "",
                         isPrefetchComplete = true
                     )
                 }
@@ -103,13 +126,6 @@ class CheckoutViewModel(
 
     fun clearError() = _uiState.update { it.copy(error = null) }
 
-    /**
-     * Writes booking doc to Firestore.
-     *
-     * FIX #1 — offline persistence (see BookPurohitApplication)
-     * FIX #2 — zero reads at payment time; uses prefetched cache
-     * FIX #3 — deterministic bookingId → idempotent upsert, no duplicates
-     */
     fun processPaymentStub(purohitId: String, status: String) {
         val selectedDate = _uiState.value.scheduledDateMillis ?: return
         val state = _uiState.value
@@ -125,16 +141,15 @@ class CheckoutViewModel(
             return
         }
 
-        // Guard: coordinates must be present (enforced in showPaymentDialog too, but double-check)
         val coords = state.coordinates
         if (coords == null) {
             _uiState.update { it.copy(error = "Location pin is required") }
             return
         }
 
-        // FIX #3 — DETERMINISTIC BOOKING ID
+        // Deterministic booking ID — idempotent upsert, no duplicates
         val dateBucket = selectedDate / 60_000
-        val bookingId = "${userId}_${purohitId}_$dateBucket"
+        val bookingId  = "${userId}_${purohitId}_$dateBucket"
 
         _uiState.update { it.copy(isLoading = true, isPaymentDialogVisible = false) }
 
@@ -143,46 +158,50 @@ class CheckoutViewModel(
                 val currentTimestamp = Timestamp.now()
 
                 val bookingData = hashMapOf(
-                    "bookingId" to bookingId,
-                    "userId" to userId,
-                    "purohitId" to purohitId,
-                    "purohitName" to state.cachedPurohitName,
-                    "userPhone" to state.cachedUserPhone,
-                    "serviceName" to state.selectedService,
-                    "amount" to state.amount,
-                    "status" to status,
-                    "razorpayOrderId" to "order_stub_${bookingId.takeLast(8)}",
+                    "bookingId"         to bookingId,
+                    "userId"            to userId,
+                    "userName"          to state.cachedUserName,
+                    "userPhone"         to state.cachedUserPhone,
+                    "purohitId"         to purohitId,
+                    "purohitName"       to state.cachedPurohitName,
+                    "purohitPhone"      to state.cachedPurohitPhone,
+                    "serviceName"       to state.selectedService,
+                    "amount"            to state.amount,
+                    "status"            to status,
+                    "razorpayOrderId"   to "order_stub_${bookingId.takeLast(8)}",
                     "razorpayPaymentId" to if (status == "PAYMENT_DONE") {
                         "pay_stub_${bookingId.takeLast(8)}"
                     } else {
                         ""
                     },
-                    "scheduledDate" to Timestamp(Date(selectedDate)),
-                    "address" to state.address,
-                    // Stored as a nested map — GeoPoint is cleaner but requires
-                    // Firestore GeoPoint type; using lat/lng map keeps it schema-agnostic
-                    // and easy to consume from Cloud Functions / admin SDK.
-                    "coordinates" to mapOf(
-                        "latitude" to coords.latitude,
+                    "scheduledDate"     to Timestamp(Date(selectedDate)),
+                    "address"           to state.address,
+                    "coordinates"       to mapOf(
+                        "latitude"  to coords.latitude,
                         "longitude" to coords.longitude
                     ),
-                    "createdAt" to currentTimestamp,
-                    "updatedAt" to currentTimestamp
+                    "createdAt"         to currentTimestamp,
+                    "updatedAt"         to currentTimestamp
                 )
 
-                // FIX #1 + FIX #3 — upsert via explicit doc ID, offline-safe
                 firestore.collection("bookings")
                     .document(bookingId)
                     .set(bookingData)
                     .await()
 
-                _uiState.update { it.copy(isLoading = false, bookingComplete = true, completedBookingId = bookingId) }
+                _uiState.update {
+                    it.copy(
+                        isLoading          = false,
+                        bookingComplete    = true,
+                        completedBookingId = bookingId
+                    )
+                }
 
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        error = e.message ?: "Booking failed. Please retry."
+                        error     = e.message ?: "Booking failed. Please retry."
                     )
                 }
             }

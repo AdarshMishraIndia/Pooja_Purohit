@@ -47,7 +47,9 @@ import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -55,6 +57,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -76,6 +79,7 @@ import com.poojapurohit.dashboard.compose.theme.LightSurface
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.concurrent.TimeUnit
+import kotlin.time.Duration.Companion.milliseconds
 
 private const val HIGHLIGHT_DURATION_MS    = 4_000L
 private const val BORDER_PULSE_DURATION_MS = 2_500
@@ -93,30 +97,80 @@ fun isWithin1DayOfEvent(scheduledDate: Timestamp?): Boolean {
 }
 
 /**
- * Returns true when the booking was created within the last 3 hours.
- * During this grace period customers can cancel regardless of the 1-day window.
+ * Computes the epoch-ms at which the cancellation window closes for [booking].
+ *
+ * Rule:
+ *  - diff = scheduledDate - createdAt
+ *  - diff > 27 h  → window closes at scheduledDate − 24 h
+ *  - diff ≤ 27 h  → window closes at createdAt + 6 h
+ *
+ * Returns null when either timestamp is missing.
  */
+fun cancellationWindowEndMs(booking: Booking): Long? {
+    val createdMs = booking.createdAt?.toDate()?.time ?: return null
+    val scheduledMs = booking.scheduledDate?.toDate()?.time ?: return null
+    val diffMs      = scheduledMs - createdMs
+    return when {
+        diffMs > TimeUnit.HOURS.toMillis(27) ->
+            scheduledMs - TimeUnit.HOURS.toMillis(24)   // window closes at schedule - 24 h
+        diffMs > TimeUnit.HOURS.toMillis(6)  ->
+            createdMs + TimeUnit.HOURS.toMillis(3)      // window = 3 h from creation
+        else                                  ->
+            createdMs                                   // <= 6 h gap -> no window
+    }
+}
+
+/**
+ * Returns true when the cancellation window is still open.
+ * Replaces the old 3-hour-only grace period.
+ */
+fun isWithinGracePeriod(booking: Booking): Boolean {
+    val endMs = cancellationWindowEndMs(booking) ?: return false
+    return System.currentTimeMillis() < endMs
+}
+
+/** Overload accepting only createdAt — kept for call-sites that don't have the full Booking. */
 fun isWithinGracePeriod(createdAt: Timestamp?): Boolean {
+    // Legacy single-arg version: cannot determine correct window without scheduledDate.
+    // Callers that have the full Booking MUST use isWithinGracePeriod(Booking).
     createdAt ?: return false
     val graceEndsMs = createdAt.toDate().time + TimeUnit.HOURS.toMillis(3)
     return System.currentTimeMillis() < graceEndsMs
 }
 
 /**
- * Human-readable time remaining in the 3-hour grace period.
- * Returns null when the grace period has expired.
+ * Returns true if the cancellation window is fully closed.
+ * Returns false (window open / blurred) when timestamps are missing — safe default.
  */
+fun isCancellationWindowClosed(booking: Booking): Boolean {
+    val endMs = cancellationWindowEndMs(booking) ?: return false
+    return System.currentTimeMillis() >= endMs
+}
+
+/**
+ * Returns the remaining time in the cancellation window as "HH:MM:SS".
+ * Returns null when the window has closed.
+ */
+fun graceRemainingText(booking: Booking): String? {
+    val endMs       = cancellationWindowEndMs(booking) ?: return null
+    val remainingMs = endMs - System.currentTimeMillis()
+    if (remainingMs <= 0L) return null
+    val h  = TimeUnit.MILLISECONDS.toHours(remainingMs)
+    val m  = TimeUnit.MILLISECONDS.toMinutes(remainingMs) % 60
+    val s  = TimeUnit.MILLISECONDS.toSeconds(remainingMs) % 60
+    return "%02d:%02d:%02d".format(h, m, s)
+}
+
+/** Legacy overload — kept for call-sites still passing only createdAt. */
 fun graceRemainingText(createdAt: Timestamp?): String? {
     createdAt ?: return null
     val graceEndsMs = createdAt.toDate().time + TimeUnit.HOURS.toMillis(3)
     val remainingMs = graceEndsMs - System.currentTimeMillis()
-    if (remainingMs <= 0) return null
-    val h = TimeUnit.MILLISECONDS.toHours(remainingMs)
-    val m = TimeUnit.MILLISECONDS.toMinutes(remainingMs) % 60
-    return when {
-        h > 0  -> "${h}h ${m}m"
-        else   -> "${m}m"
-    }
+    if (remainingMs <= 0L) return null
+    val h  = TimeUnit.MILLISECONDS.toHours(remainingMs)
+    val m  = TimeUnit.MILLISECONDS.toMinutes(remainingMs) % 60
+    val s  = TimeUnit.MILLISECONDS.toSeconds(remainingMs) % 60
+    return "%02d:%02d:%02d".format(h, m, s)
 }
 
 /** Phone number of the marketing executive shown when cancellation is blocked. */
@@ -131,7 +185,7 @@ fun BookingCard(
     booking          : Booking,
     modifier         : Modifier = Modifier,
     isHighlighted    : Boolean = false,
-    isPurohitView    : Boolean = false,
+    isPurohitView    : Boolean,
     onCardClick      : ((Booking) -> Unit)? = null,
     onCompletePayment: ((Booking) -> Unit)? = null,
     onAccept         : ((Booking) -> Unit)? = null,
@@ -146,7 +200,7 @@ fun BookingCard(
 
     LaunchedEffect(isHighlighted) {
         if (isHighlighted) {
-            delay(HIGHLIGHT_DURATION_MS)
+            delay(HIGHLIGHT_DURATION_MS.milliseconds)
             onHighlightClear?.invoke()
         }
     }
@@ -226,7 +280,17 @@ fun BookingCard(
             }
 
             Spacer(Modifier.height(6.dp))
-            LabelValueRow("Purohit", booking.purohitName.ifBlank { "—" })
+            val windowClosed = isCancellationWindowClosed(booking)
+            val phoneRevealed = windowClosed && booking.status == BookingStatus.ACCEPTED
+            if (isPurohitView) {
+                LabelValueRow("Customer", booking.userName.ifBlank { "—" })
+                if (booking.userPhone.isNotBlank())
+                    CardPhoneRow(label = "Contact", phone = booking.userPhone, revealed = phoneRevealed)
+            } else {
+                LabelValueRow("Purohit", booking.purohitName.ifBlank { "—" })
+                if (booking.purohitPhone.isNotBlank())
+                    CardPhoneRow(label = "Contact", phone = booking.purohitPhone, revealed = phoneRevealed)
+            }
             booking.scheduledDate?.let { LabelValueRow("Scheduled", dateFmt.format(it.toDate())) }
             booking.createdAt?.let    { LabelValueRow("Booked On", dateFmt.format(it.toDate())) }
             if (booking.address.isNotBlank())     LabelValueRow("Address", booking.address)
@@ -304,10 +368,7 @@ fun bookingActionFlags(
     onCompletePayment: ((Booking) -> Unit)?,
     onCancel         : ((Booking) -> Unit)?
 ): BookingActionFlags {
-    val withinGrace    = isWithinGracePeriod(booking.createdAt)
-    val within1Day     = isWithin1DayOfEvent(booking.scheduledDate)
-    // Cancel is free when: still in grace period  OR  not yet within 1-day window
-    val cancelFree     = withinGrace || !within1Day
+    val withinGrace = isWithinGracePeriod(booking)
     val customerActive = !isPurohitView && booking.status in setOf(
         BookingStatus.PENDING_PAYMENT,
         BookingStatus.PAYMENT_DONE,
@@ -329,8 +390,8 @@ fun bookingActionFlags(
                 booking.status == BookingStatus.PENDING_PAYMENT &&
                 onCompletePayment != null,
 
-        showCancelOnly      = customerActive && cancelFree  && onCancel != null && nonPayment,
-        showCallSupport     = customerActive && !cancelFree && nonPayment
+        showCancelOnly      = customerActive && withinGrace && onCancel != null && nonPayment,
+        showCallSupport     = customerActive && !withinGrace && nonPayment
     )
 }
 
@@ -350,9 +411,7 @@ fun BookingActionButtons(
     onCancel         : ((Booking) -> Unit)?
 ) {
     val context     = LocalContext.current
-    val withinGrace = isWithinGracePeriod(booking.createdAt)
-    val within1Day  = isWithin1DayOfEvent(booking.scheduledDate)
-    val cancelFree  = withinGrace || !within1Day
+    val withinGrace = isWithinGracePeriod(booking)
 
     when {
         flags.showPurohitActions -> {
@@ -392,21 +451,21 @@ fun BookingActionButtons(
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 // Grace period chip — shown only while grace is still active
                 if (withinGrace) {
-                    GracePeriodChip(createdAt = booking.createdAt, isDark = isDark)
+                    GracePeriodChip(booking = booking, isDark = isDark)
                 }
                 Button(
                     onClick  = { onCompletePayment?.invoke(booking) },
                     modifier = Modifier.fillMaxWidth(),
                     colors   = ButtonDefaults.buttonColors(containerColor = if (isDark) DarkBrandOrange else BrandOrange)
                 ) { Text("Restart Payment", fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White) }
-                if (cancelFree && onCancel != null) {
+                if (withinGrace && onCancel != null) {
                     OutlinedButton(
                         onClick  = { onCancel(booking) },
                         modifier = Modifier.fillMaxWidth(),
                         border   = BorderStroke(1.dp, DeleteRed),
                         colors   = ButtonDefaults.outlinedButtonColors(contentColor = DeleteRed)
                     ) { Text("Cancel Booking", fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 13.sp) }
-                } else if (!cancelFree) {
+                } else if (!withinGrace) {
                     CallSupportButton(isDark = isDark, context = context)
                 }
             }
@@ -416,7 +475,7 @@ fun BookingActionButtons(
         flags.showCancelOnly -> {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 if (withinGrace) {
-                    GracePeriodChip(createdAt = booking.createdAt, isDark = isDark)
+                    GracePeriodChip(booking = booking, isDark = isDark)
                 }
                 OutlinedButton(
                     onClick  = { onCancel?.invoke(booking) },
@@ -439,12 +498,20 @@ fun BookingActionButtons(
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Small info chip shown while the 3-hour grace period is active.
- * Tells the customer how long they can still cancel freely.
+ * Small info chip shown while the cancellation window is active.
+ * Ticks every second in HH:MM:SS format.
  */
 @Composable
-fun GracePeriodChip(createdAt: Timestamp?, isDark: Boolean) {
-    val remaining = graceRemainingText(createdAt) ?: return
+fun GracePeriodChip(booking: Booking, isDark: Boolean) {
+    var remaining by remember { mutableStateOf(graceRemainingText(booking)) }
+    LaunchedEffect(booking.bookingId) {
+        while (true) {
+            remaining = graceRemainingText(booking)
+            if (remaining == null) break
+            delay(1_000L.milliseconds)
+        }
+    }
+    val text = remaining ?: return
     val chipColor = if (isDark) Color(0xFF80CBC4) else Color(0xFF00695C)
     Row(
         modifier          = Modifier
@@ -461,7 +528,7 @@ fun GracePeriodChip(createdAt: Timestamp?, isDark: Boolean) {
         )
         Spacer(Modifier.width(6.dp))
         Text(
-            text       = "Free cancellation available · $remaining remaining",
+            text       = "Free cancellation available · $text remaining",
             fontFamily = FontFamily.Serif,
             fontWeight = FontWeight.SemiBold,
             fontSize   = 11.sp,
@@ -519,6 +586,49 @@ fun CallSupportButton(isDark: Boolean, context: android.content.Context) {
 // Package-level sub-composables
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Phone row shown on BookingCard for the counterparty.
+ * Number is blurred while the cancellation window is open; revealed once it closes.
+ */
+@Composable
+fun CardPhoneRow(label: String, phone: String, revealed: Boolean) {
+    Row(
+        modifier          = Modifier.padding(vertical = 1.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            "$label: ",
+            fontFamily = FontFamily.Serif,
+            fontWeight = FontWeight.SemiBold,
+            fontSize   = 12.sp,
+            color      = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+        )
+        if (revealed) {
+            Text(
+                phone,
+                fontFamily = FontFamily.Serif,
+                fontSize   = 12.sp,
+                color      = MaterialTheme.colorScheme.onSurface
+            )
+        } else {
+            Text(
+                phone,
+                fontFamily = FontFamily.Serif,
+                fontSize   = 12.sp,
+                color      = MaterialTheme.colorScheme.onSurface,
+                modifier   = Modifier.blur(6.dp)
+            )
+            Spacer(Modifier.width(4.dp))
+            Icon(
+                Icons.Default.Lock,
+                contentDescription = null,
+                tint     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
+                modifier = Modifier.size(11.dp)
+            )
+        }
+    }
+}
+
 @Composable
 fun LabelValueRow(label: String, value: String, valueFontSize: Int = 12) {
     Row(modifier = Modifier.padding(vertical = 1.dp)) {
@@ -532,7 +642,7 @@ fun LabelValueRow(label: String, value: String, valueFontSize: Int = 12) {
 /**
  * Animated status chip.
  *
- * - Colors fade smoothly via [animateColorAsState] when status changes in real-time
+ * - Colours fade smoothly via [animateColorAsState] when status changes in real-time
  *   (Firestore listener pushes the new status → recomposition → transition plays).
  * - A brief scale pop via [Animatable] makes the change visually noticeable without
  *   requiring any explicit "status changed" signal from the caller.
@@ -541,7 +651,7 @@ fun LabelValueRow(label: String, value: String, valueFontSize: Int = 12) {
 fun StatusChip(status: BookingStatus) {
     val (bgColor, textColor) = statusChipColors(status)
 
-    // Smooth color transition on real-time status update
+    // Smooth colour transition on real-time status update
     val animBg   by animateColorAsState(bgColor,   animationSpec = tween(450), label = "chip_bg")
     val animText by animateColorAsState(textColor, animationSpec = tween(450), label = "chip_text")
 
@@ -574,7 +684,8 @@ fun statusChipColors(status: BookingStatus): Pair<Color, Color> {
         BookingStatus.COMPLETED       ->
             if (isDark) Color(0xFF1B3A4B) to BrandGold  else Color(0xFFCCE5FF) to Color(0xFF004085)
         BookingStatus.REJECTED,
-        BookingStatus.CANCELLED,
+        BookingStatus.CANCELLED_BY_USER,
+        BookingStatus.CANCELLED_BY_PUROHIT,
         BookingStatus.AUTO_CANCELLED  ->
             if (isDark) Color(0xFF3B1A1A) to DeleteRed  else Color(0xFFF8D7DA) to BrandRed
         BookingStatus.REFUNDED        -> Color(0xFFE8D5F5) to Color(0xFF6F42C1)

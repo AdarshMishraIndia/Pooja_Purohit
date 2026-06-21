@@ -9,7 +9,8 @@ enum class BookingStatus {
     ACCEPTED,
     REJECTED,
     COMPLETED,
-    CANCELLED,
+    CANCELLED_BY_USER,
+    CANCELLED_BY_PUROHIT,
     REFUNDED,
     AUTO_CANCELLED;
 
@@ -32,7 +33,8 @@ val BookingStatus.category: BookingCategory
         BookingStatus.ACCEPTED -> BookingCategory.ACTIVE
 
         BookingStatus.REJECTED,
-        BookingStatus.CANCELLED,
+        BookingStatus.CANCELLED_BY_USER,
+        BookingStatus.CANCELLED_BY_PUROHIT,
         BookingStatus.REFUNDED,
         BookingStatus.AUTO_CANCELLED -> BookingCategory.CANCELLED
 
@@ -41,14 +43,15 @@ val BookingStatus.category: BookingCategory
 
 val BookingStatus.displayLabel: String
     get() = when (this) {
-        BookingStatus.PENDING_PAYMENT -> "Pending Payment"
-        BookingStatus.PAYMENT_DONE    -> "Payment Done"
-        BookingStatus.ACCEPTED        -> "Accepted"
-        BookingStatus.REJECTED        -> "Rejected"
-        BookingStatus.COMPLETED       -> "Completed"
-        BookingStatus.CANCELLED       -> "Cancelled"
-        BookingStatus.REFUNDED        -> "Refunded"
-        BookingStatus.AUTO_CANCELLED  -> "Auto Cancelled"
+        BookingStatus.PENDING_PAYMENT    -> "Pending Payment"
+        BookingStatus.PAYMENT_DONE       -> "Payment Done"
+        BookingStatus.ACCEPTED           -> "Accepted"
+        BookingStatus.REJECTED           -> "Rejected"
+        BookingStatus.COMPLETED          -> "Completed"
+        BookingStatus.CANCELLED_BY_USER  -> "Cancelled"
+        BookingStatus.CANCELLED_BY_PUROHIT -> "Cancelled"
+        BookingStatus.REFUNDED           -> "Refunded"
+        BookingStatus.AUTO_CANCELLED     -> "Auto Cancelled"
     }
 
 data class Coordinates(
@@ -80,6 +83,7 @@ data class Booking(
 
     val createdAt: Timestamp? = null,
     val updatedAt: Timestamp? = null,
+    val confirmedAt: Timestamp? = null,
 
     val comments: String? = null,
 
@@ -124,6 +128,7 @@ data class Booking(
 
                 createdAt = doc.getTimestamp("createdAt"),
                 updatedAt = doc.getTimestamp("updatedAt"),
+                confirmedAt = doc.getTimestamp("confirmedAt"),
 
                 comments      = doc.getString("comments"),
                 completionOtp = doc.getString("completionOtp")

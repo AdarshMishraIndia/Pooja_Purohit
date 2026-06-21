@@ -212,6 +212,6 @@ class DashboardViewModel : ViewModel() {
     }
 
     private fun handleCallContact() {
-        _effect.value = DashboardEffect.MakePhoneCall("9438245904")
+        _effect.value = DashboardEffect.MakePhoneCall("9040292104")
     }
 }
