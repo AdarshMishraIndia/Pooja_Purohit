@@ -44,8 +44,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.poojapurohit.dashboard.ServiceItem
-import com.poojapurohit.dashboard.compose.theme.DarkBrandOrange
-import com.poojapurohit.dashboard.compose.theme.BrandOrange
+import com.poojapurohit.ui.theme.DarkBrandOrange
+import com.poojapurohit.ui.theme.BrandOrange
 
 
 @Composable

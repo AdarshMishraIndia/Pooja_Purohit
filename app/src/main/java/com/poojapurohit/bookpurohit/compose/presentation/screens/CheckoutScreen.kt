@@ -62,11 +62,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.poojapurohit.booking.BookingsActivity
 import com.poojapurohit.bookpurohit.compose.CheckoutViewModel
 import com.poojapurohit.bookpurohit.compose.presentation.components.BookPurohitDecorOverlay
-import com.poojapurohit.dashboard.compose.theme.BrandOrange
-import com.poojapurohit.dashboard.compose.theme.BrandRed
-import com.poojapurohit.dashboard.compose.theme.DarkBrandOrange
-import com.poojapurohit.dashboard.compose.theme.DarkBrandRed
-import com.poojapurohit.dashboard.compose.theme.DarkSurface
+import com.poojapurohit.ui.theme.BrandOrange
+import com.poojapurohit.ui.theme.BrandRed
+import com.poojapurohit.ui.theme.DarkBrandOrange
+import com.poojapurohit.ui.theme.DarkBrandRed
+import com.poojapurohit.ui.theme.DarkSurface
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date

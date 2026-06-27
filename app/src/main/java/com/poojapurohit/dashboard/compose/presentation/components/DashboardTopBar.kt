@@ -2,7 +2,6 @@ package com.poojapurohit.dashboard.compose.presentation.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -25,8 +24,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.poojapurohit.dashboard.compose.theme.BrandOrange
-import com.poojapurohit.dashboard.compose.theme.BrandRed
+import com.poojapurohit.ui.theme.BrandOrange
+import com.poojapurohit.ui.theme.BrandRed
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,7 +35,8 @@ fun DashboardTopBar(
     unreadNotificationCount: Int = 0
 ) {
     TopAppBar(
-        windowInsets = WindowInsets(0, 0, 0, 0),
+        // windowInsets removed — TopAppBar now handles status bar inset itself,
+        // extending the gradient background behind the notification shade.
         title = {
             Text(
                 text = "POOJA PUROHIT (ପୂଜା ପୁରୋହିତ)",
@@ -56,7 +56,6 @@ fun DashboardTopBar(
             }
         },
         actions = {
-            // Bell icon with optional unread badge
             Box(contentAlignment = Alignment.TopEnd) {
                 IconButton(onClick = onNotificationsClick) {
                     Icon(
@@ -67,7 +66,6 @@ fun DashboardTopBar(
                     )
                 }
 
-                // Unread badge — only shown when count > 0
                 if (unreadNotificationCount > 0) {
                     Box(
                         modifier = Modifier

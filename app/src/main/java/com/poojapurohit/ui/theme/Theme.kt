@@ -11,56 +11,50 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-private val DarkColorScheme = darkColorScheme(
-    primary = MaroonDark,
-    secondary = GoldenYellow,
-    tertiary = LightBlue,
-    background = MaroonDark,
-    surface = White,
-    onPrimary = White,
-    onSecondary = Black,
-    onTertiary = White,
-    onBackground = White,
-    onSurface = Black,
+private val LightColorScheme = lightColorScheme(
+    primary          = BrandOrange,
+    onPrimary        = TextWhite,
+    secondary        = BrandRed,
+    onSecondary      = TextWhite,
+    tertiary         = BrandGold,
+    background       = LightBackground,
+    surface          = LightSurface,
+    onBackground     = TextPrimary,
+    onSurface        = TextPrimary
 )
 
-private val LightColorScheme = lightColorScheme(
-    primary = MaroonDark,
-    secondary = GoldenYellow,
-    tertiary = LightBlue,
-    background = White,
-    surface = White,
-    onPrimary = White,
-    onSecondary = Black,
-    onTertiary = White,
-    onBackground = Black,
-    onSurface = Black,
+private val DarkColorScheme = darkColorScheme(
+    primary          = DarkBrandOrange,
+    onPrimary        = TextWhite,
+    secondary        = DarkBrandRed,
+    onSecondary      = TextWhite,
+    tertiary         = BrandGold,
+    background       = DarkBackground,
+    surface          = DarkSurface,
+    onBackground     = TextWhite,
+    onSurface        = TextWhite
 )
 
 @Composable
 fun PoojaPurohitTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
+    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
 
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
             @Suppress("DEPRECATION")
-            window.statusBarColor = colorScheme.primary.toArgb()
+            window.statusBarColor = colorScheme.secondary.toArgb() // BrandRed in light, DarkBrandRed in dark
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
         }
     }
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
-        content = content
+        typography  = PoojaPurohitTypography,
+        content     = content
     )
 }

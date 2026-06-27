@@ -6,8 +6,8 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.graphics.Color
-import com.poojapurohit.dashboard.compose.theme.BrandOrange
-import com.poojapurohit.dashboard.compose.theme.DarkBrandOrange
+import com.poojapurohit.ui.theme.BrandOrange
+import com.poojapurohit.ui.theme.DarkBrandOrange
 
 /**
  * Returns an [AnnotatedString] with all occurrences of [query] highlighted

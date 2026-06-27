@@ -58,11 +58,12 @@ import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
-import com.poojapurohit.dashboard.compose.theme.BrandOrange
-import com.poojapurohit.dashboard.compose.theme.DarkBrandOrange
+import com.poojapurohit.ui.theme.BrandOrange
+import com.poojapurohit.ui.theme.DarkBrandOrange
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Full-screen dialogue for picking a map pin.
@@ -152,7 +153,7 @@ fun MapPinPickerScreen(
             searchError = null
             return@LaunchedEffect
         }
-        delay(350L)
+        delay(350L.milliseconds)
         isSearching = true
         searchError = null
         try {

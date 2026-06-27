@@ -75,17 +75,18 @@ import com.poojapurohit.booking.compose.components.BookingCard
 import com.poojapurohit.booking.model.Booking
 import com.poojapurohit.booking.model.BookingStatus
 import com.poojapurohit.bookpurohit.compose.presentation.screens.RazorpayStubDialog
-import com.poojapurohit.dashboard.compose.theme.BrandOrange
-import com.poojapurohit.dashboard.compose.theme.BrandRed
-import com.poojapurohit.dashboard.compose.theme.DarkBrandOrange
-import com.poojapurohit.dashboard.compose.theme.DarkBrandRed
-import com.poojapurohit.dashboard.compose.theme.DeleteRed
+import com.poojapurohit.ui.theme.BrandOrange
+import com.poojapurohit.ui.theme.BrandRed
+import com.poojapurohit.ui.theme.DarkBrandOrange
+import com.poojapurohit.ui.theme.DarkBrandRed
+import com.poojapurohit.ui.theme.DeleteRed
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.time.Duration.Companion.milliseconds
 
 // ── List item model ───────────────────────────────────────────────────────────
 
@@ -576,7 +577,7 @@ private fun BookingList(
         }
         if (index >= 0) {
             listState.animateScrollToItem(index)
-            delay(4_000L)
+            delay(4_000L.milliseconds)
             onHighlightConsumed()
         }
     }

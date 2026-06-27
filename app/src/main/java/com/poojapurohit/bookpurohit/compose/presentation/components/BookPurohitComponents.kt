@@ -24,14 +24,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.poojapurohit.dashboard.compose.theme.BrandOrange
-import com.poojapurohit.dashboard.compose.theme.BrandRed
-import com.poojapurohit.dashboard.compose.theme.DarkBrandOrange
-import com.poojapurohit.dashboard.compose.theme.DarkBrandRed
-import com.poojapurohit.dashboard.compose.theme.DarkWelcomeBannerEnd
-import com.poojapurohit.dashboard.compose.theme.DarkWelcomeBannerStart
-import com.poojapurohit.dashboard.compose.theme.WelcomeBannerEnd
-import com.poojapurohit.dashboard.compose.theme.WelcomeBannerStart
+import com.poojapurohit.ui.theme.BrandOrange
+import com.poojapurohit.ui.theme.BrandRed
+import com.poojapurohit.ui.theme.DarkBrandOrange
+import com.poojapurohit.ui.theme.DarkBrandRed
+import com.poojapurohit.ui.theme.DarkWelcomeBannerEnd
+import com.poojapurohit.ui.theme.DarkWelcomeBannerStart
+import com.poojapurohit.ui.theme.WelcomeBannerEnd
+import com.poojapurohit.ui.theme.WelcomeBannerStart
 
 private const val APP_TITLE = "POOJA PUROHIT (ପୂଜା ପୁରୋହିତ)"
 

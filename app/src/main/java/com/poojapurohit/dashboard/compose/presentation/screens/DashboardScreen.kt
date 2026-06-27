@@ -51,15 +51,15 @@ import com.poojapurohit.dashboard.compose.presentation.components.ContactSection
 import com.poojapurohit.dashboard.compose.presentation.components.DashboardTopBar
 import com.poojapurohit.dashboard.compose.presentation.components.NavigationDrawerContent
 import com.poojapurohit.dashboard.compose.presentation.components.ServiceCard
-import com.poojapurohit.dashboard.compose.theme.BrandOrange
-import com.poojapurohit.dashboard.compose.theme.DarkBackgroundGradientCenter
-import com.poojapurohit.dashboard.compose.theme.DarkBackgroundGradientEnd
-import com.poojapurohit.dashboard.compose.theme.DarkBackgroundGradientStart
-import com.poojapurohit.dashboard.compose.theme.DarkBrandOrange
-import com.poojapurohit.dashboard.compose.theme.DeleteRed
-import com.poojapurohit.dashboard.compose.theme.LightBackgroundGradientCenter
-import com.poojapurohit.dashboard.compose.theme.LightBackgroundGradientEnd
-import com.poojapurohit.dashboard.compose.theme.LightBackgroundGradientStart
+import com.poojapurohit.ui.theme.BrandOrange
+import com.poojapurohit.ui.theme.DarkBackgroundGradientCenter
+import com.poojapurohit.ui.theme.DarkBackgroundGradientEnd
+import com.poojapurohit.ui.theme.DarkBackgroundGradientStart
+import com.poojapurohit.ui.theme.DarkBrandOrange
+import com.poojapurohit.ui.theme.DeleteRed
+import com.poojapurohit.ui.theme.LightBackgroundGradientCenter
+import com.poojapurohit.ui.theme.LightBackgroundGradientEnd
+import com.poojapurohit.ui.theme.LightBackgroundGradientStart
 import com.poojapurohit.notification.compose.NotificationActivity
 import kotlinx.coroutines.launch
 

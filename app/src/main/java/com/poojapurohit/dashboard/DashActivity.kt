@@ -1,9 +1,13 @@
 package com.poojapurohit.dashboard
 
+import android.Manifest
+import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,6 +27,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
@@ -30,35 +35,48 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
 import com.poojapurohit.booking.compose.presentation.screens.BookingsScreen
 import com.poojapurohit.dashboard.compose.presentation.screens.DashboardScreen
-import com.poojapurohit.dashboard.compose.theme.PoojaPurohitTheme
-import kotlinx.coroutines.launch
+import com.poojapurohit.ui.theme.PoojaPurohitTheme
 import dagger.hilt.android.AndroidEntryPoint
-import androidx.activity.ComponentActivity
-import android.Manifest
-import android.os.Build
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class DashActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Request notification permission on Android 13+ (API 33).
-        // DashActivity is the correct place — user is fully authenticated and
-        // understands the app context by this point.
+        enableEdgeToEdge()
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 0)
         }
 
         setContent {
             PoojaPurohitTheme {
+                SetSystemBarsColor()
                 MainNavigationScreen(onExitApp = { finish() })
             }
+        }
+    }
+
+    @Composable
+    private fun SetSystemBarsColor() {
+        val isDark = isSystemInDarkTheme()
+        val statusBarColor = Color(if (isDark) 0xFF5E1100 else 0xFF811C01)
+        DisposableEffect(isDark) {
+            val controller = WindowCompat.getInsetsController(window, window.decorView)
+            @Suppress("DEPRECATION")
+            window.statusBarColor = statusBarColor.toArgb()
+            controller.isAppearanceLightStatusBars = false
+            onDispose { }
         }
     }
 }
@@ -76,7 +94,6 @@ fun MainNavigationScreen(onExitApp: () -> Unit) {
 
     val pagerState = rememberPagerState(initialPage = 0) { items.size }
 
-    // Double-tap back to exit logic
     BackHandler {
         if (System.currentTimeMillis() - backPressedTime < 2000) {
             onExitApp()
@@ -98,9 +115,7 @@ fun MainNavigationScreen(onExitApp: () -> Unit) {
 
                     NavigationBarItem(
                         selected = selected,
-                        onClick = {
-                            scope.launch { pagerState.animateScrollToPage(index) }
-                        },
+                        onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
                         icon = {
                             Icon(
                                 imageVector = if (selected) item.selectedIcon else item.unselectedIcon,

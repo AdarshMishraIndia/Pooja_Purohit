@@ -11,7 +11,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.view.WindowCompat
 import com.poojapurohit.dashboard.compose.presentation.screens.EditProfileScreen
-import com.poojapurohit.dashboard.compose.theme.PoojaPurohitTheme
+import com.poojapurohit.ui.theme.PoojaPurohitTheme
 
 class EditProfileActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

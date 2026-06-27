@@ -12,7 +12,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.view.WindowCompat
 import com.poojapurohit.booking.compose.presentation.screens.BookingsScreen
-import com.poojapurohit.dashboard.compose.theme.PoojaPurohitTheme
+import com.poojapurohit.ui.theme.PoojaPurohitTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint

@@ -40,8 +40,8 @@ import com.google.android.libraries.places.api.model.AutocompleteSessionToken
 import com.google.android.libraries.places.api.model.RectangularBounds
 import com.google.android.libraries.places.api.net.FindAutocompletePredictionsRequest
 import com.google.android.libraries.places.api.net.PlacesClient
-import com.poojapurohit.dashboard.compose.theme.BrandOrange
-import com.poojapurohit.dashboard.compose.theme.DarkSurface
+import com.poojapurohit.ui.theme.BrandOrange
+import com.poojapurohit.ui.theme.DarkSurface
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.tasks.await
 import kotlin.time.Duration.Companion.milliseconds

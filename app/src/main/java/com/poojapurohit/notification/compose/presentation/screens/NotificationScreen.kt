@@ -56,16 +56,16 @@ import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.poojapurohit.dashboard.compose.theme.BrandOrange
-import com.poojapurohit.dashboard.compose.theme.BrandRed
-import com.poojapurohit.dashboard.compose.theme.DarkBackgroundGradientCenter
-import com.poojapurohit.dashboard.compose.theme.DarkBackgroundGradientEnd
-import com.poojapurohit.dashboard.compose.theme.DarkBackgroundGradientStart
-import com.poojapurohit.dashboard.compose.theme.DarkBrandOrange
-import com.poojapurohit.dashboard.compose.theme.DarkBrandRed
-import com.poojapurohit.dashboard.compose.theme.LightBackgroundGradientCenter
-import com.poojapurohit.dashboard.compose.theme.LightBackgroundGradientEnd
-import com.poojapurohit.dashboard.compose.theme.LightBackgroundGradientStart
+import com.poojapurohit.ui.theme.BrandOrange
+import com.poojapurohit.ui.theme.BrandRed
+import com.poojapurohit.ui.theme.DarkBackgroundGradientCenter
+import com.poojapurohit.ui.theme.DarkBackgroundGradientEnd
+import com.poojapurohit.ui.theme.DarkBackgroundGradientStart
+import com.poojapurohit.ui.theme.DarkBrandOrange
+import com.poojapurohit.ui.theme.DarkBrandRed
+import com.poojapurohit.ui.theme.LightBackgroundGradientCenter
+import com.poojapurohit.ui.theme.LightBackgroundGradientEnd
+import com.poojapurohit.ui.theme.LightBackgroundGradientStart
 import com.poojapurohit.notification.NotificationUiState
 import com.poojapurohit.notification.compose.presentation.NotificationEffect
 import com.poojapurohit.notification.compose.presentation.NotificationEvent
@@ -73,6 +73,7 @@ import com.poojapurohit.notification.compose.presentation.NotificationViewModel
 import com.poojapurohit.notification.compose.presentation.components.NotificationCard
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -201,7 +202,7 @@ fun NotificationScreen(
                             // Show spinner briefly as visual feedback only.
                             scope.launch {
                                 isRefreshing = true
-                                delay(600)
+                                delay(600.milliseconds)
                                 isRefreshing = false
                             }
                         },

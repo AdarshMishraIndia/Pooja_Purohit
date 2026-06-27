@@ -86,8 +86,8 @@ import com.poojapurohit.booking.model.Booking
 import com.poojapurohit.booking.model.BookingStatus
 import com.poojapurohit.booking.model.Coordinates
 import com.poojapurohit.bookpurohit.compose.presentation.screens.MapPinPickerScreen
-import com.poojapurohit.dashboard.compose.theme.BrandRed
-import com.poojapurohit.dashboard.compose.theme.DarkBrandRed
+import com.poojapurohit.ui.theme.BrandRed
+import com.poojapurohit.ui.theme.DarkBrandRed
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.concurrent.TimeUnit
@@ -898,7 +898,7 @@ internal fun EditBookingDialog(
                 val within24h = selectedMs - System.currentTimeMillis() <= TimeUnit.DAYS.toMillis(1)
 
                 if (within24h) {
-                    val errColor = com.poojapurohit.dashboard.compose.theme.DeleteRed
+                    val errColor = com.poojapurohit.ui.theme.DeleteRed
                     Row(
                         modifier          = Modifier
                             .fillMaxWidth()

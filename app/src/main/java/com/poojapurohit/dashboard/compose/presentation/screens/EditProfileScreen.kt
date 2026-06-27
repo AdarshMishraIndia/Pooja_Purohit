@@ -40,7 +40,7 @@ import com.poojapurohit.dashboard.compose.EditProfileEffect
 import com.poojapurohit.dashboard.compose.EditProfileEvent
 import com.poojapurohit.dashboard.compose.EditProfileViewModel
 import com.poojapurohit.dashboard.compose.presentation.components.DashboardPlacesAutocompleteField
-import com.poojapurohit.dashboard.compose.theme.*
+import com.poojapurohit.ui.theme.*
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)

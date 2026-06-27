@@ -29,7 +29,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import com.poojapurohit.R
-import com.poojapurohit.dashboard.compose.theme.*
+import com.poojapurohit.ui.theme.*
 
 @Composable
 fun NavigationDrawerContent(
@@ -47,7 +47,7 @@ fun NavigationDrawerContent(
 
     ModalDrawerSheet(
         modifier = Modifier.width(280.dp),
-        drawerContainerColor = if (isDark) DarkSurface else LightBackground
+        drawerContainerColor = if (isDark) DarkBackground else LightBackground
     ) {
         // Header
         DrawerHeader(userName = userName, userEmail = userEmail)

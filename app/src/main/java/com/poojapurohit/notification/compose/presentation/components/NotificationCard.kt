@@ -39,7 +39,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.poojapurohit.dashboard.compose.theme.DarkSurface
+import com.poojapurohit.ui.theme.DarkSurface
 import com.poojapurohit.notification.compose.model.NotificationItem
 import com.poojapurohit.notification.compose.model.NotificationTemplateRegistry
 import java.text.SimpleDateFormat

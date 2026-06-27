@@ -51,9 +51,9 @@ import com.poojapurohit.bookpurohit.compose.model.PurohitItem
 import com.poojapurohit.bookpurohit.compose.presentation.components.BookPurohitDecorOverlay
 import com.poojapurohit.bookpurohit.compose.presentation.components.BookPurohitTopBar
 import com.poojapurohit.bookpurohit.compose.presentation.util.highlightSearchQuery
-import com.poojapurohit.dashboard.compose.theme.BrandOrange
-import com.poojapurohit.dashboard.compose.theme.DarkBrandOrange
-import com.poojapurohit.dashboard.compose.theme.DarkSurface
+import com.poojapurohit.ui.theme.BrandOrange
+import com.poojapurohit.ui.theme.DarkBrandOrange
+import com.poojapurohit.ui.theme.DarkSurface
 
 // Deep Crimson / Maroon
 private val LightGradTop = Color(0xFFFFFDF8)

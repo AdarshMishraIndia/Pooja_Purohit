@@ -24,7 +24,7 @@ import com.poojapurohit.bookpurohit.compose.presentation.screens.LocationSelecti
 import com.poojapurohit.bookpurohit.compose.presentation.screens.PurohitSelectionScreen
 import com.poojapurohit.bookpurohit.compose.presentation.screens.ServiceSelectionScreen
 import com.poojapurohit.bookpurohit.compose.presentation.screens.SubLocationSelectionScreen
-import com.poojapurohit.dashboard.compose.theme.PoojaPurohitTheme
+import com.poojapurohit.ui.theme.PoojaPurohitTheme
 
 class BookPurohitActivity : ComponentActivity() {
     private val viewModel: BookPurohitViewModel by viewModels()

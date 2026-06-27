@@ -10,7 +10,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.view.WindowCompat
-import com.poojapurohit.dashboard.compose.theme.PoojaPurohitTheme
+import com.poojapurohit.ui.theme.PoojaPurohitTheme
 import com.poojapurohit.notification.compose.presentation.screens.NotificationScreen
 
 class NotificationActivity : ComponentActivity() {
