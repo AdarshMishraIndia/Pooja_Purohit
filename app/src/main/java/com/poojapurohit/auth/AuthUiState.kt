@@ -33,4 +33,7 @@ sealed class AuthUiState {
      * and the Value is the human-readable display name.
      */
     data class ShowServicePartnerStep3(val services: Map<String, String>) : AuthUiState()
+
+    data class OtpSent(val verificationId: String) : AuthUiState()
+    object PhoneVerified : AuthUiState()
 }

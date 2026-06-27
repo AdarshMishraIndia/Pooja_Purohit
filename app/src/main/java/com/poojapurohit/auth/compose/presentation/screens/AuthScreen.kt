@@ -76,7 +76,6 @@ fun AuthScreen(
             }
 
             is AuthUiState.NetworkError -> {
-                // Show initial screen; toast informs the user
                 LaunchedEffect(Unit) {
                     Toast.makeText(
                         context,
@@ -103,7 +102,6 @@ fun AuthScreen(
                         ServicePartnerStep2Screen(viewModel = viewModel)
 
                     3 ->
-                        // FIX APPLIED HERE: Changed emptyList() to emptyMap()
                         ServicePartnerStep3Screen(viewModel = viewModel, services = emptyMap())
 
                     else -> InitialAuthScreen(viewModel = viewModel)
@@ -111,8 +109,23 @@ fun AuthScreen(
             }
 
             is AuthUiState.RetryingConnection -> {
-                // Show initial screen behind the retry overlay
                 InitialAuthScreen(viewModel = viewModel)
+            }
+
+            // OTP sent — keep the current registration screen visible behind any overlay
+            is AuthUiState.OtpSent -> {
+                when {
+                    viewModel.isServicePartnerFlow -> ServicePartnerStep1Screen(viewModel = viewModel)
+                    else -> CustomerRegistrationScreen(viewModel = viewModel)
+                }
+            }
+
+            // Phone verified — keep the registration screen visible so user can hit Register/Next
+            is AuthUiState.PhoneVerified -> {
+                when {
+                    viewModel.isServicePartnerFlow -> ServicePartnerStep1Screen(viewModel = viewModel)
+                    else -> CustomerRegistrationScreen(viewModel = viewModel)
+                }
             }
 
             AuthUiState.Idle -> {
@@ -126,7 +139,6 @@ fun AuthScreen(
                 LoadingDialog(
                     statusMessage = "Signing you in…",
                     isRetrying = false,
-                    // Allow cancel during initial sign-in attempts (step 0 = auth flow)
                     onCancel = if (viewModel.currentStep == 0) viewModel::cancelSignIn else null
                 )
             }
@@ -146,7 +158,6 @@ fun AuthScreen(
     }
 
     // ── Back Handler ──────────────────────────────────────────────────────────
-    // Intercept back press at all steps including during loading/retrying.
     BackHandler(
         enabled = viewModel.currentStep > 0
                 || uiState is AuthUiState.Loading

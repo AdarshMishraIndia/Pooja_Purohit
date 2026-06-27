@@ -106,11 +106,12 @@ async function quickToggleVerify(id, value) {
 
   try {
     await db.collection("purohits").doc(id).update({
-      isVerified: value,
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      isVerified:  value,
+      isAvailable: value,
+      updatedAt:   firebase.firestore.FieldValue.serverTimestamp()
     });
     const p = allPurohits.find(x => x.id === id);
-    if (p) p.isVerified = value;
+    if (p) { p.isVerified = value; p.isAvailable = value; }
     updateStats();
     renderList();
     showToast(value ? "Purohit verified ✓" : "Marked as unverified");

@@ -174,6 +174,39 @@ class AuthViewModel(
         _uiState.value = AuthUiState.ShowInitialState
     }
 
+    // ─── Phone OTP ───────────────────────────────────────────────────────────
+
+    fun sendPhoneOtp(phone: String, activity: Activity) {
+        _uiState.value = AuthUiState.Loading
+        repository.sendOtp(
+            phoneNumber = "+91$phone",
+            activity = activity,
+            onCodeSent = { verificationId ->
+                _uiState.value = AuthUiState.OtpSent(verificationId)
+            },
+            onVerified = {
+                _uiState.value = AuthUiState.PhoneVerified
+            },
+            onError = { msg ->
+                _uiState.value = AuthUiState.Error(msg)
+            }
+        )
+    }
+
+    fun verifyPhoneOtp(verificationId: String, otp: String) {
+        _uiState.value = AuthUiState.Loading
+        repository.verifyOtp(
+            verificationId = verificationId,
+            otp = otp,
+            onVerified = {
+                _uiState.value = AuthUiState.PhoneVerified
+            },
+            onError = { msg ->
+                _uiState.value = AuthUiState.Error(msg)
+            }
+        )
+    }
+
     // ─── Sign In Success Handler ─────────────────────────────────────────────
 
     private fun handleSignInSuccess(isNewUser: Boolean, isServicePartner: Boolean) {

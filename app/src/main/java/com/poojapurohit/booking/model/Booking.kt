@@ -6,6 +6,7 @@ import com.google.firebase.firestore.DocumentSnapshot
 enum class BookingStatus {
     PENDING_PAYMENT,
     PAYMENT_DONE,
+    PAYMENT_FAILED,
     ACCEPTED,
     REJECTED,
     COMPLETED,
@@ -31,7 +32,7 @@ val BookingStatus.category: BookingCategory
         BookingStatus.PENDING_PAYMENT,
         BookingStatus.PAYMENT_DONE,
         BookingStatus.ACCEPTED -> BookingCategory.ACTIVE
-
+        BookingStatus.PAYMENT_FAILED -> BookingCategory.CANCELLED
         BookingStatus.REJECTED,
         BookingStatus.CANCELLED_BY_USER,
         BookingStatus.CANCELLED_BY_PUROHIT,
@@ -43,6 +44,7 @@ val BookingStatus.category: BookingCategory
 
 val BookingStatus.displayLabel: String
     get() = when (this) {
+        BookingStatus.PAYMENT_FAILED     -> "Payment Failed"
         BookingStatus.PENDING_PAYMENT    -> "Pending Payment"
         BookingStatus.PAYMENT_DONE       -> "Payment Done"
         BookingStatus.ACCEPTED           -> "Accepted"

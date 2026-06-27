@@ -52,19 +52,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
-import com.google.firebase.Timestamp
 import com.poojapurohit.booking.model.Booking
 import com.poojapurohit.booking.model.BookingStatus
 import com.poojapurohit.booking.model.displayLabel
@@ -89,53 +88,36 @@ private const val COLOR_FADE_DURATION_MS   = 1_500
 // Cancellation window helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Returns true when now is within 24 h of the scheduled event (or past it). */
-fun isWithin1DayOfEvent(scheduledDate: Timestamp?): Boolean {
-    scheduledDate ?: return false
-    val cutoffMs = scheduledDate.toDate().time - TimeUnit.DAYS.toMillis(1)
-    return System.currentTimeMillis() >= cutoffMs
-}
-
 /**
  * Computes the epoch-ms at which the cancellation window closes for [booking].
  *
  * Rule:
  *  - diff = scheduledDate - createdAt
  *  - diff > 27 h  → window closes at scheduledDate − 24 h
- *  - diff ≤ 27 h  → window closes at createdAt + 6 h
+ *  - diff ≤ 27 h  → window closes at createdAt + 3 h
  *
  * Returns null when either timestamp is missing.
  */
 fun cancellationWindowEndMs(booking: Booking): Long? {
-    val createdMs = booking.createdAt?.toDate()?.time ?: return null
+    val createdMs   = booking.createdAt?.toDate()?.time   ?: return null
     val scheduledMs = booking.scheduledDate?.toDate()?.time ?: return null
     val diffMs      = scheduledMs - createdMs
     return when {
         diffMs > TimeUnit.HOURS.toMillis(27) ->
-            scheduledMs - TimeUnit.HOURS.toMillis(24)   // window closes at schedule - 24 h
+            scheduledMs - TimeUnit.HOURS.toMillis(24)
         diffMs > TimeUnit.HOURS.toMillis(6)  ->
-            createdMs + TimeUnit.HOURS.toMillis(3)      // window = 3 h from creation
-        else                                  ->
-            createdMs                                   // <= 6 h gap -> no window
+            createdMs + TimeUnit.HOURS.toMillis(3)
+        else ->
+            createdMs   // <= 6 h gap → no window
     }
 }
 
 /**
  * Returns true when the cancellation window is still open.
- * Replaces the old 3-hour-only grace period.
  */
 fun isWithinGracePeriod(booking: Booking): Boolean {
     val endMs = cancellationWindowEndMs(booking) ?: return false
     return System.currentTimeMillis() < endMs
-}
-
-/** Overload accepting only createdAt — kept for call-sites that don't have the full Booking. */
-fun isWithinGracePeriod(createdAt: Timestamp?): Boolean {
-    // Legacy single-arg version: cannot determine correct window without scheduledDate.
-    // Callers that have the full Booking MUST use isWithinGracePeriod(Booking).
-    createdAt ?: return false
-    val graceEndsMs = createdAt.toDate().time + TimeUnit.HOURS.toMillis(3)
-    return System.currentTimeMillis() < graceEndsMs
 }
 
 /**
@@ -155,21 +137,9 @@ fun graceRemainingText(booking: Booking): String? {
     val endMs       = cancellationWindowEndMs(booking) ?: return null
     val remainingMs = endMs - System.currentTimeMillis()
     if (remainingMs <= 0L) return null
-    val h  = TimeUnit.MILLISECONDS.toHours(remainingMs)
-    val m  = TimeUnit.MILLISECONDS.toMinutes(remainingMs) % 60
-    val s  = TimeUnit.MILLISECONDS.toSeconds(remainingMs) % 60
-    return "%02d:%02d:%02d".format(h, m, s)
-}
-
-/** Legacy overload — kept for call-sites still passing only createdAt. */
-fun graceRemainingText(createdAt: Timestamp?): String? {
-    createdAt ?: return null
-    val graceEndsMs = createdAt.toDate().time + TimeUnit.HOURS.toMillis(3)
-    val remainingMs = graceEndsMs - System.currentTimeMillis()
-    if (remainingMs <= 0L) return null
-    val h  = TimeUnit.MILLISECONDS.toHours(remainingMs)
-    val m  = TimeUnit.MILLISECONDS.toMinutes(remainingMs) % 60
-    val s  = TimeUnit.MILLISECONDS.toSeconds(remainingMs) % 60
+    val h = TimeUnit.MILLISECONDS.toHours(remainingMs)
+    val m = TimeUnit.MILLISECONDS.toMinutes(remainingMs) % 60
+    val s = TimeUnit.MILLISECONDS.toSeconds(remainingMs) % 60
     return "%02d:%02d:%02d".format(h, m, s)
 }
 
@@ -280,7 +250,7 @@ fun BookingCard(
             }
 
             Spacer(Modifier.height(6.dp))
-            val windowClosed = isCancellationWindowClosed(booking)
+            val windowClosed  = isCancellationWindowClosed(booking)
             val phoneRevealed = windowClosed && booking.status == BookingStatus.ACCEPTED
             if (isPurohitView) {
                 LabelValueRow("Customer", booking.userName.ifBlank { "—" })
@@ -293,7 +263,7 @@ fun BookingCard(
             }
             booking.scheduledDate?.let { LabelValueRow("Scheduled", dateFmt.format(it.toDate())) }
             booking.createdAt?.let    { LabelValueRow("Booked On", dateFmt.format(it.toDate())) }
-            if (booking.address.isNotBlank())     LabelValueRow("Address", booking.address)
+            if (booking.address.isNotBlank())      LabelValueRow("Address", booking.address)
             if (!booking.comments.isNullOrBlank()) LabelValueRow("Reason",  booking.comments)
 
             Spacer(Modifier.height(6.dp))
@@ -308,9 +278,6 @@ fun BookingCard(
             }
 
             // ── Completion OTP chip (customer view only) ──────────────────────
-            // Shown when the purohit has initiated completion and the OTP is live.
-            // Disappears automatically once the booking moves to COMPLETED
-            // because completionOtp is deleted from the document at that point.
             if (!isPurohitView &&
                 booking.status == BookingStatus.ACCEPTED &&
                 !booking.completionOtp.isNullOrBlank()
@@ -319,12 +286,17 @@ fun BookingCard(
                 CompletionOtpChip(otp = booking.completionOtp, isDark = isDark)
             }
 
-            val flags = bookingActionFlags(booking, isPurohitView,
-                onAccept, onReject, onComplete, onCompletePayment, onCancel)
+            val flags = bookingActionFlags(
+                booking, isPurohitView,
+                onAccept, onReject, onComplete, onCompletePayment, onCancel
+            )
 
             if (flags.hasAny) {
                 Spacer(Modifier.height(10.dp))
-                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f), thickness = 1.dp)
+                HorizontalDivider(
+                    color     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                    thickness = 1.dp
+                )
                 Spacer(Modifier.height(10.dp))
                 BookingActionButtons(
                     booking = booking, isDark = isDark, flags = flags,
@@ -341,18 +313,12 @@ fun BookingCard(
 // Action flags
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Cancellation rules:
- *  1. Grace period (createdAt within 3 h) → customer can always cancel.
- *  2. After grace period + within 1 day of event → cancel blocked; show call-support.
- *  3. After grace period + more than 1 day away → customer can cancel normally.
- */
 data class BookingActionFlags(
     val showPurohitActions  : Boolean,
     val showCompleteAction  : Boolean,
     val showCompletePayment : Boolean,
-    val showCancelOnly      : Boolean,   // free cancellation window open
-    val showCallSupport     : Boolean    // window closed, call support instead
+    val showCancelOnly      : Boolean,
+    val showCallSupport     : Boolean
 ) {
     val hasAny: Boolean get() =
         showPurohitActions || showCompleteAction || showCompletePayment ||
@@ -368,13 +334,12 @@ fun bookingActionFlags(
     onCompletePayment: ((Booking) -> Unit)?,
     onCancel         : ((Booking) -> Unit)?
 ): BookingActionFlags {
-    val withinGrace = isWithinGracePeriod(booking)
+    val withinGrace   = isWithinGracePeriod(booking)
     val customerActive = !isPurohitView && booking.status in setOf(
         BookingStatus.PENDING_PAYMENT,
         BookingStatus.PAYMENT_DONE,
         BookingStatus.ACCEPTED
     )
-    // Non-payment statuses have dedicated cancel/call-support rows
     val nonPayment = booking.status != BookingStatus.PENDING_PAYMENT
 
     return BookingActionFlags(
@@ -390,8 +355,8 @@ fun bookingActionFlags(
                 booking.status == BookingStatus.PENDING_PAYMENT &&
                 onCompletePayment != null,
 
-        showCancelOnly      = customerActive && withinGrace && onCancel != null && nonPayment,
-        showCallSupport     = customerActive && !withinGrace && nonPayment
+        showCancelOnly  = customerActive && withinGrace  && onCancel != null && nonPayment,
+        showCallSupport = customerActive && !withinGrace && nonPayment
     )
 }
 
@@ -446,13 +411,9 @@ fun BookingActionButtons(
             }
         }
 
-        // PENDING_PAYMENT: Restart Payment + cancel or call-support depending on window
         flags.showCompletePayment -> {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                // Grace period chip — shown only while grace is still active
-                if (withinGrace) {
-                    GracePeriodChip(booking = booking, isDark = isDark)
-                }
+                if (withinGrace) GracePeriodChip(booking = booking, isDark = isDark)
                 Button(
                     onClick  = { onCompletePayment?.invoke(booking) },
                     modifier = Modifier.fillMaxWidth(),
@@ -471,12 +432,9 @@ fun BookingActionButtons(
             }
         }
 
-        // Free cancellation window open
         flags.showCancelOnly -> {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                if (withinGrace) {
-                    GracePeriodChip(booking = booking, isDark = isDark)
-                }
+                if (withinGrace) GracePeriodChip(booking = booking, isDark = isDark)
                 OutlinedButton(
                     onClick  = { onCancel?.invoke(booking) },
                     modifier = Modifier.fillMaxWidth(),
@@ -486,7 +444,6 @@ fun BookingActionButtons(
             }
         }
 
-        // Cancellation window closed — no grace period left
         flags.showCallSupport -> {
             CallSupportButton(isDark = isDark, context = context)
         }
@@ -497,10 +454,6 @@ fun BookingActionButtons(
 // Sub-composables
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Small info chip shown while the cancellation window is active.
- * Ticks every second in HH:MM:SS format.
- */
 @Composable
 fun GracePeriodChip(booking: Booking, isDark: Boolean) {
     var remaining by remember { mutableStateOf(graceRemainingText(booking)) }
@@ -511,7 +464,7 @@ fun GracePeriodChip(booking: Booking, isDark: Boolean) {
             delay(1_000L.milliseconds)
         }
     }
-    val text = remaining ?: return
+    val text      = remaining ?: return
     val chipColor = if (isDark) Color(0xFF80CBC4) else Color(0xFF00695C)
     Row(
         modifier          = Modifier
@@ -520,12 +473,7 @@ fun GracePeriodChip(booking: Booking, isDark: Boolean) {
             .padding(horizontal = 10.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector        = Icons.Default.Timer,
-            contentDescription = null,
-            tint               = chipColor,
-            modifier           = Modifier.size(14.dp)
-        )
+        Icon(Icons.Default.Timer, null, tint = chipColor, modifier = Modifier.size(14.dp))
         Spacer(Modifier.width(6.dp))
         Text(
             text       = "Free cancellation available · $text remaining",
@@ -537,20 +485,16 @@ fun GracePeriodChip(booking: Booking, isDark: Boolean) {
     }
 }
 
-/**
- * Shown when the 1-day window is active and grace period has expired.
- * Fires a dial intent to the marketing executive.
- */
 @Composable
 fun CallSupportButton(isDark: Boolean, context: android.content.Context) {
     val supportColor = if (isDark) Color(0xFFFFCC80) else Color(0xFF6D4C41)
     Card(
-        modifier  = Modifier.fillMaxWidth(),
-        shape     = RoundedCornerShape(10.dp),
-        colors    = CardDefaults.cardColors(
+        modifier = Modifier.fillMaxWidth(),
+        shape    = RoundedCornerShape(10.dp),
+        colors   = CardDefaults.cardColors(
             containerColor = supportColor.copy(alpha = if (isDark) 0.12f else 0.07f)
         ),
-        border    = BorderStroke(1.dp, supportColor.copy(alpha = if (isDark) 0.35f else 0.25f))
+        border   = BorderStroke(1.dp, supportColor.copy(alpha = if (isDark) 0.35f else 0.25f))
     ) {
         Column(
             modifier            = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
@@ -568,8 +512,7 @@ fun CallSupportButton(isDark: Boolean, context: android.content.Context) {
                 color      = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
             )
             Button(
-                onClick  = { context.startActivity(Intent(Intent.ACTION_DIAL,
-                    "tel:$SUPPORT_PHONE".toUri())) },
+                onClick  = { context.startActivity(Intent(Intent.ACTION_DIAL, "tel:$SUPPORT_PHONE".toUri())) },
                 modifier = Modifier.fillMaxWidth(),
                 colors   = ButtonDefaults.buttonColors(containerColor = supportColor)
             ) {
@@ -582,14 +525,6 @@ fun CallSupportButton(isDark: Boolean, context: android.content.Context) {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Package-level sub-composables
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Phone row shown on BookingCard for the counterparty.
- * Number is blurred while the cancellation window is open; revealed once it closes.
- */
 @Composable
 fun CardPhoneRow(label: String, phone: String, revealed: Boolean) {
     Row(
@@ -604,27 +539,15 @@ fun CardPhoneRow(label: String, phone: String, revealed: Boolean) {
             color      = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
         )
         if (revealed) {
-            Text(
-                phone,
-                fontFamily = FontFamily.Serif,
-                fontSize   = 12.sp,
-                color      = MaterialTheme.colorScheme.onSurface
-            )
+            Text(phone, fontFamily = FontFamily.Serif, fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurface)
         } else {
-            Text(
-                phone,
-                fontFamily = FontFamily.Serif,
-                fontSize   = 12.sp,
-                color      = MaterialTheme.colorScheme.onSurface,
-                modifier   = Modifier.blur(6.dp)
-            )
+            Text(phone, fontFamily = FontFamily.Serif, fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.blur(6.dp))
             Spacer(Modifier.width(4.dp))
-            Icon(
-                Icons.Default.Lock,
-                contentDescription = null,
-                tint     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
-                modifier = Modifier.size(11.dp)
-            )
+            Icon(Icons.Default.Lock, null,
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
+                modifier = Modifier.size(11.dp))
         }
     }
 }
@@ -639,27 +562,17 @@ fun LabelValueRow(label: String, value: String, valueFontSize: Int = 12) {
     }
 }
 
-/**
- * Animated status chip.
- *
- * - Colours fade smoothly via [animateColorAsState] when status changes in real-time
- *   (Firestore listener pushes the new status → recomposition → transition plays).
- * - A brief scale pop via [Animatable] makes the change visually noticeable without
- *   requiring any explicit "status changed" signal from the caller.
- */
 @Composable
 fun StatusChip(status: BookingStatus) {
     val (bgColor, textColor) = statusChipColors(status)
 
-    // Smooth colour transition on real-time status update
     val animBg   by animateColorAsState(bgColor,   animationSpec = tween(450), label = "chip_bg")
     val animText by animateColorAsState(textColor, animationSpec = tween(450), label = "chip_text")
 
-    // Brief scale pop whenever status changes
     val scale = remember { Animatable(1f) }
     LaunchedEffect(status) {
         scale.animateTo(1.12f, tween(100))
-        scale.animateTo(1f,    spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium))
+        scale.animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium))
     }
 
     Box(
@@ -679,8 +592,11 @@ fun statusChipColors(status: BookingStatus): Pair<Color, Color> {
     return when (status) {
         BookingStatus.PENDING_PAYMENT -> Color(0xFFFFF3CD) to Color(0xFF856404)
         BookingStatus.PAYMENT_DONE    -> Color(0xFFD1ECF1) to Color(0xFF0C5460)
+        // FIX: PAYMENT_FAILED added — distinct red chip, same dark/light logic as other failures
+        BookingStatus.PAYMENT_FAILED  ->
+            if (isDark) Color(0xFF3B1A1A) to DeleteRed else Color(0xFFF8D7DA) to BrandRed
         BookingStatus.ACCEPTED        ->
-            if (isDark) Color(0xFF1B4332) to CallGreen else Color(0xFFD4EDDA) to Color(0xFF155724)
+            if (isDark) Color(0xFF1B4332) to CallGreen  else Color(0xFFD4EDDA) to Color(0xFF155724)
         BookingStatus.COMPLETED       ->
             if (isDark) Color(0xFF1B3A4B) to BrandGold  else Color(0xFFCCE5FF) to Color(0xFF004085)
         BookingStatus.REJECTED,
@@ -692,16 +608,9 @@ fun statusChipColors(status: BookingStatus): Pair<Color, Color> {
     }
 }
 
-/**
- * Distinct card shown on the customer's BookingCard when a completion OTP is live.
- *
- * Visibility rule: !isPurohitView && status == ACCEPTED && completionOtp != null
- * Auto-disappears when booking moves to COMPLETED (completionOtp deleted from Firestore,
- * Firestore listener pushes the update, recomposition clears this card).
- */
 @Composable
 fun CompletionOtpChip(otp: String, isDark: Boolean) {
-    val accentColor = if (isDark) Color(0xFF90CAF9) else Color(0xFF1565C0)  // Blue 200 / Blue 800
+    val accentColor = if (isDark) Color(0xFF90CAF9) else Color(0xFF1565C0)
     Card(
         modifier  = Modifier.fillMaxWidth(),
         shape     = RoundedCornerShape(10.dp),
@@ -716,33 +625,16 @@ fun CompletionOtpChip(otp: String, isDark: Boolean) {
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector        = Icons.Default.VpnKey,
-                    contentDescription = null,
-                    tint               = accentColor,
-                    modifier           = Modifier.size(14.dp)
-                )
+                Icon(Icons.Default.VpnKey, null, tint = accentColor, modifier = Modifier.size(14.dp))
                 Spacer(Modifier.width(6.dp))
-                Text(
-                    text       = "Your Completion Code",
-                    fontFamily = FontFamily.Serif,
-                    fontWeight = FontWeight.Bold,
-                    fontSize   = 12.sp,
-                    color      = accentColor
-                )
+                Text("Your Completion Code", fontFamily = FontFamily.Serif,
+                    fontWeight = FontWeight.Bold, fontSize = 12.sp, color = accentColor)
             }
-            Text(
-                text       = otp,
-                fontFamily = FontFamily.Serif,
-                fontWeight = FontWeight.Bold,
-                fontSize   = 28.sp,
-                letterSpacing = 8.sp,
-                color      = accentColor
-            )
+            Text(otp, fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold,
+                fontSize = 28.sp, letterSpacing = 8.sp, color = accentColor)
             Text(
                 text       = "Share this code with the purohit to complete your booking.",
-                fontFamily = FontFamily.Serif,
-                fontSize   = 11.sp,
+                fontFamily = FontFamily.Serif, fontSize = 11.sp,
                 color      = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.60f)
             )
         }

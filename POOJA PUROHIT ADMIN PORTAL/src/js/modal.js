@@ -8,6 +8,37 @@
 /** @type {string|null} */
 let activePurohitId = null;
 
+// ── toggleVerify (called by modal verify/unverify button) ───
+
+async function toggleVerify(id, value) {
+  const modalBtn = document.getElementById("modal-verify-btn");
+  if (modalBtn) { modalBtn.disabled = true; modalBtn.textContent = "Saving…"; }
+
+  try {
+    await db.collection("purohits").doc(id).update({
+      isVerified:  value,
+      isAvailable: value,
+      updatedAt:   firebase.firestore.FieldValue.serverTimestamp()
+    });
+    const p = allPurohits.find(x => x.id === id);
+    if (p) { p.isVerified = value; p.isAvailable = value; }
+    updateStats();
+    renderList();
+    // Re-render modal to reflect new state
+    if (p) renderPurohitModal(p);
+    showToast(value ? "Purohit verified ✓" : "Marked as unverified");
+  } catch (e) {
+    showToast("Error: " + e.message);
+    // Restore button
+    const p = allPurohits.find(x => x.id === id);
+    if (modalBtn && p) {
+      modalBtn.disabled  = false;
+      modalBtn.className = "btn-modal-verify " + (p.isVerified ? "unverify" : "verify");
+      modalBtn.textContent = p.isVerified ? "Unverify" : "Verify";
+    }
+  }
+}
+
 // ── Public API ──────────────────────────────────────────────
 
 function openPurohitModal(id) {

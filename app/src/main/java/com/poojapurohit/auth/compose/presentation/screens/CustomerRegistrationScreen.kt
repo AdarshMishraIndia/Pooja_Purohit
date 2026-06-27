@@ -10,6 +10,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -19,6 +21,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.poojapurohit.auth.AuthUiState
 import com.poojapurohit.auth.compose.presentation.AuthViewModel
 import com.poojapurohit.auth.compose.presentation.components.AuthButton
 import com.poojapurohit.auth.compose.presentation.components.AuthTextField
@@ -26,17 +29,24 @@ import com.poojapurohit.auth.compose.presentation.components.AuthTitle
 import com.poojapurohit.auth.compose.presentation.components.WelcomeText
 import kotlinx.coroutines.delay
 import kotlin.math.min
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
-fun CustomerRegistrationScreen(
-    viewModel: AuthViewModel
-) {
+fun CustomerRegistrationScreen(viewModel: AuthViewModel) {
+    val context = LocalContext.current
+    val activity = context as? android.app.Activity
+
     var name by remember { mutableStateOf(viewModel.formData.name) }
     var phone by remember { mutableStateOf(viewModel.formData.phone) }
+    var otp by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
+    val uiState by viewModel.uiState.collectAsState()
+    val isPhoneVerified = uiState is AuthUiState.PhoneVerified
+    val isOtpSent = uiState is AuthUiState.OtpSent
+    val verificationId = (uiState as? AuthUiState.OtpSent)?.verificationId
+
     val fontScale = LocalDensity.current.fontScale
-    // NEW: Adaptive top spacing that scales down at larger fonts
     val adaptiveTopSpacing = (200 / min(fontScale, 1.5f)).dp
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -48,13 +58,11 @@ fun CustomerRegistrationScreen(
             horizontalAlignment = Alignment.Start
         ) {
             AuthTitle()
-
-            Spacer(modifier = Modifier.height(adaptiveTopSpacing))  // CHANGED: adaptive
-
+            Spacer(modifier = Modifier.height(adaptiveTopSpacing))
             WelcomeText()
-
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Name field
             AuthTextField(
                 label = "Name",
                 value = name,
@@ -72,6 +80,7 @@ fun CustomerRegistrationScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Phone field
             AuthTextField(
                 label = "Phone",
                 value = phone,
@@ -86,33 +95,86 @@ fun CustomerRegistrationScreen(
                 keyboardType = KeyboardType.Phone
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
+            // Verify button — appears when phone is 10 digits and not yet verified
+            if (phone.length == 10 && !isPhoneVerified) {
+                AuthButton(
+                    text = if (isOtpSent) "Resend OTP" else "Verify with OTP",
+                    onClick = {
+                        if (activity != null) {
+                            otp = ""
+                            viewModel.sendPhoneOtp(phone, activity)
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
+            // OTP input + confirm — shown only after OTP is sent
+            if (isOtpSent && verificationId != null) {
+                AuthTextField(
+                    label = "OTP",
+                    value = otp,
+                    onValueChange = {
+                        if (it.length <= 6 && it.all { char -> char.isDigit() }) otp = it
+                    },
+                    placeholder = "Enter 6-digit OTP",
+                    keyboardType = KeyboardType.NumberPassword
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                AuthButton(
+                    text = "Confirm OTP",
+                    onClick = {
+                        when {
+                            otp.length != 6 -> errorMessage = "Enter the 6-digit OTP"
+                            else -> viewModel.verifyPhoneOtp(verificationId, otp)
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
+            // Verified badge
+            if (isPhoneVerified) {
+                Text(
+                    text = "✅ Phone verified",
+                    color = Color(0xFF2E7D32),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+            }
+
+            // Register button — greyed out until phone is verified
             AuthButton(
                 text = "REGISTER",
                 onClick = {
                     when {
                         name.isBlank() -> errorMessage = "Please enter your name"
                         name.length < 2 -> errorMessage = "Name must be at least 2 characters"
-                        phone.isBlank() -> errorMessage = "Please enter your phone number"
-                        phone.length != 10 -> errorMessage = "Phone number must be 10 digits"
+                        !isPhoneVerified -> errorMessage = "Please verify your phone number first"
                         else -> {
                             errorMessage = null
                             viewModel.registerUser()
                         }
                     }
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(if (!isPhoneVerified) Modifier.graphicsLayer { alpha = 0.4f } else Modifier)
             )
 
             Spacer(modifier = Modifier.height(24.dp))
         }
 
         errorMessage?.let { error ->
-            ErrorDialog(
-                message = error,
-                onDismiss = { errorMessage = null }
-            )
+            ErrorDialog(message = error, onDismiss = { errorMessage = null })
         }
     }
 }
@@ -123,7 +185,7 @@ private fun ErrorDialog(
     onDismiss: () -> Unit
 ) {
     LaunchedEffect(message) {
-        delay(3000)
+        delay(3000.milliseconds)
         onDismiss()
     }
 
@@ -142,10 +204,7 @@ private fun ErrorDialog(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text(
-                    text = "⚠️",
-                    fontSize = 40.sp
-                )
+                Text(text = "⚠️", fontSize = 40.sp)
 
                 Text(
                     text = message,
