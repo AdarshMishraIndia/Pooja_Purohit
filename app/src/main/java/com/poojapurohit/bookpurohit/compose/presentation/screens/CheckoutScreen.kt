@@ -53,10 +53,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.poojapurohit.booking.BookingsActivity
@@ -71,7 +73,6 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
-import androidx.core.net.toUri
 
 // Deep Maroon / Sacred
 private val LightGradTop = Color(0xFFFFFDF8)
@@ -90,6 +91,8 @@ fun CheckoutScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val isDark = isSystemInDarkTheme()
+
+    val focusManager = LocalFocusManager.current
 
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
@@ -316,12 +319,19 @@ fun CheckoutScreen(
             if (showMapPicker) {
                 MapPinPickerScreen(
                     initialPin = uiState.coordinates, isDark = isDark,
-                    onConfirm = { latLng -> viewModel.onCoordinatesSelected(latLng); showMapPicker = false },
-                    onDismiss = { showMapPicker = false }
+                    onConfirm = { latLng ->
+                        viewModel.onCoordinatesSelected(latLng)
+                        focusManager.clearFocus()   // ← add
+                        showMapPicker = false
+                    },
+                    onDismiss = {
+                        focusManager.clearFocus()   // ← add
+                        showMapPicker = false
+                    }
                 )
             }
 
-            // Razorpay stub dialog
+            // Razorpay stub dialogue
             if (uiState.isPaymentDialogVisible) {
                 RazorpayStubDialog(
                     isDark = isDark,

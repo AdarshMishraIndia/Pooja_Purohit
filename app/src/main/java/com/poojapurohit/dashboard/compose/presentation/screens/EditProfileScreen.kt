@@ -1,5 +1,6 @@
 package com.poojapurohit.dashboard.compose.presentation.screens
 
+import android.app.Activity
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -52,11 +53,17 @@ fun EditProfileScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val effect by viewModel.effect.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val activity = context as? Activity
     val isDark = isSystemInDarkTheme()
     val scope = rememberCoroutineScope()
 
-    // City viewport — biases locality autocomplete predictions
     var cityBounds by remember { mutableStateOf<RectangularBounds?>(null) }
+    var otpInput by remember { mutableStateOf("") }
+
+    // Reset OTP input when OTP flow resets
+    LaunchedEffect(uiState.isOtpSent) {
+        if (!uiState.isOtpSent) otpInput = ""
+    }
 
     LaunchedEffect(effect) {
         when (val currentEffect = effect) {
@@ -76,10 +83,7 @@ fun EditProfileScreen(
 
     Scaffold(
         topBar = {
-            EditProfileTopBar(
-                onBackPressed = onBackPressed,
-                isDark = isDark
-            )
+            EditProfileTopBar(onBackPressed = onBackPressed, isDark = isDark)
         }
     ) { paddingValues ->
         Box(
@@ -87,19 +91,15 @@ fun EditProfileScreen(
                 .fillMaxSize()
                 .background(
                     brush = Brush.linearGradient(
-                        colors = if (isDark) {
-                            listOf(
-                                DarkBackgroundGradientStart,
-                                DarkBackgroundGradientCenter,
-                                DarkBackgroundGradientEnd
-                            )
-                        } else {
-                            listOf(
-                                LightBackgroundGradientStart,
-                                LightBackgroundGradientCenter,
-                                LightBackgroundGradientEnd
-                            )
-                        },
+                        colors = if (isDark) listOf(
+                            DarkBackgroundGradientStart,
+                            DarkBackgroundGradientCenter,
+                            DarkBackgroundGradientEnd
+                        ) else listOf(
+                            LightBackgroundGradientStart,
+                            LightBackgroundGradientCenter,
+                            LightBackgroundGradientEnd
+                        ),
                         start = Offset.Zero,
                         end = Offset.Infinite
                     )
@@ -116,7 +116,8 @@ fun EditProfileScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // ── Common fields ─────────────────────────────────────────
+
+                    // ── Name ─────────────────────────────────────────────────
                     ProfileTextField(
                         value = uiState.name,
                         onValueChange = { viewModel.onEvent(EditProfileEvent.NameChanged(it)) },
@@ -126,12 +127,89 @@ fun EditProfileScreen(
                         helperText = "Only letters and spaces allowed"
                     )
 
+                    // ── Phone + OTP block ─────────────────────────────────────
+                    val phoneChanged = uiState.phone != uiState.originalPhone
+
                     PhoneTextField(
                         value = uiState.phone,
                         onValueChange = { viewModel.onEvent(EditProfileEvent.PhoneChanged(it)) },
                         error = uiState.phoneError,
                         isDark = isDark
                     )
+
+                    // Verify button — only when phone changed, 10 digits, not yet verified
+                    if (phoneChanged && uiState.phone.length == 10 && !uiState.isPhoneVerified) {
+                        Button(
+                            onClick = {
+                                activity?.let {
+                                    viewModel.onEvent(EditProfileEvent.SendPhoneOtp(it))
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isDark) DarkBrandOrange else BrandRed
+                            )
+                        ) {
+                            Text(
+                                text = if (uiState.isOtpSent) "Resend OTP" else "Verify New Number",
+                                fontFamily = FontFamily.Serif,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    // OTP input — shown after OTP sent
+                    if (uiState.isOtpSent && uiState.otpVerificationId != null) {
+                        OutlinedTextField(
+                            value = otpInput,
+                            onValueChange = {
+                                if (it.length <= 6 && it.all(Char::isDigit)) otpInput = it
+                            },
+                            label = { Text("Enter OTP", fontFamily = FontFamily.Serif) },
+                            placeholder = { Text("6-digit OTP", fontFamily = FontFamily.Serif) },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            textStyle = androidx.compose.ui.text.TextStyle(
+                                fontFamily = FontFamily.Serif,
+                                fontSize = 16.sp
+                            ),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = BrandOrange,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                            )
+                        )
+
+                        Button(
+                            onClick = {
+                                if (otpInput.length == 6) {
+                                    viewModel.onEvent(EditProfileEvent.VerifyPhoneOtp(otpInput))
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = otpInput.length == 6,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isDark) DarkBrandOrange else BrandRed
+                            )
+                        ) {
+                            Text(
+                                text = "Confirm OTP",
+                                fontFamily = FontFamily.Serif,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    // Verified badge
+                    if (uiState.isPhoneVerified && phoneChanged) {
+                        Text(
+                            text = "✅ New number verified",
+                            color = Color(0xFF2E7D32),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            fontFamily = FontFamily.Serif
+                        )
+                    }
 
                     // ── Service partner exclusive fields ──────────────────────
                     if (uiState.isServicePartner) {
@@ -148,13 +226,12 @@ fun EditProfileScreen(
                             color = if (isDark) DarkBrandOrange else BrandRed
                         )
 
-                        // ── City — Places autocomplete ────────────────────────
+                        // ── City ──────────────────────────────────────────────
                         DashboardPlacesAutocompleteField(
                             label = "City *",
                             value = uiState.city,
                             onValueChange = { input ->
                                 viewModel.onEvent(EditProfileEvent.CityChanged(input))
-                                // Manual edit — reset locality and bounds
                                 viewModel.onEvent(EditProfileEvent.LocalityChanged(""))
                                 cityBounds = null
                             },
@@ -162,7 +239,6 @@ fun EditProfileScreen(
                                 viewModel.onEvent(EditProfileEvent.CityChanged(displayName))
                                 viewModel.onEvent(EditProfileEvent.LocalityChanged(""))
                                 cityBounds = null
-                                // Fetch viewport to bias locality predictions
                                 if (Places.isInitialized()) {
                                     scope.launch {
                                         try {
@@ -177,9 +253,7 @@ fun EditProfileScreen(
                                                         cityBounds = RectangularBounds.newInstance(it)
                                                     }
                                                 }
-                                        } catch (_: Exception) {
-                                            // Bounds unavailable — locality autocomplete still works unbiased
-                                        }
+                                        } catch (_: Exception) {}
                                     }
                                 }
                             },
@@ -199,15 +273,11 @@ fun EditProfileScreen(
                             )
                         }
 
-                        // ── Locality — Places autocomplete ────────────────────
-                        // No typesFilter — unfiltered + cityBounds bias surfaces
-                        // Indian neighbourhoods and sub-areas correctly.
+                        // ── Locality ──────────────────────────────────────────
                         DashboardPlacesAutocompleteField(
                             label = "Locality *",
                             value = uiState.locality,
-                            onValueChange = { input ->
-                                viewModel.onEvent(EditProfileEvent.LocalityChanged(input))
-                            },
+                            onValueChange = { viewModel.onEvent(EditProfileEvent.LocalityChanged(it)) },
                             onPlaceSelected = { _, displayName ->
                                 viewModel.onEvent(EditProfileEvent.LocalityChanged(displayName))
                             },
@@ -230,7 +300,17 @@ fun EditProfileScreen(
                             )
                         }
 
-                        // ── Specialization ────────────────────────────────────
+                        // ── Experience ────────────────────────────────────────
+                        ProfileTextField(
+                            value = uiState.experience,
+                            onValueChange = { viewModel.onEvent(EditProfileEvent.ExperienceChanged(it)) },
+                            label = "Experience (years)",
+                            placeholder = "Years of experience",
+                            error = uiState.experienceError,
+                            keyboardType = KeyboardType.Number
+                        )
+
+                        // ── Skills ────────────────────────────────────────────
                         SkillsSelectionList(
                             availableSkills = uiState.availableSkills,
                             selectedSkills = uiState.selectedSkills,
@@ -291,6 +371,8 @@ fun EditProfileScreen(
         }
     }
 }
+
+// ─── Top Bar ─────────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -353,6 +435,8 @@ private fun EditProfileTopBar(
         }
     }
 }
+
+// ─── Phone Text Field ─────────────────────────────────────────────────────────
 
 @Composable
 private fun PhoneTextField(
@@ -418,6 +502,8 @@ private fun PhoneTextField(
     }
 }
 
+// ─── Profile Text Field ───────────────────────────────────────────────────────
+
 @Composable
 private fun ProfileTextField(
     value: String,
@@ -481,6 +567,8 @@ private fun ProfileTextField(
         )
     }
 }
+
+// ─── Skills Selection ─────────────────────────────────────────────────────────
 
 @Composable
 private fun SkillsSelectionList(
@@ -581,6 +669,8 @@ private fun SkillsSelectionList(
     }
 }
 
+// ─── Service List Item ────────────────────────────────────────────────────────
+
 @Composable
 private fun ServiceListItem(
     service: String,
@@ -611,9 +701,7 @@ private fun ServiceListItem(
                 .background(
                     if (isSelected) {
                         if (isDark) DarkBrandOrange else BrandOrange
-                    } else {
-                        Color.Transparent
-                    }
+                    } else Color.Transparent
                 )
                 .border(
                     width = 2.dp,

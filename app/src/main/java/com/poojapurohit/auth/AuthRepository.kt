@@ -12,7 +12,9 @@ import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessaging
@@ -293,9 +295,9 @@ class AuthRepository(
             .setTimeout(60L, java.util.concurrent.TimeUnit.SECONDS)
             .setActivity(activity)
             .setCallbacks(object : com.google.firebase.auth.PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
-                override fun onVerificationCompleted(credential: com.google.firebase.auth.PhoneAuthCredential) {
+                override fun onVerificationCompleted(credential: PhoneAuthCredential) {
                     // Auto-retrieval or instant verification
-                    linkPhoneCredential(credential, onVerified, onError)
+                    linkOrUpdatePhoneCredential(credential, onVerified, onError)
                 }
                 override fun onVerificationFailed(e: com.google.firebase.FirebaseException) {
                     onError(e.message ?: "OTP send failed")
@@ -318,25 +320,25 @@ class AuthRepository(
         onError: (String) -> Unit
     ) {
         val credential = com.google.firebase.auth.PhoneAuthProvider.getCredential(verificationId, otp)
-        linkPhoneCredential(credential, onVerified, onError)
+        linkOrUpdatePhoneCredential(credential, onVerified, onError)
     }
 
-    private fun linkPhoneCredential(
-        credential: com.google.firebase.auth.PhoneAuthCredential,
+    private fun linkOrUpdatePhoneCredential(
+        credential: PhoneAuthCredential,
         onVerified: () -> Unit,
         onError: (String) -> Unit
     ) {
-        val user = auth.currentUser
-        if (user == null) {
-            onError("User not signed in")
-            return
-        }
+        val user = auth.currentUser ?: run { onError("User not signed in"); return }
+
         user.linkWithCredential(credential)
             .addOnSuccessListener { onVerified() }
             .addOnFailureListener { e ->
-                // If already linked, treat as success
-                if (e is com.google.firebase.auth.FirebaseAuthUserCollisionException) {
-                    onVerified()
+                if (e is FirebaseAuthUserCollisionException ||
+                    e.message?.contains("already") == true) {
+                    // Phone already linked — update instead
+                    user.updatePhoneNumber(credential)
+                        .addOnSuccessListener { onVerified() }
+                        .addOnFailureListener { onError(it.message ?: "Phone update failed") }
                 } else {
                     onError(e.message ?: "OTP verification failed")
                 }
