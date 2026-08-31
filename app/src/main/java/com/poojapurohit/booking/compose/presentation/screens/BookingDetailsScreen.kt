@@ -14,11 +14,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -63,15 +65,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
@@ -81,17 +85,24 @@ import com.poojapurohit.booking.compose.components.SUPPORT_PHONE
 import com.poojapurohit.booking.compose.components.StatusChip
 import com.poojapurohit.booking.compose.components.bookingActionFlags
 import com.poojapurohit.booking.compose.components.graceRemainingText
+import com.poojapurohit.booking.compose.components.isCancellationWindowClosed
 import com.poojapurohit.booking.compose.components.isWithinGracePeriod
 import com.poojapurohit.booking.model.Booking
 import com.poojapurohit.booking.model.BookingStatus
 import com.poojapurohit.booking.model.Coordinates
 import com.poojapurohit.bookpurohit.compose.presentation.screens.MapPinPickerScreen
+import com.poojapurohit.ui.theme.BrandOrange
 import com.poojapurohit.ui.theme.BrandRed
+import com.poojapurohit.ui.theme.DarkBrandOrange
 import com.poojapurohit.ui.theme.DarkBrandRed
+import com.poojapurohit.ui.theme.DarkWelcomeBannerEnd
+import com.poojapurohit.ui.theme.DarkWelcomeBannerStart
+import com.poojapurohit.ui.theme.WelcomeBannerEnd
+import com.poojapurohit.ui.theme.WelcomeBannerStart
+import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.concurrent.TimeUnit
-import com.poojapurohit.booking.compose.components.isCancellationWindowClosed
 import kotlin.time.Duration.Companion.milliseconds
 
 // ── Section accent colours ─────────────────────────────────────────────────────
@@ -195,23 +206,74 @@ fun BookingDetailScreen(
     )
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0),
         topBar = {
-            TopAppBar(
-                title = {
-                    Text("Booking Details", fontFamily = FontFamily.Serif,
-                        fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor             = if (isDark) DarkBrandRed else BrandRed,
-                    titleContentColor          = Color.White,
-                    navigationIconContentColor = Color.White
-                )
-            )
+            // Two-tier top bar matching SRS: gradient app-title bar + screen-name banner
+            Column {
+                // Tier 1: Gradient app title bar with back navigation
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            brush = Brush.linearGradient(
+                                colors = if (isDark) listOf(DarkBrandOrange, DarkBrandRed)
+                                else listOf(BrandOrange, BrandRed),
+                                start  = Offset.Zero,
+                                end    = Offset.Infinite
+                            )
+                        )
+                ) {
+                    TopAppBar(
+                        windowInsets = WindowInsets(0, 0, 0, 0),
+                        modifier     = Modifier.statusBarsPadding(),
+                        title = {
+                            Text(
+                                text       = "POOJA PUROHIT (ପୂଜା ପୁରୋହିତ)",
+                                fontFamily = FontFamily.Serif,
+                                fontWeight = FontWeight.Bold,
+                                fontSize   = 20.sp,
+                                color      = Color.White,
+                                modifier   = Modifier.padding(10.dp)
+                            )
+                        },
+                        navigationIcon = {
+                            IconButton(onClick = onBack) {
+                                Icon(
+                                    imageVector        = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Back",
+                                    tint               = Color.White
+                                )
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = Color.Transparent
+                        )
+                    )
+                }
+
+                // Tier 2: Screen name banner
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = if (isDark) listOf(DarkWelcomeBannerStart, DarkWelcomeBannerEnd)
+                                else listOf(WelcomeBannerStart, WelcomeBannerEnd)
+                            )
+                        )
+                        .padding(12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text       = "Booking Details",
+                        fontFamily = FontFamily.Serif,
+                        fontWeight = FontWeight.Bold,
+                        fontSize   = 18.sp,
+                        color      = if (isDark) DarkBrandOrange else BrandOrange,
+                        textAlign  = TextAlign.Center
+                    )
+                }
+            }
         }
     ) { scaffoldPadding ->
         Column(

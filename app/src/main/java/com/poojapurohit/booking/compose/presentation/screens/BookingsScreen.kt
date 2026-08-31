@@ -87,6 +87,12 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlin.time.Duration.Companion.milliseconds
+import com.poojapurohit.ui.theme.DarkWelcomeBannerStart
+import com.poojapurohit.ui.theme.DarkWelcomeBannerEnd
+import com.poojapurohit.ui.theme.WelcomeBannerStart
+import com.poojapurohit.ui.theme.WelcomeBannerEnd
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBarsPadding
 
 // ── List item model ───────────────────────────────────────────────────────────
 
@@ -455,13 +461,17 @@ private fun BookingListContent(
     onComplete         : (Booking) -> Unit,
     onCancel           : (Booking) -> Unit
 ) {
-    Scaffold(snackbarHost = { SnackbarHost(hostState = snackbarHost) }) { scaffoldPadding ->
+    Scaffold(
+        contentWindowInsets = WindowInsets(0), // two-tier header owns status bar insets
+        snackbarHost = { SnackbarHost(hostState = snackbarHost) }
+    ) { scaffoldPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
                 .padding(scaffoldPadding)
         ) {
+            // Tier 1: App title bar — gradient, edge-to-edge, matches DashboardTopBar style
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -473,11 +483,12 @@ private fun BookingListContent(
                             end    = Offset.Infinite
                         )
                     )
-                    .padding(vertical = 16.dp),
+                    .statusBarsPadding()                          // push text below status bar
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text       = "My Bookings",
+                    text       = "POOJA PUROHIT (ପୂଜା ପୁରୋହିତ)",
                     fontFamily = FontFamily.Serif,
                     fontWeight = FontWeight.Bold,
                     fontSize   = 20.sp,
@@ -485,6 +496,28 @@ private fun BookingListContent(
                 )
             }
 
+            // Tier 2: Screen name banner — matches EditProfileTopBar secondary banner
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = if (isDark) listOf(DarkWelcomeBannerStart, DarkWelcomeBannerEnd)
+                            else listOf(WelcomeBannerStart, WelcomeBannerEnd)
+                        )
+                    )
+                    .padding(12.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text       = "My Bookings",
+                    fontFamily = FontFamily.Serif,
+                    fontWeight = FontWeight.Bold,
+                    fontSize   = 18.sp,
+                    color      = if (isDark) DarkBrandOrange else BrandOrange,
+                    textAlign  = TextAlign.Center
+                )
+            }
             SecondaryTabRow(
                 selectedTabIndex = pagerState.currentPage,
                 containerColor   = MaterialTheme.colorScheme.surface,

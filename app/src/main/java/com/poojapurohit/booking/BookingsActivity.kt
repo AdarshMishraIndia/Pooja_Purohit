@@ -51,11 +51,11 @@ class BookingsActivity : ComponentActivity() {
     @Composable
     private fun SetSystemBarsColor() {
         val isDark = isSystemInDarkTheme()
-        val statusBarColor = Color(if (isDark) 0xFF5E1100 else 0xFF811C01)
         DisposableEffect(isDark) {
             val controller = WindowCompat.getInsetsController(window, window.decorView)
+            // Transparent — lets BookingsScreen header gradient bleed behind status bar
             @Suppress("DEPRECATION")
-            window.statusBarColor = statusBarColor.toArgb()
+            window.statusBarColor = Color.Transparent.toArgb()
             controller.isAppearanceLightStatusBars = false
             onDispose { }
         }

@@ -1,9 +1,15 @@
+// ─── REPLACE ENTIRE FILE CONTENT ─────────────────────────────────────────────
+
 package com.poojapurohit.dashboard.compose.presentation.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
@@ -34,67 +40,80 @@ fun DashboardTopBar(
     onNotificationsClick: () -> Unit,
     unreadNotificationCount: Int = 0
 ) {
-    TopAppBar(
-        // windowInsets removed — TopAppBar now handles status bar inset itself,
-        // extending the gradient background behind the notification shade.
-        title = {
-            Text(
-                text = "POOJA PUROHIT (ପୂଜା ପୁରୋହିତ)",
-                fontFamily = FontFamily.Serif,
-                fontWeight = FontWeight.Bold,
-                fontSize = 20.sp,
-                color = Color.White,
-            )
-        },
-        navigationIcon = {
-            IconButton(onClick = onMenuClick) {
-                Icon(
-                    imageVector = Icons.Default.Menu,
-                    contentDescription = "Menu",
-                    tint = Color.White
+    // Outer Box owns the gradient and stretches edge-to-edge including
+    // behind the status bar. TopAppBar inside zeroes out its own insets
+    // so it doesn't double-consume the status bar height, then we add
+    // statusBarsPadding() on the Bar itself to push content below the bar.
+    Box(
+        modifier = Modifier
+            .background(
+                brush = Brush.linearGradient(
+                    colors = listOf(BrandOrange, BrandRed),
+                    start = Offset.Zero,
+                    end = Offset.Infinite
                 )
-            }
-        },
-        actions = {
-            Box(contentAlignment = Alignment.TopEnd) {
-                IconButton(onClick = onNotificationsClick) {
+            )
+    ) {
+        TopAppBar(
+            // Zero internal insets; outer Box + statusBarsPadding owns the top space
+            windowInsets = WindowInsets(0, 0, 0, 0),
+            modifier     = Modifier
+                .statusBarsPadding()
+                .height(56.dp),
+            title = {
+                Text(
+                    text = "POOJA PUROHIT (ପୂଜା ପୁରୋହିତ)",
+                    fontFamily = FontFamily.Serif,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp,
+                    color = Color.White,
+                    modifier = Modifier.padding(10.dp)
+                )
+            },
+            navigationIcon = {
+                IconButton(onClick = onMenuClick) {
                     Icon(
-                        imageVector = Icons.Default.Notifications,
-                        contentDescription = "Notifications",
-                        tint = Color.White,
-                        modifier = Modifier.size(26.dp)
+                        imageVector = Icons.Default.Menu,
+                        contentDescription = "Menu",
+                        tint = Color.White
                     )
                 }
-
-                if (unreadNotificationCount > 0) {
-                    Box(
-                        modifier = Modifier
-                            .offset(x = (-6).dp, y = 6.dp)
-                            .size(18.dp)
-                            .background(color = Color(0xFFD32F2F), shape = CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = if (unreadNotificationCount > 99) "99+"
-                            else unreadNotificationCount.toString(),
-                            color = Color.White,
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Bold,
-                            lineHeight = 10.sp
+            },
+            actions = {
+                // Badge box wraps the icon button so the badge offsets relative to the icon
+                Box(contentAlignment = Alignment.TopEnd) {
+                    IconButton(onClick = onNotificationsClick) {
+                        Icon(
+                            imageVector = Icons.Default.Notifications,
+                            contentDescription = "Notifications",
+                            tint = Color.White,
+                            modifier = Modifier.size(26.dp)
                         )
                     }
+
+                    if (unreadNotificationCount > 0) {
+                        Box(
+                            modifier = Modifier
+                                .offset(x = (-6).dp, y = 6.dp)
+                                .size(18.dp)
+                                .background(color = Color(0xFFD32F2F), shape = CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = if (unreadNotificationCount > 99) "99+"
+                                else unreadNotificationCount.toString(),
+                                color = Color.White,
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                lineHeight = 10.sp
+                            )
+                        }
+                    }
                 }
-            }
-        },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = Color.Transparent
-        ),
-        modifier = Modifier.background(
-            brush = Brush.linearGradient(
-                colors = listOf(BrandOrange, BrandRed),
-                start = Offset.Zero,
-                end = Offset.Infinite
+            },
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = Color.Transparent  // gradient from outer Box shows through
             )
         )
-    )
+    }
 }

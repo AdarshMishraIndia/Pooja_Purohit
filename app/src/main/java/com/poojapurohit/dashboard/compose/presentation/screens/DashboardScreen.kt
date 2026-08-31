@@ -62,6 +62,7 @@ import com.poojapurohit.ui.theme.LightBackgroundGradientEnd
 import com.poojapurohit.ui.theme.LightBackgroundGradientStart
 import com.poojapurohit.notification.compose.NotificationActivity
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.layout.WindowInsets
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -145,6 +146,7 @@ fun DashboardScreen(
         gesturesEnabled = true
     ) {
         Scaffold(
+            contentWindowInsets = WindowInsets(0),
             topBar = {
                 DashboardTopBar(
                     onMenuClick = { scope.launch { drawerState.open() } },

@@ -46,6 +46,7 @@ import com.poojapurohit.dashboard.compose.presentation.screens.DashboardScreen
 import com.poojapurohit.ui.theme.PoojaPurohitTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.layout.WindowInsets
 
 @AndroidEntryPoint
 class DashActivity : ComponentActivity() {
@@ -70,11 +71,11 @@ class DashActivity : ComponentActivity() {
     @Composable
     private fun SetSystemBarsColor() {
         val isDark = isSystemInDarkTheme()
-        val statusBarColor = Color(if (isDark) 0xFF5E1100 else 0xFF811C01)
         DisposableEffect(isDark) {
             val controller = WindowCompat.getInsetsController(window, window.decorView)
+            // Transparent — lets the composable gradient paint behind the status bar
             @Suppress("DEPRECATION")
-            window.statusBarColor = statusBarColor.toArgb()
+            window.statusBarColor = Color.Transparent.toArgb()
             controller.isAppearanceLightStatusBars = false
             onDispose { }
         }
@@ -104,6 +105,7 @@ fun MainNavigationScreen(onExitApp: () -> Unit) {
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             NavigationBar(
                 containerColor = MaterialTheme.colorScheme.surface,

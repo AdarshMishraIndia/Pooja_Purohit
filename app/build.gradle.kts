@@ -17,8 +17,8 @@ android {
         minSdk = 24
         //noinspection OldTargetApi
         targetSdk = 35
-        versionCode = 7
-        versionName = "2.2"
+        versionCode = 8
+        versionName = "3"
 
         val mapsKey = project.findProperty("MAPS_API_KEY")?.toString() ?: ""
         manifestPlaceholders["MAPS_API_KEY"] = mapsKey
@@ -100,12 +100,16 @@ dependencies {
     implementation(libs.lottie.compose)
 
     // Firebase
+    //noinspection LoginCredentials
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
 
     // Credentials & Google Sign-In
+    //noinspection LoginCredentials
     implementation(libs.androidx.credentials)
+    //noinspection LoginCredentials
     implementation(libs.androidx.credentials.play.services.auth)
+    //noinspection LoginCredentials
     implementation(libs.googleid)
 
     // Lifecycle & ViewModel
