@@ -1,177 +1,169 @@
 # Pooja Purohit 🕉️
 
-A modern Android application that connects customers with qualified religious service providers (Purohits) for various ceremonies and rituals.
+A service marketplace platform connecting customers with verified Purohits (priests) for religious ceremonies and rituals. Consists of an Android app, a Firebase Cloud Functions backend, an admin review portal, and a data-deletion request portal.
 
-## 📱 Overview
+## Repository Structure
 
-Pooja Purohit is a service marketplace platform that bridges the gap between people seeking religious services and certified Purohits. The app provides a seamless experience for both customers looking for religious ceremonies and service providers offering their expertise.
+```
+Pooja_Purohit/
+├── app/                                    # Android application (Kotlin)
+├── FIREBASE CLOUD FUNCTIONS/               # TypeScript Cloud Functions backend
+├── FIRESTORE STRUCTURE POOJA PUROHIT/      # Reference Firestore schema (JSON)
+├── POOJA PUROHIT ADMIN PORTAL/             # Static JS admin web portal (Firebase Hosting)
+├── POOJA PUROHIT DATA DELETION REQUEST PORTAL/  # Static data-deletion request page
+├── gradle/                                 # Gradle wrapper + version catalog
+└── build.gradle.kts, settings.gradle.kts   # Root Gradle config
+```
 
-## ✨ Features
+## 1. Android App (`app/`)
 
-### For Customers
-- **Easy Registration**: Quick sign-up with Google authentication
-- **Service Discovery**: Browse and find qualified Purohits in your area
-- **Secure Authentication**: Firebase-based authentication system
-
-### For Service Providers (Purohits)
-- **Professional Registration**: Multi-step registration process with experience validation
-- **Service Specialization**: Select and showcase specific religious services offered
-- **Profile Management**: Comprehensive profile setup with location and experience details
-
-### General Features
-- **Modern UI/UX**: Clean, intuitive interface with Material Design
-- **Splash Screen**: Elegant app launch experience with session management
-- **Multi-user Support**: Separate flows for customers and service providers
-- **Real-time Data**: Firebase Firestore integration for live data synchronization
-
-## 🛠️ Tech Stack
-
-### Core Technologies
+### Tech Stack
 - **Language**: Kotlin
-- **Architecture**: MVVM (Model-View-ViewModel)
-- **UI Framework**: Android Views with Data Binding & View Binding
-- **Minimum SDK**: API 23 (Android 6.0)
-- **Target SDK**: API 36
-
-### Key Dependencies
-- **Authentication**: Firebase Auth with Google Sign-In
+- **UI**: Jetpack Compose (with some legacy View/DataBinding screens)
+- **DI**: Hilt
+- **Architecture**: MVVM
+- **Auth**: Firebase Auth + Google Sign-In (AndroidX Credentials API)
 - **Database**: Firebase Firestore
-- **UI Components**: Material Design Components
-- **Animations**: Lottie Animations
-- **Credentials**: AndroidX Credentials API
-- **Lifecycle**: AndroidX Lifecycle & ViewModel
-- **Splash Screen**: AndroidX Core SplashScreen
+- **Other**: Lottie animations, Coil, Navigation Compose, Google Maps Compose
 
-## 🏗️ Project Structure
+### SDK Versions
+| | Version |
+|---|---|
+| Compile SDK | 37 |
+| Min SDK | 24 (Android 7.0) |
+| Target SDK | 35 |
+| Kotlin | 2.3.21 |
+| Compose BOM | 2026.05.01 |
 
+### Package Structure
 ```
 app/src/main/java/com/poojapurohit/
-├── SplashActivity.kt                 # App entry point with session management
-├── auth/                            # Authentication module
-│   ├── AuthActivity.kt              # Main authentication screen
-│   ├── AuthViewModel.kt             # Authentication business logic
-│   ├── AuthUiManager.kt             # UI state management
-│   ├── AuthRepository.kt            # Data layer for auth operations
-│   └── adapter/                     # RecyclerView adapters
-└── dashboard/                       # Main app dashboard
-    └── DashActivity.kt              # Post-authentication main screen
+├── splash/          # App entry point, session management
+├── auth/            # Authentication (login, registration)
+├── booking/         # Booking flow, models, data layer
+├── bookpurohit/      # Purohit discovery/booking screen
+├── dashboard/       # Post-auth main dashboard
+├── notification/    # In-app notifications (FCM-backed)
+├── di/              # Hilt modules
+└── ui/theme/        # Compose theming
 ```
 
-## 🚀 Getting Started
+### Core Features
+- Google Sign-In based authentication for customers and Purohits
+- Multi-step Purohit registration (experience, specialization, location)
+- Purohit discovery and booking flow
+- Real-time booking status updates and OTP-based service completion
+- Push notifications for booking lifecycle events (payment reminders, booking reminders, day-prior reminders)
+
+## 2. Firebase Cloud Functions (`FIREBASE CLOUD FUNCTIONS/`)
+
+TypeScript backend deployed on Firebase Cloud Functions (Node 24), handling the booking lifecycle end-to-end.
+
+### Exported Functions
+| Function | Trigger | Purpose |
+|---|---|---|
+| `onBookingStatusUpdated` | Firestore write on `bookings/{bookingId}` | Dispatches status-specific notifications and schedules Cloud Tasks reminder chains |
+| `processPaymentReminder` | Cloud Tasks queue | Fires every 15 min (up to 4x / 1 hr) while a booking is `PENDING_PAYMENT`; auto-cancels with `NO_PAYMENT` on exhaustion |
+| `processBookingReminder` | Cloud Tasks queue | Fires every 15 min (up to 8x / 2 hrs) while `PAYMENT_DONE`; auto-cancels with `NO_PUROHIT_RESPONSE` on exhaustion |
+| `processDayPriorReminder` | Cloud Tasks queue | Fires once at T-24h for `ACCEPTED` bookings |
+| `onCompletionOtpWritten` | Firestore write on `bookings/{bookingId}` | Notifies the user via Firestore + FCM when a completion OTP is generated |
+
+### Structure
+```
+FIREBASE CLOUD FUNCTIONS/functions/
+├── src/
+│   ├── index.ts        # Function exports
+│   ├── handlers/        # Firestore/Cloud Tasks trigger handlers
+│   ├── services/        # fcm, notification, tasks services
+│   ├── config/
+│   └── types/
+├── package.json
+└── firebase.json
+```
+
+### Local Development
+```bash
+cd "FIREBASE CLOUD FUNCTIONS/functions"
+npm install
+npm run build          # compile TypeScript
+npm run serve          # build + start local emulator
+npm run shell           # interactive functions shell
+npm run deploy          # deploy to Firebase
+npm run logs             # tail deployed function logs
+```
+
+## 3. Admin Portal (`POOJA PUROHIT ADMIN PORTAL/`)
+
+A static HTML/CSS/JavaScript web app (no build step) hosted on Firebase Hosting, used to review and manage Purohit registrations.
+
+```
+POOJA PUROHIT ADMIN PORTAL/src/
+├── index.html
+├── pooja-purohit-admin-portal-config.js   # Firebase config
+├── css/
+└── js/
+    ├── auth.js        # Admin authentication
+    ├── firebase.js    # Firebase SDK init
+    ├── purohits.js    # Purohit list/management
+    ├── detail.js       # Purohit detail view
+    ├── services.js     # Service category management
+    ├── modal.js
+    └── utils.js
+```
+
+Deploy with the Firebase CLI:
+```bash
+cd "POOJA PUROHIT ADMIN PORTAL"
+firebase deploy --only hosting
+```
+
+## 4. Data Deletion Request Portal (`POOJA PUROHIT DATA DELETION REQUEST PORTAL/`)
+
+A single static page (`index.html`) allowing users to submit account/data deletion requests — required for Google Play data-safety compliance.
+
+## 5. Firestore Schema Reference (`FIRESTORE STRUCTURE POOJA PUROHIT/`)
+
+`Pooja Purohit Firestore Structure.json` documents the Firestore collection/document layout used across the app, functions, and admin portal.
+
+## Getting Started (Android App)
 
 ### Prerequisites
-- Android Studio (latest version recommended)
-- JDK 11 or higher
-- Android SDK with API level 36
-- Firebase project setup
+- Android Studio (latest stable)
+- JDK 17+
+- Android SDK with API level 37
+- A Firebase project (Auth + Firestore + Cloud Messaging enabled)
 
-### Installation
-
-1. **Clone the repository**
+### Setup
+1. Clone the repository:
    ```bash
-   git clone <repository-url>
-   cd PoojaPurohit
+   git clone https://github.com/AdarshMishraIndia/Pooja_Purohit.git
+   cd Pooja_Purohit
    ```
-
-2. **Firebase Setup**
-   - Create a Firebase project at [Firebase Console](https://console.firebase.google.com/)
-   - Add your Android app to the Firebase project
-   - Download `google-services.json` and place it in the `app/` directory
-   - Enable Authentication and Firestore in your Firebase project
-   - Configure Google Sign-In in Firebase Authentication
-
-3. **Google OAuth Setup**
-   - Update the `google_client_id` in `app/src/main/res/values/strings.xml`
-   - Replace with your actual Google OAuth client ID
-
-4. **Build and Run**
+2. Create a Firebase project, register the Android app, and download `google-services.json` into `app/`.
+3. Enable **Google Sign-In** in Firebase Authentication and set the OAuth client ID in `app/src/main/res/values/strings.xml`.
+4. Build and run:
    ```bash
    ./gradlew assembleDebug
    ```
-   Or use Android Studio's build and run functionality.
+   or use Android Studio's Run configuration.
 
-## 🔧 Configuration
-
-### Firebase Configuration
-Ensure your `google-services.json` file is properly configured with:
-- Authentication providers (Google)
-- Firestore database
-- Proper package name matching your app
-
-### Build Configuration
-The app is configured with:
-- **Compile SDK**: 36
-- **Min SDK**: 23
-- **Target SDK**: 36
-- **Java Version**: 11
-- **Kotlin JVM Target**: 11
-
-## 📋 App Flow
-
-1. **Splash Screen**: Checks user authentication status
-2. **Authentication**: 
-   - New users can sign up as customers or service providers
-   - Existing users are redirected to dashboard
-3. **Registration Flow**:
-   - **Customers**: Basic profile setup
-   - **Service Providers**: Multi-step process including experience and specialization
-4. **Dashboard**: Main app functionality (post-authentication)
-
-## 🧪 Testing
-
-### Running Tests
+### Testing
 ```bash
-# Unit tests
-./gradlew test
-
-# Instrumented tests
-./gradlew connectedAndroidTest
+./gradlew test                    # unit tests
+./gradlew connectedAndroidTest    # instrumented tests
 ```
 
-### Test Structure
-- Unit tests: `app/src/test/`
-- Instrumented tests: `app/src/androidTest/`
-
-## 🔐 Security Features
-
-- Firebase Authentication with Google OAuth
-- Secure credential management using AndroidX Credentials API
-- Input validation and sanitization
-- Secure data transmission with Firebase
-
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create a feature branch: `git checkout -b feature/your-feature`
+3. Commit your changes: `git commit -m "Add your feature"`
+4. Push and open a Pull Request
 
-### Code Style
-- Follow Kotlin coding conventions
-- Use meaningful variable and function names
-- Add comments for complex business logic
-- Maintain consistent indentation and formatting
+## License
 
-
-## 📞 Support
-
-For support and questions:
-- Create an issue in the GitHub repository
-- Contact the development team
-
-## 🔄 Version History
-
-- **v1.0.0**: Initial release with core authentication and registration features
-
-## 🚧 Roadmap
-
-- [ ] Service booking functionality
-- [ ] Payment integration
-- [ ] Rating and review system
-- [ ] Advanced search and filtering
-- [ ] Multi-language support
+No license file is currently published in this repository. Add a `LICENSE` file to define usage terms.
 
 ---
 
-**Built with ❤️ for connecting communities with spiritual services**
+**Connecting communities with spiritual services.**
