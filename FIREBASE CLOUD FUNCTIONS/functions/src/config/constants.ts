@@ -4,12 +4,13 @@
  */
 
 export const REGION = "asia-south1";
+export const PROJECT_ID = "pooja-purohit-33b59";
 
 /**
  * Cloud Tasks queue names MUST exactly match the exported function names in index.ts.
  * Firebase resolves the Cloud Run service URL from these names at enqueue time.
  */
-export const QUEUE_BOOKING_REMINDER  = "processBookingReminder2";
+export const QUEUE_BOOKING_REMINDER  = "processBookingReminder";
 export const QUEUE_PAYMENT_REMINDER  = "processPaymentReminder";
 export const QUEUE_DAY_PRIOR_REMINDER = "processDayPriorReminder";
 

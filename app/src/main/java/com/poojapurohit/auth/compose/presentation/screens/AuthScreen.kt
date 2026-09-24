@@ -37,27 +37,28 @@ fun AuthScreen(
         )
 
         // ── Screen Content ────────────────────────────────────────────────────
-        when (val state = uiState) {
+        Box(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
+            when (val state = uiState) {
 
-            is AuthUiState.ShowInitialState -> {
-                InitialAuthScreen(viewModel = viewModel)
-            }
+                is AuthUiState.ShowInitialState -> {
+                    InitialAuthScreen(viewModel = viewModel)
+                }
 
-            is AuthUiState.ShowCustomerFields -> {
-                CustomerRegistrationScreen(viewModel = viewModel)
-            }
+                is AuthUiState.ShowCustomerFields -> {
+                    CustomerRegistrationScreen(viewModel = viewModel)
+                }
 
-            is AuthUiState.ShowServicePartnerStep1 -> {
-                ServicePartnerStep1Screen(viewModel = viewModel)
-            }
+                is AuthUiState.ShowServicePartnerStep1 -> {
+                    ServicePartnerStep1Screen(viewModel = viewModel)
+                }
 
-            is AuthUiState.ShowServicePartnerStep2 -> {
-                ServicePartnerStep2Screen(viewModel = viewModel)
-            }
+                is AuthUiState.ShowServicePartnerStep2 -> {
+                    ServicePartnerStep2Screen(viewModel = viewModel)
+                }
 
-            is AuthUiState.ShowServicePartnerStep3 -> {
-                ServicePartnerStep3Screen(
-                    viewModel = viewModel,
+                is AuthUiState.ShowServicePartnerStep3 -> {
+                    ServicePartnerStep3Screen(
+                        viewModel = viewModel,
                     services = state.services
                 )
             }
@@ -128,8 +129,9 @@ fun AuthScreen(
                 }
             }
 
-            AuthUiState.Idle -> {
-                InitialAuthScreen(viewModel = viewModel)
+                AuthUiState.Idle -> {
+                    InitialAuthScreen(viewModel = viewModel)
+                }
             }
         }
 

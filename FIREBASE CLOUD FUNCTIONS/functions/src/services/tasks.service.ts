@@ -1,6 +1,8 @@
 import { getFunctions } from "firebase-admin/functions";
 import * as logger from "firebase-functions/logger";
 import {
+  REGION,
+  PROJECT_ID,
   QUEUE_BOOKING_REMINDER,
   QUEUE_PAYMENT_REMINDER,
   QUEUE_DAY_PRIOR_REMINDER,
@@ -13,6 +15,9 @@ import {
   PaymentReminderPayload,
   DayPriorReminderPayload,
 } from "../types";
+
+const qualifiedQueue = (name: string) =>
+  `projects/${PROJECT_ID}/locations/${REGION}/functions/${name}`;
 
 /**
  * Enqueues the next purohit acceptance reminder task.
@@ -29,7 +34,7 @@ export async function enqueueBookingReminder(
   payload: BookingReminderPayload
 ): Promise<void> {
   const queue = getFunctions().taskQueue<BookingReminderPayload>(
-    QUEUE_BOOKING_REMINDER
+    qualifiedQueue(QUEUE_BOOKING_REMINDER)
   );
 
   await queue.enqueue(payload, {
@@ -57,7 +62,7 @@ export async function enqueuePaymentReminder(
   payload: PaymentReminderPayload
 ): Promise<void> {
   const queue = getFunctions().taskQueue<PaymentReminderPayload>(
-    QUEUE_PAYMENT_REMINDER
+    qualifiedQueue(QUEUE_PAYMENT_REMINDER)
   );
 
   await queue.enqueue(payload, {
@@ -104,7 +109,7 @@ export async function enqueueDayPriorReminder(
   }
 
   const queue = getFunctions().taskQueue<DayPriorReminderPayload>(
-    QUEUE_DAY_PRIOR_REMINDER
+    qualifiedQueue(QUEUE_DAY_PRIOR_REMINDER)
   );
 
   await queue.enqueue(payload, { scheduleDelaySeconds: delaySeconds });

@@ -15,10 +15,11 @@ android {
     defaultConfig {
         applicationId = "com.poojapurohit"
         minSdk = 24
-        //noinspection OldTargetApi
-        targetSdk = 35
-        versionCode = 8
-        versionName = "3"
+        targetSdk = 36
+        // Last used version code = 8
+        versionCode = 9
+        // Last used version name = 3
+        versionName = "4"
 
         val mapsKey = project.findProperty("MAPS_API_KEY")?.toString() ?: ""
         manifestPlaceholders["MAPS_API_KEY"] = mapsKey
