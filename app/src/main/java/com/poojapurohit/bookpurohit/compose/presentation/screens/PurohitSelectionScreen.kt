@@ -47,7 +47,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.poojapurohit.bookpurohit.compose.BookPurohitEvent
 import com.poojapurohit.bookpurohit.compose.BookPurohitViewModel
-import com.poojapurohit.bookpurohit.compose.model.PurohitItem
+import com.poojapurohit.data.model.PurohitDoc
 import com.poojapurohit.bookpurohit.compose.presentation.components.BookPurohitDecorOverlay
 import com.poojapurohit.bookpurohit.compose.presentation.components.BookPurohitTopBar
 import com.poojapurohit.bookpurohit.compose.presentation.util.highlightSearchQuery
@@ -67,7 +67,7 @@ fun PurohitSelectionScreen(
     locationId: String,
     subLocationId: String,
     onBackPressed: () -> Unit,
-    onBookClick: (PurohitItem) -> Unit
+    onBookClick: (PurohitDoc) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -157,7 +157,7 @@ private fun PurohitSearchBar(query: String, onQueryChange: (String) -> Unit, isD
 }
 
 @Composable
-private fun PurohitCard(purohit: PurohitItem, searchQuery: String, onBookClick: (PurohitItem) -> Unit, isDark: Boolean) {
+private fun PurohitCard(purohit: PurohitDoc, searchQuery: String, onBookClick: (PurohitDoc) -> Unit, isDark: Boolean) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -189,7 +189,7 @@ private fun PurohitCard(purohit: PurohitItem, searchQuery: String, onBookClick: 
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                     Text("📅 ", fontSize = 14.sp)
                     Text(
-                        "${purohit.experience} yrs",
+                        "${purohit.experience ?: 0} yrs",
                         fontFamily = FontFamily.Serif, fontSize = 14.sp,
                         color = if (isDark) Color.White.copy(alpha = 0.7f) else Color.Black.copy(alpha = 0.6f)
                     )

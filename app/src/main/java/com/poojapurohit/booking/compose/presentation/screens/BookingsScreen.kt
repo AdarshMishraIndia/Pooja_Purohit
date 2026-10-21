@@ -72,8 +72,8 @@ import com.poojapurohit.booking.compose.BookingsEffect
 import com.poojapurohit.booking.compose.BookingsUiState
 import com.poojapurohit.booking.compose.BookingsViewModel
 import com.poojapurohit.booking.compose.components.BookingCard
-import com.poojapurohit.booking.model.Booking
-import com.poojapurohit.booking.model.BookingStatus
+import com.poojapurohit.data.model.BookingDoc
+import com.poojapurohit.data.model.BookingStatus
 import com.poojapurohit.bookpurohit.compose.presentation.screens.RazorpayStubDialog
 import com.poojapurohit.ui.theme.BrandOrange
 import com.poojapurohit.ui.theme.BrandRed
@@ -98,10 +98,10 @@ import androidx.compose.foundation.layout.statusBarsPadding
 
 private sealed interface BookingListItem {
     data class Header(val label: String) : BookingListItem
-    data class Card(val booking: Booking) : BookingListItem
+    data class Card(val booking: BookingDoc) : BookingListItem
 }
 
-private fun groupByMonth(bookings: List<Booking>): List<BookingListItem> {
+private fun groupByMonth(bookings: List<BookingDoc>): List<BookingListItem> {
     val fmt    = SimpleDateFormat("MMMM yyyy", Locale.getDefault())
     val result = mutableListOf<BookingListItem>()
     var lastLabel: String? = null
@@ -135,7 +135,7 @@ fun BookingsScreen(
     // Store the ID, not the object — detail screen always gets the freshest Booking from uiState.
     var selectedBookingId by rememberSaveable { mutableStateOf<String?>(null) }
 
-    val selectedBooking: Booking? = remember(
+    val selectedBooking: BookingDoc? = remember(
         selectedBookingId,
         uiState.activeBookings,
         uiState.cancelledBookings,
@@ -183,19 +183,19 @@ fun BookingsScreen(
     }
 
     // ── Dialog state ──────────────────────────────────────────────────────────
-    var pendingCancel         by remember { mutableStateOf<Booking?>(null) }
-    var pendingReject         by remember { mutableStateOf<Booking?>(null) }
-    var pendingPaymentBooking by remember { mutableStateOf<Booking?>(null) }
+    var pendingCancel         by remember { mutableStateOf<BookingDoc?>(null) }
+    var pendingReject         by remember { mutableStateOf<BookingDoc?>(null) }
+    var pendingPaymentBooking by remember { mutableStateOf<BookingDoc?>(null) }
     // ── Back: dismiss detail before popping activity ──────────────────────────
     BackHandler(enabled = selectedBookingId != null) { selectedBookingId = null }
 
     // ── Action callbacks — single definition, shared by list + detail ──────────
-    val onCompletePayment: (Booking) -> Unit = { pendingPaymentBooking = it }
-    val onAccept:          (Booking) -> Unit = { viewModel.acceptBooking(it) }
-    val onReject:          (Booking) -> Unit = { pendingReject = it }
-    val onComplete:        (Booking) -> Unit = { viewModel.initiateCompletion(it) }
-    val onCancel:          (Booking) -> Unit = { pendingCancel = it }
-    val onEditBooking: (Booking, String, Timestamp, com.poojapurohit.booking.model.Coordinates?) -> Unit =
+    val onCompletePayment: (BookingDoc) -> Unit = { pendingPaymentBooking = it }
+    val onAccept:          (BookingDoc) -> Unit = { viewModel.acceptBooking(it) }
+    val onReject:          (BookingDoc) -> Unit = { pendingReject = it }
+    val onComplete:        (BookingDoc) -> Unit = { viewModel.initiateCompletion(it) }
+    val onCancel:          (BookingDoc) -> Unit = { pendingCancel = it }
+    val onEditBooking: (BookingDoc, String, Timestamp, com.poojapurohit.data.model.Coordinates?) -> Unit =
         { booking, addr, date, coords -> viewModel.updateBookingAddressAndTime(booking, addr, date, coords) }
 
     // ── Dialogs ───────────────────────────────────────────────────────────────
@@ -270,19 +270,19 @@ fun BookingsScreen(
 @Composable
 private fun BookingDialogs(
     isDark                    : Boolean,
-    pendingPaymentBooking     : Booking?,
-    pendingCancel             : Booking?,
-    pendingReject             : Booking?,
-    otpPendingBooking         : Booking?,
+    pendingPaymentBooking     : BookingDoc?,
+    pendingCancel             : BookingDoc?,
+    pendingReject             : BookingDoc?,
+    otpPendingBooking         : BookingDoc?,
     otpLoading                : Boolean,
     onDismissPayment          : () -> Unit,
-    onSimulateSuccess         : (Booking) -> Unit,
-    onSimulateFailure         : (Booking) -> Unit,
-    onConfirmCancel           : (Booking) -> Unit,
+    onSimulateSuccess         : (BookingDoc) -> Unit,
+    onSimulateFailure         : (BookingDoc) -> Unit,
+    onConfirmCancel           : (BookingDoc) -> Unit,
     onDismissCancel           : () -> Unit,
-    onConfirmRejectWithRemarks: (Booking, String) -> Unit,
+    onConfirmRejectWithRemarks: (BookingDoc, String) -> Unit,
     onDismissReject           : () -> Unit,
-    onVerifyOtp               : (Booking, String) -> Unit,
+    onVerifyOtp               : (BookingDoc, String) -> Unit,
     onDismissOtp              : () -> Unit
 ) {
     pendingPaymentBooking?.let { booking ->
@@ -451,15 +451,15 @@ private fun BookingListContent(
     tabs               : List<String>,
     scope              : CoroutineScope,
     snackbarHost       : SnackbarHostState,
-    onCardClick        : (Booking) -> Unit,
-    isPurohitViewFor   : (Booking) -> Boolean,
+    onCardClick        : (BookingDoc) -> Unit,
+    isPurohitViewFor   : (BookingDoc) -> Boolean,
     highlightedId      : String?,
     onHighlightConsumed: () -> Unit,
-    onCompletePayment  : (Booking) -> Unit,
-    onAccept           : (Booking) -> Unit,
-    onReject           : (Booking) -> Unit,
-    onComplete         : (Booking) -> Unit,
-    onCancel           : (Booking) -> Unit
+    onCompletePayment  : (BookingDoc) -> Unit,
+    onAccept           : (BookingDoc) -> Unit,
+    onReject           : (BookingDoc) -> Unit,
+    onComplete         : (BookingDoc) -> Unit,
+    onCancel           : (BookingDoc) -> Unit
 ) {
     Scaffold(
         contentWindowInsets = WindowInsets(0), // two-tier header owns status bar insets
@@ -589,15 +589,15 @@ private fun BookingListContent(
 
 @Composable
 private fun BookingList(
-    bookings            : List<Booking>,
+    bookings            : List<BookingDoc>,
     highlightedBookingId: String?,
-    isPurohitViewFor    : (Booking) -> Boolean,
-    onCardClick         : (Booking) -> Unit,
-    onCompletePayment   : (Booking) -> Unit,
-    onAccept            : (Booking) -> Unit,
-    onReject            : (Booking) -> Unit,
-    onComplete          : (Booking) -> Unit,
-    onCancel            : (Booking) -> Unit,
+    isPurohitViewFor    : (BookingDoc) -> Boolean,
+    onCardClick         : (BookingDoc) -> Unit,
+    onCompletePayment   : (BookingDoc) -> Unit,
+    onAccept            : (BookingDoc) -> Unit,
+    onReject            : (BookingDoc) -> Unit,
+    onComplete          : (BookingDoc) -> Unit,
+    onCancel            : (BookingDoc) -> Unit,
     onHighlightConsumed : () -> Unit
 ) {
     val listState = rememberLazyListState()

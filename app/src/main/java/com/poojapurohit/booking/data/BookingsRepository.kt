@@ -5,8 +5,11 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
-import com.poojapurohit.booking.model.Booking
-import com.poojapurohit.booking.model.BookingStatus
+import com.poojapurohit.data.model.BookingDoc
+import com.poojapurohit.data.model.BookingStatus
+import com.poojapurohit.data.model.Coordinates
+import com.poojapurohit.data.model.NotificationDoc
+import com.poojapurohit.data.model.NotificationType
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -22,17 +25,17 @@ class BookingsRepository @Inject constructor(
 ) {
     fun currentUserId(): String? = auth.currentUser?.uid
 
-    fun observeUserBookings(): Flow<Result<List<Booking>>> {
+    fun observeUserBookings(): Flow<Result<List<BookingDoc>>> {
         val uid = auth.currentUser?.uid
             ?: return flowOf(Result.failure(IllegalStateException("User not authenticated")))
         return callbackFlow {
-            val listener = firestore.collection("bookings")
-                .whereEqualTo("userId", uid)
-                .orderBy("createdAt", Query.Direction.DESCENDING)
+            val listener = firestore.collection(BookingDoc.COLLECTION)
+                .whereEqualTo(BookingDoc.Fields.USER_ID, uid)
+                .orderBy(BookingDoc.Fields.CREATED_AT, Query.Direction.DESCENDING)
                 .addSnapshotListener { snapshot, error ->
                     if (error != null) { trySend(Result.failure(error)); return@addSnapshotListener }
                     val bookings = snapshot?.documents
-                        ?.mapNotNull { runCatching { Booking.fromDocument(it) }.getOrNull() }
+                        ?.mapNotNull { runCatching { BookingDoc.fromDocument(it) }.getOrNull() }
                         ?: emptyList()
                     trySend(Result.success(bookings))
                 }
@@ -40,17 +43,17 @@ class BookingsRepository @Inject constructor(
         }
     }
 
-    fun observePurohitBookings(): Flow<Result<List<Booking>>> {
+    fun observePurohitBookings(): Flow<Result<List<BookingDoc>>> {
         val uid = auth.currentUser?.uid
             ?: return flowOf(Result.failure(IllegalStateException("User not authenticated")))
         return callbackFlow {
-            val listener = firestore.collection("bookings")
-                .whereEqualTo("purohitId", uid)
-                .orderBy("createdAt", Query.Direction.DESCENDING)
+            val listener = firestore.collection(BookingDoc.COLLECTION)
+                .whereEqualTo(BookingDoc.Fields.PUROHIT_ID, uid)
+                .orderBy(BookingDoc.Fields.CREATED_AT, Query.Direction.DESCENDING)
                 .addSnapshotListener { snapshot, error ->
                     if (error != null) { trySend(Result.failure(error)); return@addSnapshotListener }
                     val bookings = snapshot?.documents
-                        ?.mapNotNull { runCatching { Booking.fromDocument(it) }.getOrNull() }
+                        ?.mapNotNull { runCatching { BookingDoc.fromDocument(it) }.getOrNull() }
                         ?: emptyList()
                     trySend(Result.success(bookings))
                 }
@@ -63,11 +66,11 @@ class BookingsRepository @Inject constructor(
         bookingId: String,
         newStatus: BookingStatus
     ): Result<Unit> = runCatching {
-        firestore.collection("bookings").document(bookingId)
+        firestore.collection(BookingDoc.COLLECTION).document(bookingId)
             .update(mapOf(
-                "status"    to newStatus.name,
-                "updatedAt" to Timestamp.now()
-            ) + if (newStatus == BookingStatus.ACCEPTED) mapOf("confirmedAt" to Timestamp.now()) else emptyMap()
+                BookingDoc.Fields.STATUS to newStatus.name,
+                BookingDoc.Fields.UPDATED_AT to Timestamp.now()
+            ) + if (newStatus == BookingStatus.ACCEPTED) mapOf(BookingDoc.Fields.CONFIRMED_AT to Timestamp.now()) else emptyMap()
             ).await()
     }
 
@@ -79,11 +82,11 @@ class BookingsRepository @Inject constructor(
         bookingId: String,
         remarks  : String
     ): Result<Unit> = runCatching {
-        firestore.collection("bookings").document(bookingId)
+        firestore.collection(BookingDoc.COLLECTION).document(bookingId)
             .update(mapOf(
-                "status"    to BookingStatus.REJECTED.name,
-                "comments"  to remarks.trim(),
-                "updatedAt" to Timestamp.now()
+                BookingDoc.Fields.STATUS to BookingStatus.REJECTED.name,
+                BookingDoc.Fields.COMMENTS to remarks.trim(),
+                BookingDoc.Fields.UPDATED_AT to Timestamp.now()
             )).await()
     }
 
@@ -104,10 +107,10 @@ class BookingsRepository @Inject constructor(
      */
     suspend fun initiateCompletion(bookingId: String): Result<String> = runCatching {
         val otp = (100_000..999_999).random().toString()
-        firestore.collection("bookings").document(bookingId)
+        firestore.collection(BookingDoc.COLLECTION).document(bookingId)
             .update(mapOf(
-                "completionOtp" to otp,
-                "updatedAt"     to Timestamp.now()
+                BookingDoc.Fields.COMPLETION_OTP to otp,
+                BookingDoc.Fields.UPDATED_AT to Timestamp.now()
             )).await()
         otp   // returned to ViewModel only; never surfaced in UI
     }
@@ -128,19 +131,19 @@ class BookingsRepository @Inject constructor(
         bookingId: String,
         inputOtp : String
     ): Result<Unit> = runCatching {
-        val doc = firestore.collection("bookings").document(bookingId).get().await()
-        val storedOtp = doc.getString("completionOtp")
+        val doc = firestore.collection(BookingDoc.COLLECTION).document(bookingId).get().await()
+        val storedOtp = doc.getString(BookingDoc.Fields.COMPLETION_OTP)
             ?: throw WrongOtpException("OTP not found. Please initiate completion again.")
 
         if (storedOtp.trim() != inputOtp.trim()) {
             throw WrongOtpException("Incorrect code. Please ask the customer for the correct code.")
         }
 
-        firestore.collection("bookings").document(bookingId)
+        firestore.collection(BookingDoc.COLLECTION).document(bookingId)
             .update(mapOf(
-                "status"        to BookingStatus.COMPLETED.name,
-                "completionOtp" to FieldValue.delete(),
-                "updatedAt"     to Timestamp.now()
+                BookingDoc.Fields.STATUS to BookingStatus.COMPLETED.name,
+                BookingDoc.Fields.COMPLETION_OTP to FieldValue.delete(),
+                BookingDoc.Fields.UPDATED_AT to Timestamp.now()
             )).await()
     }
 
@@ -149,42 +152,39 @@ class BookingsRepository @Inject constructor(
      * then writes a notification to the purohit's notification subcollection.
      */
     suspend fun updateBookingAddressAndTime(
-        booking         : Booking,
+        booking         : BookingDoc,
         newAddress      : String,
         newScheduledDate: Timestamp,
-        newCoordinates  : com.poojapurohit.booking.model.Coordinates? = null
+        newCoordinates  : Coordinates? = null
     ): Result<Unit> = runCatching {
         val batch = firestore.batch()
 
         val bookingFields = mutableMapOf<String, Any>(
-            "address"       to newAddress.trim(),
-            "scheduledDate" to newScheduledDate,
-            "updatedAt"     to Timestamp.now()
+            BookingDoc.Fields.ADDRESS to newAddress.trim(),
+            BookingDoc.Fields.SCHEDULED_DATE to newScheduledDate,
+            BookingDoc.Fields.UPDATED_AT to Timestamp.now()
         )
         if (newCoordinates != null) {
-            bookingFields["coordinates"] = mapOf(
-                "latitude"  to newCoordinates.latitude,
-                "longitude" to newCoordinates.longitude
-            )
+            bookingFields[BookingDoc.Fields.COORDINATES] = newCoordinates.toMap()
         }
 
-        val bookingRef = firestore.collection("bookings").document(booking.bookingId)
+        val bookingRef = firestore.collection(BookingDoc.COLLECTION).document(booking.bookingId)
         batch.update(bookingRef, bookingFields)
 
         val notifRef = firestore
-            .collection("notifications")
+            .collection(NotificationDoc.COLLECTION)
             .document(booking.purohitId)
-            .collection("items")
+            .collection(NotificationDoc.ITEMS)
             .document()
-        batch.set(notifRef, mapOf(
-            "title"       to "Booking Updated",
-            "body"        to "The customer has updated the schedule or address for \"${booking.serviceName}\".",
-            "isRead"      to false,
-            "isActive"    to true,
-            "timestamp"   to Timestamp.now(),
-            "type"        to "BOOKING_UPDATED",
-            "deepLinkUrl" to "poojapurohit://bookings/${booking.bookingId}"
-        ))
+        batch.set(notifRef, NotificationDoc(
+            title       = "Booking Updated",
+            body        = "The customer has updated the schedule or address for \"${booking.serviceName}\".",
+            isRead      = false,
+            isActive    = true,
+            timestamp   = Timestamp.now(),
+            type        = NotificationType.BOOKING_UPDATED,
+            deepLinkUrl = "poojapurohit://bookings/${booking.bookingId}"
+        ).toMap())
 
         batch.commit().await()
     }

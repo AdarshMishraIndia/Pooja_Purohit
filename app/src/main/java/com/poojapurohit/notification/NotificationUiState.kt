@@ -1,10 +1,10 @@
 package com.poojapurohit.notification
 
-import com.poojapurohit.notification.compose.model.NotificationItem
+import com.poojapurohit.data.model.NotificationDoc
 
 data class NotificationGroup(
     val label: String,
-    val items: List<NotificationItem>
+    val items: List<NotificationDoc>
 )
 
 sealed interface NotificationUiState {
@@ -13,7 +13,7 @@ sealed interface NotificationUiState {
         val groups: List<NotificationGroup>,
         val unreadCount: Int
     ) : NotificationUiState {
-        val allItems: List<NotificationItem> get() = groups.flatMap { it.items }
+        val allItems: List<NotificationDoc> get() = groups.flatMap { it.items }
         val isEmpty: Boolean get() = groups.all { it.items.isEmpty() }
     }
     data class Error(val message: String) : NotificationUiState

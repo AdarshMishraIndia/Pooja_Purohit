@@ -43,7 +43,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.poojapurohit.bookpurohit.compose.BookPurohitEvent
 import com.poojapurohit.bookpurohit.compose.BookPurohitViewModel
-import com.poojapurohit.bookpurohit.compose.model.ServiceItem
+import com.poojapurohit.data.model.ServiceDoc
 import com.poojapurohit.bookpurohit.compose.presentation.components.BookPurohitDecorOverlay
 import com.poojapurohit.bookpurohit.compose.presentation.components.BookPurohitTopBar
 import com.poojapurohit.bookpurohit.compose.presentation.util.highlightSearchQuery
@@ -141,7 +141,7 @@ private fun ServiceSearchBar(query: String, onQueryChange: (String) -> Unit, isD
 }
 
 @Composable
-private fun ServiceCard(service: ServiceItem, searchQuery: String, onClick: () -> Unit, isDark: Boolean) {
+private fun ServiceCard(service: ServiceDoc, searchQuery: String, onClick: () -> Unit, isDark: Boolean) {
     Card(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),

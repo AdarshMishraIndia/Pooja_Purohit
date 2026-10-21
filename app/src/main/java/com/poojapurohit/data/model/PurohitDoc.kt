@@ -16,7 +16,7 @@ data class PurohitDoc(
     val email: String = "",
     val city: String = "",
     val locality: String = "",
-    val experience: Int = 0,             // years
+    val experience: Int? = null,         // years; null when absent (admin may delete it)
     val proficiency: List<String> = emptyList(),   // human-readable service names
     val serviceIds: List<String> = emptyList(),    // services/{slug} document IDs
     val fcmTokens: List<String> = emptyList(),
@@ -38,7 +38,7 @@ data class PurohitDoc(
         put(Fields.EMAIL, email)
         put(Fields.CITY, city)
         put(Fields.LOCALITY, locality)
-        put(Fields.EXPERIENCE, experience)
+        experience?.let { put(Fields.EXPERIENCE, it) }
         put(Fields.PROFICIENCY, proficiency)
         put(Fields.SERVICE_IDS, serviceIds)
         put(Fields.FCM_TOKENS, fcmTokens)
@@ -107,13 +107,13 @@ data class PurohitDoc(
         }
 
         fun fromDocument(doc: DocumentSnapshot) = PurohitDoc(
-            purohitId = doc.getString(Fields.PUROHIT_ID) ?: doc.id,
+            purohitId = doc.id,
             name = doc.getString(Fields.NAME) ?: "",
             phone = doc.getString(Fields.PHONE) ?: "",
             email = doc.getString(Fields.EMAIL) ?: "",
             city = doc.getString(Fields.CITY) ?: "",
             locality = doc.getString(Fields.LOCALITY) ?: "",
-            experience = doc.get(Fields.EXPERIENCE).asIntOrZero(),
+            experience = doc.get(Fields.EXPERIENCE)?.asIntOrZero(),
             proficiency = doc.getStringList(Fields.PROFICIENCY),
             serviceIds = doc.getStringList(Fields.SERVICE_IDS),
             fcmTokens = doc.getStringList(Fields.FCM_TOKENS),

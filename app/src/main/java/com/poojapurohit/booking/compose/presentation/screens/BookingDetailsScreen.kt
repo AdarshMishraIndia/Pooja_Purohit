@@ -87,9 +87,9 @@ import com.poojapurohit.booking.compose.components.bookingActionFlags
 import com.poojapurohit.booking.compose.components.graceRemainingText
 import com.poojapurohit.booking.compose.components.isCancellationWindowClosed
 import com.poojapurohit.booking.compose.components.isWithinGracePeriod
-import com.poojapurohit.booking.model.Booking
-import com.poojapurohit.booking.model.BookingStatus
-import com.poojapurohit.booking.model.Coordinates
+import com.poojapurohit.data.model.BookingDoc
+import com.poojapurohit.data.model.BookingStatus
+import com.poojapurohit.data.model.Coordinates
 import com.poojapurohit.bookpurohit.compose.presentation.screens.MapPinPickerScreen
 import com.poojapurohit.ui.theme.BrandOrange
 import com.poojapurohit.ui.theme.BrandRed
@@ -118,14 +118,14 @@ private fun reasonColor(dark: Boolean)   = if (dark) Color(0xFFCE93D8) else Colo
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BookingDetailScreen(
-    booking          : Booking,
+    booking          : BookingDoc,
     isPurohitView    : Boolean,
     onBack           : () -> Unit,
-    onCompletePayment: ((Booking) -> Unit)? = null,
-    onAccept         : ((Booking) -> Unit)? = null,
-    onReject         : ((Booking) -> Unit)? = null,
-    onComplete       : ((Booking) -> Unit)? = null,
-    onCancel         : ((Booking) -> Unit)? = null,
+    onCompletePayment: ((BookingDoc) -> Unit)? = null,
+    onAccept         : ((BookingDoc) -> Unit)? = null,
+    onReject         : ((BookingDoc) -> Unit)? = null,
+    onComplete       : ((BookingDoc) -> Unit)? = null,
+    onCancel         : ((BookingDoc) -> Unit)? = null,
     onEditBooking    : ((newAddress: String, newDate: Timestamp, newCoordinates: Coordinates?) -> Unit)? = null
 ) {
     val isDark  = isSystemInDarkTheme()
@@ -463,7 +463,7 @@ private fun InfoRow(
 // ── Specialised rows / cards ──────────────────────────────────────────────────
 
 @Composable
-private fun HeaderCard(booking: Booking, isDark: Boolean) {
+private fun HeaderCard(booking: BookingDoc, isDark: Boolean) {
     val borderColor = if (isDark) DarkBrandRed else BrandRed
     Card(
         modifier  = Modifier.fillMaxWidth(),
@@ -575,7 +575,7 @@ private fun BookedOnFooter(label: String) {
  * Ticks every second in HH:MM:SS format.
  */
 @Composable
-private fun GracePeriodBanner(booking: Booking, isDark: Boolean) {
+private fun GracePeriodBanner(booking: BookingDoc, isDark: Boolean) {
     var remaining by remember { mutableStateOf(graceRemainingText(booking)) }
     LaunchedEffect(booking.bookingId) {
         while (true) {

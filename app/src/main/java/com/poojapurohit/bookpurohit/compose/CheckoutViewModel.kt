@@ -7,6 +7,11 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.poojapurohit.data.model.BookingDoc
+import com.poojapurohit.data.model.BookingStatus
+import com.poojapurohit.data.model.Coordinates
+import com.poojapurohit.data.model.PurohitDoc
+import com.poojapurohit.data.model.UserDoc
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -62,33 +67,31 @@ class CheckoutViewModel(
             try {
                 val userId = auth.currentUser?.uid ?: return@launch
 
-                // Fetch purohit being booked (unchanged)
-                val purohitDoc = firestore.collection("purohits").document(purohitId).get().await()
+                // Fetch purohit being booked
+                val purohitSnapshot = firestore.collection(PurohitDoc.COLLECTION).document(purohitId).get().await()
 
                 // Determine if logged-in user is in purohits or users collection
-                val loggedInPurohitDoc = firestore.collection("purohits").document(userId).get().await()
+                val loggedInPurohitSnapshot = firestore.collection(PurohitDoc.COLLECTION).document(userId).get().await()
 
-                val (userName, userPhone) = if (loggedInPurohitDoc.exists()) {
+                val (userName, userPhone) = if (loggedInPurohitSnapshot.exists()) {
                     // Logged-in user is a purohit — use purohit doc (superset)
-                    Pair(
-                        loggedInPurohitDoc.getString("name") ?: "",
-                        loggedInPurohitDoc.getString("phone") ?: ""
-                    )
+                    val loggedInPurohit = PurohitDoc.fromDocument(loggedInPurohitSnapshot)
+                    Pair(loggedInPurohit.name, loggedInPurohit.phone)
                 } else {
                     // Fall back to users collection
-                    val userDoc = firestore.collection("users").document(userId).get().await()
-                    Pair(
-                        userDoc.getString("name") ?: "",
-                        userDoc.getString("phone") ?: ""
+                    val user = UserDoc.fromDocument(
+                        firestore.collection(UserDoc.COLLECTION).document(userId).get().await()
                     )
+                    Pair(user.name, user.phone)
                 }
 
+                val purohit = PurohitDoc.fromDocument(purohitSnapshot)
                 _uiState.update {
                     it.copy(
                         cachedUserName     = userName,
                         cachedUserPhone    = userPhone,
-                        cachedPurohitName  = purohitDoc.getString("name")  ?: "",
-                        cachedPurohitPhone = purohitDoc.getString("phone") ?: "",
+                        cachedPurohitName  = purohit.name,
+                        cachedPurohitPhone = purohit.phone,
                         isPrefetchComplete = true
                     )
                 }
@@ -157,36 +160,33 @@ class CheckoutViewModel(
             try {
                 val currentTimestamp = Timestamp.now()
 
-                val bookingData = hashMapOf(
-                    "bookingId"         to bookingId,
-                    "userId"            to userId,
-                    "userName"          to state.cachedUserName,
-                    "userPhone"         to state.cachedUserPhone,
-                    "purohitId"         to purohitId,
-                    "purohitName"       to state.cachedPurohitName,
-                    "purohitPhone"      to state.cachedPurohitPhone,
-                    "serviceName"       to state.selectedService,
-                    "amount"            to state.amount,
-                    "status"            to status,
-                    "razorpayOrderId"   to "order_stub_${bookingId.takeLast(8)}",
-                    "razorpayPaymentId" to if (status == "PAYMENT_DONE") {
+                val booking = BookingDoc(
+                    bookingId         = bookingId,
+                    userId            = userId,
+                    userName          = state.cachedUserName,
+                    userPhone         = state.cachedUserPhone,
+                    purohitId         = purohitId,
+                    purohitName       = state.cachedPurohitName,
+                    purohitPhone      = state.cachedPurohitPhone,
+                    serviceName       = state.selectedService,
+                    amount            = state.amount,
+                    status            = BookingStatus.fromString(status),
+                    razorpayOrderId   = "order_stub_${bookingId.takeLast(8)}",
+                    razorpayPaymentId = if (status == "PAYMENT_DONE") {
                         "pay_stub_${bookingId.takeLast(8)}"
                     } else {
                         ""
                     },
-                    "scheduledDate"     to Timestamp(Date(selectedDate)),
-                    "address"           to state.address,
-                    "coordinates"       to mapOf(
-                        "latitude"  to coords.latitude,
-                        "longitude" to coords.longitude
-                    ),
-                    "createdAt"         to currentTimestamp,
-                    "updatedAt"         to currentTimestamp
+                    scheduledDate     = Timestamp(Date(selectedDate)),
+                    address           = state.address,
+                    coordinates       = Coordinates(coords.latitude, coords.longitude),
+                    createdAt         = currentTimestamp,
+                    updatedAt         = currentTimestamp
                 )
 
-                firestore.collection("bookings")
+                firestore.collection(BookingDoc.COLLECTION)
                     .document(bookingId)
-                    .set(bookingData)
+                    .set(booking.toMap())
                     .await()
 
                 _uiState.update {

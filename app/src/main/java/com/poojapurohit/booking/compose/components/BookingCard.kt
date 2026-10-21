@@ -64,9 +64,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
-import com.poojapurohit.booking.model.Booking
-import com.poojapurohit.booking.model.BookingStatus
-import com.poojapurohit.booking.model.displayLabel
+import com.poojapurohit.data.model.BookingDoc
+import com.poojapurohit.data.model.BookingStatus
+import com.poojapurohit.data.model.displayLabel
 import com.poojapurohit.ui.theme.BrandGold
 import com.poojapurohit.ui.theme.BrandOrange
 import com.poojapurohit.ui.theme.BrandRed
@@ -98,7 +98,7 @@ private const val COLOR_FADE_DURATION_MS   = 1_500
  *
  * Returns null when either timestamp is missing.
  */
-fun cancellationWindowEndMs(booking: Booking): Long? {
+fun cancellationWindowEndMs(booking: BookingDoc): Long? {
     val createdMs   = booking.createdAt?.toDate()?.time   ?: return null
     val scheduledMs = booking.scheduledDate?.toDate()?.time ?: return null
     val diffMs      = scheduledMs - createdMs
@@ -115,7 +115,7 @@ fun cancellationWindowEndMs(booking: Booking): Long? {
 /**
  * Returns true when the cancellation window is still open.
  */
-fun isWithinGracePeriod(booking: Booking): Boolean {
+fun isWithinGracePeriod(booking: BookingDoc): Boolean {
     val endMs = cancellationWindowEndMs(booking) ?: return false
     return System.currentTimeMillis() < endMs
 }
@@ -124,7 +124,7 @@ fun isWithinGracePeriod(booking: Booking): Boolean {
  * Returns true if the cancellation window is fully closed.
  * Returns false (window open / blurred) when timestamps are missing — safe default.
  */
-fun isCancellationWindowClosed(booking: Booking): Boolean {
+fun isCancellationWindowClosed(booking: BookingDoc): Boolean {
     val endMs = cancellationWindowEndMs(booking) ?: return false
     return System.currentTimeMillis() >= endMs
 }
@@ -133,7 +133,7 @@ fun isCancellationWindowClosed(booking: Booking): Boolean {
  * Returns the remaining time in the cancellation window as "HH:MM:SS".
  * Returns null when the window has closed.
  */
-fun graceRemainingText(booking: Booking): String? {
+fun graceRemainingText(booking: BookingDoc): String? {
     val endMs       = cancellationWindowEndMs(booking) ?: return null
     val remainingMs = endMs - System.currentTimeMillis()
     if (remainingMs <= 0L) return null
@@ -152,16 +152,16 @@ const val SUPPORT_PHONE = "+919999999999" // TODO: replace with actual number
 
 @Composable
 fun BookingCard(
-    booking          : Booking,
+    booking          : BookingDoc,
     modifier         : Modifier = Modifier,
     isHighlighted    : Boolean = false,
     isPurohitView    : Boolean,
-    onCardClick      : ((Booking) -> Unit)? = null,
-    onCompletePayment: ((Booking) -> Unit)? = null,
-    onAccept         : ((Booking) -> Unit)? = null,
-    onReject         : ((Booking) -> Unit)? = null,
-    onComplete       : ((Booking) -> Unit)? = null,
-    onCancel         : ((Booking) -> Unit)? = null,
+    onCardClick      : ((BookingDoc) -> Unit)? = null,
+    onCompletePayment: ((BookingDoc) -> Unit)? = null,
+    onAccept         : ((BookingDoc) -> Unit)? = null,
+    onReject         : ((BookingDoc) -> Unit)? = null,
+    onComplete       : ((BookingDoc) -> Unit)? = null,
+    onCancel         : ((BookingDoc) -> Unit)? = null,
     onHighlightClear : (() -> Unit)? = null
 ) {
     val isDark  = isSystemInDarkTheme()
@@ -326,13 +326,13 @@ data class BookingActionFlags(
 }
 
 fun bookingActionFlags(
-    booking          : Booking,
+    booking          : BookingDoc,
     isPurohitView    : Boolean,
-    onAccept         : ((Booking) -> Unit)?,
-    onReject         : ((Booking) -> Unit)?,
-    onComplete       : ((Booking) -> Unit)?,
-    onCompletePayment: ((Booking) -> Unit)?,
-    onCancel         : ((Booking) -> Unit)?
+    onAccept         : ((BookingDoc) -> Unit)?,
+    onReject         : ((BookingDoc) -> Unit)?,
+    onComplete       : ((BookingDoc) -> Unit)?,
+    onCompletePayment: ((BookingDoc) -> Unit)?,
+    onCancel         : ((BookingDoc) -> Unit)?
 ): BookingActionFlags {
     val withinGrace   = isWithinGracePeriod(booking)
     val customerActive = !isPurohitView && booking.status in setOf(
@@ -366,14 +366,14 @@ fun bookingActionFlags(
 
 @Composable
 fun BookingActionButtons(
-    booking          : Booking,
+    booking          : BookingDoc,
     isDark           : Boolean,
     flags            : BookingActionFlags,
-    onCompletePayment: ((Booking) -> Unit)?,
-    onAccept         : ((Booking) -> Unit)?,
-    onReject         : ((Booking) -> Unit)?,
-    onComplete       : ((Booking) -> Unit)?,
-    onCancel         : ((Booking) -> Unit)?
+    onCompletePayment: ((BookingDoc) -> Unit)?,
+    onAccept         : ((BookingDoc) -> Unit)?,
+    onReject         : ((BookingDoc) -> Unit)?,
+    onComplete       : ((BookingDoc) -> Unit)?,
+    onCancel         : ((BookingDoc) -> Unit)?
 ) {
     val context     = LocalContext.current
     val withinGrace = isWithinGracePeriod(booking)
@@ -455,7 +455,7 @@ fun BookingActionButtons(
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-fun GracePeriodChip(booking: Booking, isDark: Boolean) {
+fun GracePeriodChip(booking: BookingDoc, isDark: Boolean) {
     var remaining by remember { mutableStateOf(graceRemainingText(booking)) }
     LaunchedEffect(booking.bookingId) {
         while (true) {

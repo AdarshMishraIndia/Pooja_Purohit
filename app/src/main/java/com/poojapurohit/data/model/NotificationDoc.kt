@@ -1,17 +1,18 @@
-package com.poojapurohit.notification.compose.model
+package com.poojapurohit.data.model
 
 import com.google.firebase.Timestamp
+import com.google.firebase.firestore.DocumentSnapshot
 
 /**
- * Canonical notification types for BookAPurohit.
+ * Canonical notification types.
  *
- * MVP (critical) types are active — sent by Cloud Functions on booking/payment events.
- * Future (non-critical) types are provisioned — to activate one:
+ * MVP (critical) types are sent by Cloud Functions on booking/payment events.
+ * Types without an entry in NotificationTemplateRegistry render with the GENERAL template.
+ * To give a new type its own look:
  *   1. Add its Cloud Function trigger.
  *   2. Add its entry in NotificationTemplateRegistry.
- *   That's all. No other app-side changes needed.
  *
- * Firestore field: "type" (String, matched case-insensitively to enum name)
+ * Firestore field: "type" (String, matched case-insensitively to enum name; unknown -> GENERAL)
  */
 enum class NotificationType {
 
@@ -41,6 +42,13 @@ enum class NotificationType {
     // ── MVP: Auto-cancellation (unpaid bookings) ──────────────────────────────
     AUTO_CANCELLED,
 
+    // ── Written by the app / Cloud Functions; no dedicated template (-> GENERAL) ──
+    BOOKING_UPDATED,        // app: customer edited address/schedule -> purohit notified
+    BOOKING_COMPLETED,      // functions
+    PAYMENT_REMINDER,       // functions
+    BOOKING_REMINDER,       // functions
+    DAY_PRIOR_REMINDER,     // functions
+
     // ── Fallback ──────────────────────────────────────────────────────────────
     GENERAL;
 
@@ -50,12 +58,17 @@ enum class NotificationType {
     }
 }
 
-data class NotificationItem(
-    val id: String = "",
+/**
+ * Firestore: notifications/{stakeholderUid}/items/{notificationId}.
+ * Document ID of the parent == users/purohits document ID.
+ */
+data class NotificationDoc(
+    val id: String = "",             // document ID; not a stored field
     val title: String = "",
     val body: String = "",
     val timestamp: Timestamp = Timestamp.now(),
     val isRead: Boolean = false,
+    val isActive: Boolean = true,
     val type: NotificationType = NotificationType.GENERAL,
     /**
      * Optional deep link URI. Pattern examples:
@@ -65,4 +78,42 @@ data class NotificationItem(
      * Null = informational only, no navigation on tap.
      */
     val deepLinkUrl: String? = null
-)
+) {
+
+    /** Write map. Null deepLinkUrl is omitted. */
+    fun toMap(): Map<String, Any> = buildMap<String, Any> {
+        put(Fields.TITLE, title)
+        put(Fields.BODY, body)
+        put(Fields.IS_READ, isRead)
+        put(Fields.IS_ACTIVE, isActive)
+        put(Fields.TIMESTAMP, timestamp)
+        put(Fields.TYPE, type.name)
+        deepLinkUrl?.let { put(Fields.DEEP_LINK_URL, it) }
+    }
+
+    object Fields {
+        const val TITLE = "title"
+        const val BODY = "body"
+        const val IS_READ = "isRead"
+        const val IS_ACTIVE = "isActive"
+        const val TIMESTAMP = "timestamp"
+        const val TYPE = "type"
+        const val DEEP_LINK_URL = "deepLinkUrl"
+    }
+
+    companion object {
+        const val COLLECTION = "notifications"
+        const val ITEMS = "items"
+
+        fun fromDocument(doc: DocumentSnapshot) = NotificationDoc(
+            id = doc.id,
+            title = doc.getString(Fields.TITLE) ?: "",
+            body = doc.getString(Fields.BODY) ?: "",
+            timestamp = doc.getTimestamp(Fields.TIMESTAMP) ?: Timestamp.now(),
+            isRead = doc.getBoolean(Fields.IS_READ) ?: false,
+            isActive = doc.getBoolean(Fields.IS_ACTIVE) ?: true,
+            type = NotificationType.fromString(doc.getString(Fields.TYPE)),
+            deepLinkUrl = doc.getString(Fields.DEEP_LINK_URL)
+        )
+    }
+}

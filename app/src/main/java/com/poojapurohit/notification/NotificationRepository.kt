@@ -5,8 +5,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
-import com.poojapurohit.notification.compose.model.NotificationItem
-import com.poojapurohit.notification.compose.model.NotificationType
+import com.poojapurohit.data.model.NotificationDoc
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -19,12 +18,10 @@ class NotificationRepository(
 
     companion object {
         private const val TAG = "NotificationRepository"
-        private const val COLLECTION_NOTIFICATIONS = "notifications"
-        private const val SUBCOLLECTION_ITEMS = "items"
-        private const val FIELD_TIMESTAMP = "timestamp"
-        private const val FIELD_IS_READ = "isRead"
-        private const val FIELD_TYPE = "type"
-        private const val FIELD_DEEP_LINK = "deepLinkUrl"
+        private const val COLLECTION_NOTIFICATIONS = NotificationDoc.COLLECTION
+        private const val SUBCOLLECTION_ITEMS = NotificationDoc.ITEMS
+        private const val FIELD_TIMESTAMP = NotificationDoc.Fields.TIMESTAMP
+        private const val FIELD_IS_READ = NotificationDoc.Fields.IS_READ
     }
 
     /**
@@ -32,7 +29,7 @@ class NotificationRepository(
      * Automatically emits on any remote or local change.
      * Path: notifications/{uid}/items
      */
-    fun observeNotifications(): Flow<Result<List<NotificationItem>>> = callbackFlow {
+    fun observeNotifications(): Flow<Result<List<NotificationDoc>>> = callbackFlow {
         val uid = auth.currentUser?.uid
         if (uid == null) {
             trySend(Result.failure(Exception("User not signed in")))
@@ -59,16 +56,7 @@ class NotificationRepository(
 
                 val items = snapshot.documents.mapNotNull { doc ->
                     try {
-                        NotificationItem(
-                            id = doc.id,
-                            title = doc.getString("title") ?: "",
-                            body = doc.getString("body") ?: "",
-                            timestamp = doc.getTimestamp(FIELD_TIMESTAMP)
-                                ?: com.google.firebase.Timestamp.now(),
-                            isRead = doc.getBoolean(FIELD_IS_READ) ?: false,
-                            type = NotificationType.fromString(doc.getString(FIELD_TYPE)),
-                            deepLinkUrl = doc.getString(FIELD_DEEP_LINK)
-                        )
+                        NotificationDoc.fromDocument(doc)
                     } catch (e: Exception) {
                         Log.e(TAG, "Failed to parse notification doc: ${doc.id}", e)
                         null

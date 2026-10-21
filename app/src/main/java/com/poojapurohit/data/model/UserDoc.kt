@@ -54,7 +54,7 @@ data class UserDoc(
         )
 
         fun fromDocument(doc: DocumentSnapshot) = UserDoc(
-            userId = doc.getString(Fields.USER_ID) ?: doc.id,
+            userId = doc.id,
             name = doc.getString(Fields.NAME) ?: "",
             phone = doc.getString(Fields.PHONE) ?: "",
             email = doc.getString(Fields.EMAIL) ?: "",

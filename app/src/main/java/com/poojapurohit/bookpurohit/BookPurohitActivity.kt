@@ -150,7 +150,7 @@ fun BookPurohitNavigation(viewModel: BookPurohitViewModel) {
                 onBookClick = { purohit ->
                     val serviceName = Uri.encode(viewModel.uiState.value.selectedServiceName)
                     val servicePrice = viewModel.uiState.value.selectedServicePrice ?: 0
-                    navController.navigate("booking/${purohit.id}/$serviceName/$servicePrice")
+                    navController.navigate("booking/${purohit.purohitId}/$serviceName/$servicePrice")
                 }
             )
         }

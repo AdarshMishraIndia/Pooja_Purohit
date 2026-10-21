@@ -7,7 +7,9 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.poojapurohit.R
 import com.poojapurohit.dashboard.ServiceItem
 import com.poojapurohit.notification.NotificationRepository
-import com.poojapurohit.notification.compose.model.NotificationItem
+import com.poojapurohit.data.model.NotificationDoc
+import com.poojapurohit.data.model.PurohitDoc
+import com.poojapurohit.data.model.UserDoc
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -91,8 +93,8 @@ class DashboardViewModel : ViewModel() {
     private fun loadUnreadNotificationCount() {
         viewModelScope.launch {
             notificationRepository.observeNotifications().collect { result ->
-                result.onSuccess { items: List<NotificationItem> ->
-                    val count = items.count { n: NotificationItem -> !n.isRead }
+                result.onSuccess { items: List<NotificationDoc> ->
+                    val count = items.count { n: NotificationDoc -> !n.isRead }
                     _uiState.update { it.copy(unreadNotificationCount = count) }
                 }.onFailure {
                     // Fail silently for the badge
@@ -125,8 +127,8 @@ class DashboardViewModel : ViewModel() {
     private fun observeUserProfile() {
         val uid = auth.currentUser?.uid ?: return
 
-        val userRef = firestore.collection("users").document(uid)
-        val purohitRef = firestore.collection("purohits").document(uid)
+        val userRef = firestore.collection(UserDoc.COLLECTION).document(uid)
+        val purohitRef = firestore.collection(PurohitDoc.COLLECTION).document(uid)
 
         userRef.addSnapshotListener { snapshot, error ->
             if (error != null) {
@@ -135,7 +137,7 @@ class DashboardViewModel : ViewModel() {
             }
 
             if (snapshot != null && snapshot.exists()) {
-                val name = snapshot.getString("name") ?: "User"
+                val name = UserDoc.fromDocument(snapshot).name.ifEmpty { "User" }
                 val email = auth.currentUser?.email ?: ""
                 _uiState.update {
                     it.copy(userName = name, userEmail = email, isLoading = false)
@@ -147,7 +149,7 @@ class DashboardViewModel : ViewModel() {
                         return@addSnapshotListener
                     }
                     if (purohitSnapshot != null && purohitSnapshot.exists()) {
-                        val name = purohitSnapshot.getString("name") ?: "Purohit"
+                        val name = PurohitDoc.fromDocument(purohitSnapshot).name.ifEmpty { "Purohit" }
                         val email = auth.currentUser?.email ?: ""
                         _uiState.update {
                             it.copy(userName = name, userEmail = email, isLoading = false)
@@ -173,11 +175,11 @@ class DashboardViewModel : ViewModel() {
 
         viewModelScope.launch {
             try {
-                val userDoc = firestore.collection("users").document(uid).get().await()
+                val userDoc = firestore.collection(UserDoc.COLLECTION).document(uid).get().await()
                 if (userDoc.exists()) {
-                    firestore.collection("users").document(uid).delete().await()
+                    firestore.collection(UserDoc.COLLECTION).document(uid).delete().await()
                 } else {
-                    firestore.collection("purohits").document(uid).delete().await()
+                    firestore.collection(PurohitDoc.COLLECTION).document(uid).delete().await()
                 }
                 user.delete().await()
                 _effect.value = DashboardEffect.NavigateToAuth

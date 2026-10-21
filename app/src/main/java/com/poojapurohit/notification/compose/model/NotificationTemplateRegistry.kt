@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.poojapurohit.data.model.NotificationType
 
 /**
  * Display configuration for a single notification type.

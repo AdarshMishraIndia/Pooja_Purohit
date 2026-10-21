@@ -40,7 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.poojapurohit.ui.theme.DarkSurface
-import com.poojapurohit.notification.compose.model.NotificationItem
+import com.poojapurohit.data.model.NotificationDoc
 import com.poojapurohit.notification.compose.model.NotificationTemplateRegistry
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -49,8 +49,8 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationCard(
-    notification: NotificationItem,
-    onTap: (NotificationItem) -> Unit,
+    notification: NotificationDoc,
+    onTap: (NotificationDoc) -> Unit,
     onDismiss: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -105,9 +105,9 @@ fun NotificationCard(
 
 @Composable
 private fun NotificationCardContent(
-    notification: NotificationItem,
+    notification: NotificationDoc,
     isDark: Boolean,
-    onTap: (NotificationItem) -> Unit
+    onTap: (NotificationDoc) -> Unit
 ) {
     // Single registry lookup — all display decisions come from here
     val template = remember(notification.type) {

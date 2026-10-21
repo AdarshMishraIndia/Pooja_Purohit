@@ -5,10 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.Timestamp
 import com.poojapurohit.booking.data.BookingsRepository
 import com.poojapurohit.booking.data.WrongOtpException
-import com.poojapurohit.booking.model.Booking
-import com.poojapurohit.booking.model.BookingCategory
-import com.poojapurohit.booking.model.BookingStatus
-import com.poojapurohit.booking.model.category
+import com.poojapurohit.data.model.BookingDoc
+import com.poojapurohit.data.model.BookingCategory
+import com.poojapurohit.data.model.BookingStatus
+import com.poojapurohit.data.model.category
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,9 +22,9 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class BookingsUiState(
-    val activeBookings    : List<Booking> = emptyList(),
-    val cancelledBookings : List<Booking> = emptyList(),
-    val completedBookings : List<Booking> = emptyList(),
+    val activeBookings    : List<BookingDoc> = emptyList(),
+    val cancelledBookings : List<BookingDoc> = emptyList(),
+    val completedBookings : List<BookingDoc> = emptyList(),
     val isLoading         : Boolean       = true,
     val error             : String?       = null,
     val highlightedBookingId: String?     = null,
@@ -37,7 +37,7 @@ data class BookingsUiState(
      *
      * Cleared on successful verification or explicit dismissal.
      */
-    val otpPendingBooking : Booking?      = null,
+    val otpPendingBooking : BookingDoc?      = null,
 
     /**
      * True while [initiateCompletion] or [verifyOtpAndComplete] is in flight.
@@ -62,8 +62,8 @@ class BookingsViewModel @Inject constructor(
     private val _effect = MutableSharedFlow<BookingsEffect>(extraBufferCapacity = 1)
     val effect: SharedFlow<BookingsEffect> = _effect.asSharedFlow()
 
-    private val userBookings    = MutableStateFlow<List<Booking>>(emptyList())
-    private val purohitBookings = MutableStateFlow<List<Booking>>(emptyList())
+    private val userBookings    = MutableStateFlow<List<BookingDoc>>(emptyList())
+    private val purohitBookings = MutableStateFlow<List<BookingDoc>>(emptyList())
 
     init {
         observeUserBookings()
@@ -130,7 +130,7 @@ class BookingsViewModel @Inject constructor(
 
     // ── Actions ───────────────────────────────────────────────────────────────
 
-    fun acceptBooking(booking: Booking) {
+    fun acceptBooking(booking: BookingDoc) {
         viewModelScope.launch {
             val now = Timestamp.now()
             repository.updateBookingStatus(booking.bookingId, BookingStatus.ACCEPTED)
@@ -144,7 +144,7 @@ class BookingsViewModel @Inject constructor(
         }
     }
 
-    fun rejectBookingWithRemarks(booking: Booking, remarks: String) {
+    fun rejectBookingWithRemarks(booking: BookingDoc, remarks: String) {
         val trimmed = remarks.trim()
         if (trimmed.isBlank()) {
             viewModelScope.launch {
@@ -170,7 +170,7 @@ class BookingsViewModel @Inject constructor(
         }
     }
 
-    fun cancelBooking(booking: Booking) {
+    fun cancelBooking(booking: BookingDoc) {
         val status = if (currentUserIsPurohitFor(booking))
             BookingStatus.CANCELLED_BY_PUROHIT
         else
@@ -178,7 +178,7 @@ class BookingsViewModel @Inject constructor(
         updateStatus(booking, status, "Booking cancelled")
     }
 
-    fun processPaymentStub(booking: Booking, isSuccess: Boolean) {
+    fun processPaymentStub(booking: BookingDoc, isSuccess: Boolean) {
         if (isSuccess) {
             updateStatus(booking, BookingStatus.PAYMENT_DONE, "Payment successful!")
         } else {
@@ -189,10 +189,10 @@ class BookingsViewModel @Inject constructor(
     }
 
     fun updateBookingAddressAndTime(
-        booking          : Booking,
+        booking          : BookingDoc,
         newAddress       : String,
         newScheduledDate : Timestamp,
-        newCoordinates   : com.poojapurohit.booking.model.Coordinates? = null
+        newCoordinates   : com.poojapurohit.data.model.Coordinates? = null
     ) {
         val trimmedAddress = newAddress.trim()
         if (trimmedAddress.isBlank()) {
@@ -229,7 +229,7 @@ class BookingsViewModel @Inject constructor(
      * then puts the booking into [otpPendingBooking] so the UI shows the
      * OTP input dialogue. The OTP itself is never surfaced in UI state.
      */
-    fun initiateCompletion(booking: Booking) {
+    fun initiateCompletion(booking: BookingDoc) {
         viewModelScope.launch {
             _uiState.update { it.copy(otpLoading = true) }
             repository.initiateCompletion(booking.bookingId)
@@ -254,7 +254,7 @@ class BookingsViewModel @Inject constructor(
      * atomically marks the booking COMPLETED and deletes [completionOtp].
      * On mismatch, emits a snackbar — the dialog stays open for retry.
      */
-    fun verifyOtpAndComplete(booking: Booking, inputOtp: String) {
+    fun verifyOtpAndComplete(booking: BookingDoc, inputOtp: String) {
         val trimmed = inputOtp.trim()
         if (trimmed.length != 6 || !trimmed.all { it.isDigit() }) {
             viewModelScope.launch {
@@ -292,7 +292,7 @@ class BookingsViewModel @Inject constructor(
 
     // ── Internal helpers ──────────────────────────────────────────────────────
 
-    private fun updateStatus(booking: Booking, newStatus: BookingStatus, successMessage: String) {
+    private fun updateStatus(booking: BookingDoc, newStatus: BookingStatus, successMessage: String) {
         viewModelScope.launch {
             repository.updateBookingStatus(booking.bookingId, newStatus)
                 .onSuccess {
@@ -305,14 +305,14 @@ class BookingsViewModel @Inject constructor(
         }
     }
 
-    private fun applyLocalUpdate(updated: Booking) {
+    private fun applyLocalUpdate(updated: BookingDoc) {
         userBookings.update    { list -> list.map { if (it.bookingId == updated.bookingId) updated else it } }
         purohitBookings.update { list -> list.map { if (it.bookingId == updated.bookingId) updated else it } }
     }
 
     // ── Role ──────────────────────────────────────────────────────────────────
 
-    fun currentUserIsPurohitFor(booking: Booking): Boolean {
+    fun currentUserIsPurohitFor(booking: BookingDoc): Boolean {
         val uid = repository.currentUserId() ?: return false
         return uid == booking.purohitId
     }

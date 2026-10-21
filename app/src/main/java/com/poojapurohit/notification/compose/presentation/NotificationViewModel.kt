@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.poojapurohit.notification.NotificationGroup
 import com.poojapurohit.notification.NotificationRepository
 import com.poojapurohit.notification.NotificationUiState
-import com.poojapurohit.notification.compose.model.NotificationItem
+import com.poojapurohit.data.model.NotificationDoc
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -126,7 +126,7 @@ class NotificationViewModel(
      * Firestore snapshot listener already returns items sorted by timestamp DESC,
      * so order within each group is preserved.
      */
-    private fun groupByDate(items: List<NotificationItem>): List<NotificationGroup> {
+    private fun groupByDate(items: List<NotificationDoc>): List<NotificationGroup> {
         val today = startOfDay(0)
         val yesterday = startOfDay(-1)
 

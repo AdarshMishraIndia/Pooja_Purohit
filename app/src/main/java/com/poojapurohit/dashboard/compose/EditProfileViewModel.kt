@@ -8,6 +8,9 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
 import com.poojapurohit.auth.AuthRepository
+import com.poojapurohit.data.model.PurohitDoc
+import com.poojapurohit.data.model.ServiceDoc
+import com.poojapurohit.data.model.UserDoc
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -103,13 +106,15 @@ class EditProfileViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 val snapshot = firestore
-                    .collection("services")
-                    .whereEqualTo("isActive", true)
-                    .orderBy("displayOrder")
+                    .collection(ServiceDoc.COLLECTION)
+                    .whereEqualTo(ServiceDoc.Fields.IS_ACTIVE, true)
+                    .orderBy(ServiceDoc.Fields.DISPLAY_ORDER)
                     .get()
                     .await()
 
-                val skills = snapshot.documents.mapNotNull { it.getString("name") }
+                val skills = snapshot.documents
+                    .map { ServiceDoc.fromDocument(it).name }
+                    .filter { it.isNotEmpty() }
                 _uiState.update { it.copy(availableSkills = skills) }
             } catch (e: Exception) {
                 Log.e(TAG, "Error loading skills", e)
@@ -124,16 +129,15 @@ class EditProfileViewModel : ViewModel() {
 
         viewModelScope.launch {
             try {
-                val userDoc = firestore.collection("users").document(uid).get().await()
-                if (userDoc.exists()) {
-                    val phone = (userDoc.getString("phone") ?: "").removePrefix("+91")
+                val userSnapshot = firestore.collection(UserDoc.COLLECTION).document(uid).get().await()
+                if (userSnapshot.exists()) {
+                    val user = UserDoc.fromDocument(userSnapshot)
+                    val phone = user.phone.removePrefix("+91")
                     _uiState.update {
                         it.copy(
-                            name = userDoc.getString("name") ?: "",
+                            name = user.name,
                             phone = phone,
                             originalPhone = phone,
-                            city = userDoc.getString("city") ?: "",
-                            locality = userDoc.getString("locality") ?: "",
                             isServicePartner = false,
                             isLoading = false
                         )
@@ -141,20 +145,19 @@ class EditProfileViewModel : ViewModel() {
                     return@launch
                 }
 
-                val purohitDoc = firestore.collection("purohits").document(uid).get().await()
-                if (purohitDoc.exists()) {
-                    val phone = (purohitDoc.getString("phone") ?: "").removePrefix("+91")
-                    val skills = (purohitDoc.get("proficiency") as? List<*>)
-                        ?.filterIsInstance<String>() ?: emptyList()
+                val purohitSnapshot = firestore.collection(PurohitDoc.COLLECTION).document(uid).get().await()
+                if (purohitSnapshot.exists()) {
+                    val purohit = PurohitDoc.fromDocument(purohitSnapshot)
+                    val phone = purohit.phone.removePrefix("+91")
                     _uiState.update {
                         it.copy(
-                            name = purohitDoc.getString("name") ?: "",
+                            name = purohit.name,
                             phone = phone,
                             originalPhone = phone,
-                            city = purohitDoc.getString("city") ?: "",
-                            locality = purohitDoc.getString("locality") ?: "",
-                            experience = purohitDoc.getLong("experience")?.toString() ?: "",
-                            selectedSkills = skills,
+                            city = purohit.city,
+                            locality = purohit.locality,
+                            experience = purohit.experience?.toString() ?: "",
+                            selectedSkills = purohit.proficiency,
                             isServicePartner = true,
                             isLoading = false
                         )
@@ -304,7 +307,7 @@ class EditProfileViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 val updateData = buildUpdateData(_uiState.value)
-                val collection = if (_uiState.value.isServicePartner) "purohits" else "users"
+                val collection = if (_uiState.value.isServicePartner) PurohitDoc.COLLECTION else UserDoc.COLLECTION
 
                 firestore.collection(collection)
                     .document(uid)
@@ -324,15 +327,15 @@ class EditProfileViewModel : ViewModel() {
 
     private fun buildUpdateData(state: EditProfileUiState): Map<String, Any> {
         val data = mutableMapOf<String, Any>(
-            "name" to state.name.trim(),
-            "phone" to "+91${state.phone.trim()}"
+            UserDoc.Fields.NAME to state.name.trim(),
+            UserDoc.Fields.PHONE to "+91${state.phone.trim()}"
         )
 
         if (state.isServicePartner) {
-            data["city"] = state.city.trim()
-            data["locality"] = state.locality.trim()
-            data["experience"] = state.experience.trim().toIntOrNull() ?: 0
-            data["proficiency"] = state.selectedSkills
+            data[PurohitDoc.Fields.CITY] = state.city.trim()
+            data[PurohitDoc.Fields.LOCALITY] = state.locality.trim()
+            data[PurohitDoc.Fields.EXPERIENCE] = state.experience.trim().toIntOrNull() ?: 0
+            data[PurohitDoc.Fields.PROFICIENCY] = state.selectedSkills
         }
 
         return data

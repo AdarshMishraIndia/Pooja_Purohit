@@ -13,6 +13,8 @@ import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.poojapurohit.R
 import com.poojapurohit.booking.BookingsActivity
+import com.poojapurohit.data.model.PurohitDoc
+import com.poojapurohit.data.model.UserDoc
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -77,19 +79,19 @@ class PoojaMessagingService : FirebaseMessagingService() {
         try {
             withTimeout(FIRESTORE_TIMEOUT_MS) {
                 // Check users first, then purohits — same pattern as AuthRepository
-                val userDoc = firestore.collection("users").document(uid).get().await()
+                val userDoc = firestore.collection(UserDoc.COLLECTION).document(uid).get().await()
                 if (userDoc.exists()) {
-                    firestore.collection("users").document(uid)
-                        .update("fcmTokens", FieldValue.arrayUnion(token))
+                    firestore.collection(UserDoc.COLLECTION).document(uid)
+                        .update(UserDoc.Fields.FCM_TOKENS, FieldValue.arrayUnion(token))
                         .await()
                     Log.d(TAG, "FCM token updated for user uid=$uid")
                     return@withTimeout
                 }
 
-                val purohitDoc = firestore.collection("purohits").document(uid).get().await()
+                val purohitDoc = firestore.collection(PurohitDoc.COLLECTION).document(uid).get().await()
                 if (purohitDoc.exists()) {
-                    firestore.collection("purohits").document(uid)
-                        .update("fcmTokens", FieldValue.arrayUnion(token))
+                    firestore.collection(PurohitDoc.COLLECTION).document(uid)
+                        .update(PurohitDoc.Fields.FCM_TOKENS, FieldValue.arrayUnion(token))
                         .await()
                     Log.d(TAG, "FCM token updated for purohit uid=$uid")
                 }

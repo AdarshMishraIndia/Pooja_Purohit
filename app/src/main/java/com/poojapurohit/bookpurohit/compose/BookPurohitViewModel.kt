@@ -5,8 +5,8 @@ import androidx.lifecycle.ViewModel
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
-import com.poojapurohit.bookpurohit.compose.model.PurohitItem
-import com.poojapurohit.bookpurohit.compose.model.ServiceItem
+import com.poojapurohit.data.model.PurohitDoc
+import com.poojapurohit.data.model.ServiceDoc
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,10 +19,10 @@ data class LocationItem(
 )
 
 data class BookPurohitUiState(
-    val services: List<ServiceItem> = emptyList(),
+    val services: List<ServiceDoc> = emptyList(),
     val locations: List<LocationItem> = emptyList(),
     val subLocations: List<LocationItem> = emptyList(),
-    val purohits: List<PurohitItem> = emptyList(),
+    val purohits: List<PurohitDoc> = emptyList(),
     val searchQuery: String = "",
     val isLoading: Boolean = false,
     val error: String? = null,
@@ -50,10 +50,10 @@ class BookPurohitViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(BookPurohitUiState())
     val uiState: StateFlow<BookPurohitUiState> = _uiState.asStateFlow()
 
-    private var allServices: List<ServiceItem> = emptyList()
+    private var allServices: List<ServiceDoc> = emptyList()
     private var allLocations: List<LocationItem> = emptyList()
     private var allSubLocations: List<LocationItem> = emptyList()
-    private var allPurohits: List<PurohitItem> = emptyList()
+    private var allPurohits: List<PurohitDoc> = emptyList()
 
     private var servicesListener: ListenerRegistration? = null
     private var locationsListener: ListenerRegistration? = null
@@ -129,9 +129,9 @@ class BookPurohitViewModel : ViewModel() {
         if (activeListeners.contains(ListenerType.SERVICES)) return
         _uiState.update { it.copy(isLoading = true, error = null) }
 
-        servicesListener = firestore.collection("services")
-            .whereEqualTo("isActive", true)
-            .orderBy("displayOrder", Query.Direction.ASCENDING)
+        servicesListener = firestore.collection(ServiceDoc.COLLECTION)
+            .whereEqualTo(ServiceDoc.Fields.IS_ACTIVE, true)
+            .orderBy(ServiceDoc.Fields.DISPLAY_ORDER, Query.Direction.ASCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     _uiState.update { it.copy(isLoading = false) }
@@ -139,23 +139,20 @@ class BookPurohitViewModel : ViewModel() {
                 }
 
                 val services = snapshot?.documents
-                    ?.mapNotNull { ServiceItem.fromDocument(it) }
-                    ?.filter { it.isActive }
+                    ?.map { ServiceDoc.fromDocument(it) }
+                    ?.filter { it.isActive && it.name.isNotEmpty() }
                     ?.sortedBy { it.displayOrder }
                     ?: emptyList()
 
                 // One-time fetch: collect all serviceIds offered by verified+available purohits,
                 // then filter the services list to only those with at least one purohit.
-                firestore.collection("purohits")
-                    .whereEqualTo("isVerified", true)
-                    .whereEqualTo("isAvailable", true)
+                firestore.collection(PurohitDoc.COLLECTION)
+                    .whereEqualTo(PurohitDoc.Fields.IS_VERIFIED, true)
+                    .whereEqualTo(PurohitDoc.Fields.IS_AVAILABLE, true)
                     .get()
                     .addOnSuccessListener { purohitSnapshot ->
                         val offeredSlugs = purohitSnapshot.documents
-                            .flatMap { doc ->
-                                (doc.get("serviceIds") as? List<*>)
-                                    ?.filterIsInstance<String>() ?: emptyList()
-                            }
+                            .flatMap { doc -> PurohitDoc.fromDocument(doc).serviceIds }
                             .toSet()
                         val filtered = services.filter { it.slug in offeredSlugs }
                         allServices = filtered
@@ -194,10 +191,10 @@ class BookPurohitViewModel : ViewModel() {
             )
         }
 
-        locationsListener = firestore.collection("purohits")
-            .whereEqualTo("isVerified", true)
-            .whereEqualTo("isAvailable", true)
-            .whereArrayContains("serviceIds", serviceSlug)
+        locationsListener = firestore.collection(PurohitDoc.COLLECTION)
+            .whereEqualTo(PurohitDoc.Fields.IS_VERIFIED, true)
+            .whereEqualTo(PurohitDoc.Fields.IS_AVAILABLE, true)
+            .whereArrayContains(PurohitDoc.Fields.SERVICE_IDS, serviceSlug)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     _uiState.update { it.copy(isLoading = false, error = error.message) }
@@ -206,7 +203,7 @@ class BookPurohitViewModel : ViewModel() {
 
                 val cityMap = mutableMapOf<String, LocationItem>()
                 snapshot?.documents?.forEach { doc ->
-                    val cityId = doc.getString("city") ?: return@forEach
+                    val cityId = doc.getString(PurohitDoc.Fields.CITY) ?: return@forEach
                     val existing = cityMap[cityId]
                     cityMap[cityId] = LocationItem(
                         id = cityId,
@@ -236,11 +233,11 @@ class BookPurohitViewModel : ViewModel() {
             )
         }
 
-        subLocationsListener = firestore.collection("purohits")
-            .whereEqualTo("isVerified", true)
-            .whereEqualTo("isAvailable", true)
-            .whereArrayContains("serviceIds", _uiState.value.selectedServiceSlug)
-            .whereEqualTo("city", locationId)
+        subLocationsListener = firestore.collection(PurohitDoc.COLLECTION)
+            .whereEqualTo(PurohitDoc.Fields.IS_VERIFIED, true)
+            .whereEqualTo(PurohitDoc.Fields.IS_AVAILABLE, true)
+            .whereArrayContains(PurohitDoc.Fields.SERVICE_IDS, _uiState.value.selectedServiceSlug)
+            .whereEqualTo(PurohitDoc.Fields.CITY, locationId)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     _uiState.update { it.copy(isLoading = false, error = error.message) }
@@ -249,7 +246,7 @@ class BookPurohitViewModel : ViewModel() {
 
                 val localityMap = mutableMapOf<String, LocationItem>()
                 snapshot?.documents?.forEach { doc ->
-                    val localityId = doc.getString("locality") ?: return@forEach
+                    val localityId = doc.getString(PurohitDoc.Fields.LOCALITY) ?: return@forEach
                     val existing = localityMap[localityId]
                     localityMap[localityId] = LocationItem(
                         id = localityId,
@@ -285,13 +282,13 @@ class BookPurohitViewModel : ViewModel() {
             )
         }
 
-        purohitsListener = firestore.collection("purohits")
-            .whereEqualTo("isVerified", true)
-            .whereEqualTo("isAvailable", true)
-            .whereArrayContains("serviceIds", _uiState.value.selectedServiceSlug)
-            .whereEqualTo("city", locationId)
-            .whereEqualTo("locality", subLocationId)
-            .orderBy("name", Query.Direction.ASCENDING)
+        purohitsListener = firestore.collection(PurohitDoc.COLLECTION)
+            .whereEqualTo(PurohitDoc.Fields.IS_VERIFIED, true)
+            .whereEqualTo(PurohitDoc.Fields.IS_AVAILABLE, true)
+            .whereArrayContains(PurohitDoc.Fields.SERVICE_IDS, _uiState.value.selectedServiceSlug)
+            .whereEqualTo(PurohitDoc.Fields.CITY, locationId)
+            .whereEqualTo(PurohitDoc.Fields.LOCALITY, subLocationId)
+            .orderBy(PurohitDoc.Fields.NAME, Query.Direction.ASCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     Log.e("BookPurohitVM", "attachPurohitsListener failed", error)
@@ -299,7 +296,7 @@ class BookPurohitViewModel : ViewModel() {
                     return@addSnapshotListener
                 }
 
-                val items = snapshot?.documents?.mapNotNull { PurohitItem.fromDocument(it) } ?: emptyList()
+                val items = snapshot?.documents?.map { PurohitDoc.fromDocument(it) } ?: emptyList()
                 allPurohits = items
                 _uiState.update { it.copy(purohits = items, isLoading = false) }
             }
