@@ -319,10 +319,7 @@ class AuthViewModel(
         _uiState.value = AuthUiState.Loading
         viewModelScope.launch {
             val result = repository.registerUser(
-                uid = user.uid,
-                name = formData.name,
-                phone = formData.getFormattedPhone(),
-                email = user.email.orEmpty()
+                formData.toUserDoc(userId = user.uid, email = user.email.orEmpty())
             )
             _uiState.value = result.fold(
                 onSuccess = { AuthUiState.Success },
@@ -355,15 +352,12 @@ class AuthViewModel(
         _uiState.value = AuthUiState.Loading
         viewModelScope.launch {
             val result = repository.registerServicePartner(
-                uid = user.uid,
-                name = formData.name,
-                phone = formData.getFormattedPhone(),
-                email = user.email.orEmpty(),
-                city = formData.city,
-                locality = formData.locality,
-                proficiency = proficiency,
-                serviceIds = serviceIds, // Injected structural array fix
-                experience = formData.experience
+                formData.toPurohitDoc(
+                    purohitId = user.uid,
+                    email = user.email.orEmpty(),
+                    serviceIds = serviceIds,
+                    proficiency = proficiency
+                )
             )
 
             _uiState.value = result.fold(

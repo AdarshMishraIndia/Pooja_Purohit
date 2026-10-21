@@ -10,7 +10,6 @@ import androidx.credentials.exceptions.NoCredentialException
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
-import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.GoogleAuthProvider
@@ -18,6 +17,9 @@ import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessaging
+import com.poojapurohit.data.model.PurohitDoc
+import com.poojapurohit.data.model.ServiceDoc
+import com.poojapurohit.data.model.UserDoc
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
@@ -172,17 +174,17 @@ class AuthRepository(
         val token = getFcmToken() ?: return
         try {
             withTimeout(FIRESTORE_TIMEOUT_MS.milliseconds) {
-                val userDoc = firestore.collection("users").document(uid).get().await()
+                val userDoc = firestore.collection(UserDoc.COLLECTION).document(uid).get().await()
                 if (userDoc.exists()) {
-                    firestore.collection("users").document(uid)
-                        .update("fcmTokens", FieldValue.arrayUnion(token))
+                    firestore.collection(UserDoc.COLLECTION).document(uid)
+                        .update(UserDoc.Fields.FCM_TOKENS, FieldValue.arrayUnion(token))
                         .await()
                     return@withTimeout
                 }
-                val purohitDoc = firestore.collection("purohits").document(uid).get().await()
+                val purohitDoc = firestore.collection(PurohitDoc.COLLECTION).document(uid).get().await()
                 if (purohitDoc.exists()) {
-                    firestore.collection("purohits").document(uid)
-                        .update("fcmTokens", FieldValue.arrayUnion(token))
+                    firestore.collection(PurohitDoc.COLLECTION).document(uid)
+                        .update(PurohitDoc.Fields.FCM_TOKENS, FieldValue.arrayUnion(token))
                         .await()
                 }
             }
@@ -197,10 +199,10 @@ class AuthRepository(
     private suspend fun checkUserExists(uid: String): Boolean {
         return withContext(Dispatchers.IO) {
             withTimeout(FIRESTORE_TIMEOUT_MS.milliseconds) {
-                val userDoc = firestore.collection("users").document(uid).get().await()
+                val userDoc = firestore.collection(UserDoc.COLLECTION).document(uid).get().await()
                 if (userDoc.exists()) return@withTimeout false
 
-                val purohitDoc = firestore.collection("purohits").document(uid).get().await()
+                val purohitDoc = firestore.collection(PurohitDoc.COLLECTION).document(uid).get().await()
                 return@withTimeout !purohitDoc.exists()
             }
         }
@@ -208,24 +210,13 @@ class AuthRepository(
 
     // ─── Register User ───────────────────────────────────────────────────────
 
-    suspend fun registerUser(
-        uid: String,
-        name: String,
-        phone: String,
-        email: String
-    ): Result<Unit> {
+    suspend fun registerUser(user: UserDoc): Result<Unit> {
         return try {
             withTimeout(FIRESTORE_TIMEOUT_MS.milliseconds) {
-                val token = getFcmToken()
-                val newUser = hashMapOf(
-                    "userId" to uid,
-                    "name" to name,
-                    "phone" to phone,
-                    "email" to email,
-                    "createdAt" to Timestamp.now(),
-                    "fcmTokens" to listOfNotNull(token)
-                )
-                firestore.collection("users").document(uid).set(newUser).await()
+                val doc = user.copy(fcmTokens = listOfNotNull(getFcmToken()))
+                firestore.collection(UserDoc.COLLECTION).document(doc.userId)
+                    .set(doc.toMap())
+                    .await()
                 Result.success(Unit)
             }
         } catch (e: Exception) {
@@ -235,48 +226,17 @@ class AuthRepository(
 
     // ─── Register Service Partner ────────────────────────────────────────────
 
-    suspend fun registerServicePartner(
-        uid: String,
-        name: String,
-        phone: String,
-        email: String,
-        city: String,
-        locality: String,
-        proficiency: List<String>,
-        serviceIds: List<String>,
-        experience: String
-    ): Result<Unit> {
+    suspend fun registerServicePartner(purohit: PurohitDoc): Result<Unit> {
         return try {
             withTimeout(FIRESTORE_TIMEOUT_MS.milliseconds) {
-                val token = getFcmToken()
-
-                val newPurohit = hashMapOf(
-                    "purohitId" to uid,
-                    "name" to name,
-                    "phone" to phone,
-                    "email" to email,
-                    "city" to city,
-                    "locality" to locality,
-                    "proficiency" to proficiency,       // Array of human-readable names
-                    "serviceIds" to serviceIds,         // Array of unique service slugs/IDs
-                    "fcmTokens" to listOfNotNull(token),
-                    "isVerified" to false,
-                    "isAvailable" to false,
-                    "rating" to 0.0,
-                    "totalBookings" to 0,
-                    "createdAt" to Timestamp.now(),
-                    "updatedAt" to Timestamp.now()
-                )
-
-                // Safe parsing wrapper to prevent formatting crashes
-                val parsedExperience = experience.toIntOrNull() ?: 0
-                newPurohit["experience"] = parsedExperience
-
-                firestore.collection("purohits").document(uid).set(newPurohit).await()
+                val doc = purohit.copy(fcmTokens = listOfNotNull(getFcmToken()))
+                firestore.collection(PurohitDoc.COLLECTION).document(doc.purohitId)
+                    .set(doc.toMap())
+                    .await()
                 Result.success(Unit)
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Critical: Service partner registration failed for UID: $uid", e)
+            Log.e(TAG, "Critical: Service partner registration failed for UID: ${purohit.purohitId}", e)
             Result.failure(e)
         }
     }
@@ -352,11 +312,11 @@ class AuthRepository(
         return try {
             withTimeout(FIRESTORE_TIMEOUT_MS.milliseconds) {
                 user.reload().await()
-                val userDoc = firestore.collection("users").document(user.uid).get().await()
+                val userDoc = firestore.collection(UserDoc.COLLECTION).document(user.uid).get().await()
                 if (userDoc.exists()) return@withTimeout true
 
                 val purohitDoc =
-                    firestore.collection("purohits").document(user.uid).get().await()
+                    firestore.collection(PurohitDoc.COLLECTION).document(user.uid).get().await()
                 purohitDoc.exists()
             }
         } catch (_: Exception) {
@@ -373,15 +333,16 @@ class AuthRepository(
     suspend fun loadServicesMap(): Result<Map<String, String>> {
         return try {
             withTimeout(FIRESTORE_TIMEOUT_MS.milliseconds) {
-                val snapshot = firestore.collection("services")
-                    .whereEqualTo("isActive", true)
-                    .orderBy("displayOrder")
+                val snapshot = firestore.collection(ServiceDoc.COLLECTION)
+                    .whereEqualTo(ServiceDoc.Fields.IS_ACTIVE, true)
+                    .orderBy(ServiceDoc.Fields.DISPLAY_ORDER)
                     .get()
                     .await()
 
-                val servicesMap = snapshot.documents.associate { doc ->
-                    doc.id to (doc.getString("name") ?: "")
-                }.filterValues { it.isNotEmpty() }
+                val servicesMap = snapshot.documents
+                    .map { ServiceDoc.fromDocument(it) }
+                    .filter { it.name.isNotEmpty() }
+                    .associate { it.id to it.name }
 
                 Result.success(servicesMap)
             }

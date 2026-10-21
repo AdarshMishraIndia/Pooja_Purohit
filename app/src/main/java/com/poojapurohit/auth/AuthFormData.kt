@@ -1,5 +1,8 @@
 package com.poojapurohit.auth
 
+import com.poojapurohit.data.model.PurohitDoc
+import com.poojapurohit.data.model.UserDoc
+
 data class AuthFormData(
     var name: String = "",
     var phone: String = "",
@@ -13,4 +16,30 @@ data class AuthFormData(
 
     fun getFullLocation(): String =
         if (locality.isNotBlank()) "$locality, $city" else city
+
+    fun toUserDoc(userId: String, email: String): UserDoc =
+        UserDoc.forRegistration(
+            userId = userId,
+            name = name,
+            phone = getFormattedPhone(),
+            email = email
+        )
+
+    fun toPurohitDoc(
+        purohitId: String,
+        email: String,
+        serviceIds: List<String>,
+        proficiency: List<String>
+    ): PurohitDoc =
+        PurohitDoc.forRegistration(
+            purohitId = purohitId,
+            name = name,
+            phone = getFormattedPhone(),
+            email = email,
+            city = city,
+            locality = locality,
+            experience = experience.toIntOrNull() ?: 0,
+            proficiency = proficiency,
+            serviceIds = serviceIds
+        )
 }
